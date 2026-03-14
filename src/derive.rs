@@ -6,7 +6,9 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     let ast = syn::parse2::<DeriveInput>(input).unwrap();
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let output = ast.generics.params.first().unwrap();
-    let GenericParam::Type(output) = output else {todo!()};
+    let GenericParam::Type(output) = output else {
+        todo!()
+    };
     let output = &output.ident;
     let name = &ast.ident;
     let impl_try = quote! {
@@ -60,6 +62,9 @@ mod tests {
                 }
             }
         };
-        assert_eq!(derived_impl.to_string(), impl_try_trait_v2(original).to_string())
+        assert_eq!(
+            derived_impl.to_string(),
+            impl_try_trait_v2(original).to_string()
+        )
     }
 }
