@@ -4,7 +4,13 @@ use syn::DeriveInput;
 
 pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     let ast = syn::parse2::<DeriveInput>(input).unwrap();
-    todo!()
+    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+    let name = &ast.ident;
+    let impl_try = quote! {
+        impl #impl_generics Try for #name #ty_generics #where_clause {
+        }
+    };
+    impl_try
 }
 
 #[cfg(test)]
