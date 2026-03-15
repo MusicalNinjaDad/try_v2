@@ -58,7 +58,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
-    let ast = syn::parse2::<DeriveInput>(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
@@ -133,9 +133,9 @@ pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
-    let mut ast = syn::parse2::<DeriveInput>(input).unwrap();
+    let mut ast: DeriveInput = syn::parse2(input).unwrap();
 
-    let err_generic = syn::parse2::<GenericParam>(quote! {E: Into<Exit<T>>}).unwrap();
+    let err_generic: GenericParam = syn::parse2(quote! {E: Into<Exit<T>>}).unwrap();
 
     ast.generics.params.push(err_generic);
 
