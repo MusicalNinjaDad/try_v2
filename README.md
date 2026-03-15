@@ -4,7 +4,7 @@ A derive macro for [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trai
 
 ## Requires
 
-- `RUSTC_BOOTSRAP = 1` (or nightly)
+- `RUSTC_BOOTSTRAP = 1` (or nightly)
 - `#![feature(never_type)]`
 - `#![feature(try_trait_v2)]`
 

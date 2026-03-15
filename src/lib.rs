@@ -2,7 +2,7 @@
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
 //! ## Requires:
-//!   - `RUSTC_BOOTSRAP = 1` (or nightly)
+//!   - `RUSTC_BOOTSTRAP = 1` (or nightly)
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
 //!
@@ -42,7 +42,7 @@ use syn::{Data, DeriveInput, GenericParam};
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
 /// ## Requires:
-///   - `RUSTC_BOOTSRAP = 1` (or nightly)
+///   - `RUSTC_BOOTSTRAP = 1` (or nightly)
 ///   - `#![feature(never_type)]`
 ///   - `#![feature(try_trait_v2)]`
 ///
