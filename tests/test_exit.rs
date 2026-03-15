@@ -14,6 +14,20 @@ enum Exit<T: Termination> {
     OtherError(String),
 }
 
+#[derive(Debug, Try)]
+#[allow(unused)] // If it compiles then it already passes
+enum NoFieldResiduals<T: Termination> {
+    Ok(T),
+    TestsFailed,
+}
+
+#[derive(Debug, Try)]
+#[allow(unused)] // If it compiles then it already passes
+enum NoUnitResiduals<T: Termination> {
+    Ok(T),
+    OtherError(String),
+}
+
 #[test]
 fn short_circuit_1() {
     fn fail() -> Exit<()> {

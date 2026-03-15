@@ -51,8 +51,8 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                 match self {
                     Self::#output_variant(v) => std::ops::ControlFlow::Continue(v),
-                    #(Self::#residual_variants_unit => std::ops::ControlFlow::Break(#name::#residual_variants_unit)),*,
-                    #(Self::#residual_variants_with_fields(v) => std::ops::ControlFlow::Break(#name::#residual_variants_with_fields(v))),*,
+                    #(Self::#residual_variants_unit => std::ops::ControlFlow::Break(#name::#residual_variants_unit),)*
+                    #(Self::#residual_variants_with_fields(v) => std::ops::ControlFlow::Break(#name::#residual_variants_with_fields(v)),)*
                 }
             }
         }
@@ -62,8 +62,8 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             #[track_caller]
             fn from_residual(residual: #name<!>) -> Self {
                 match residual {
-                    #(#name::#residual_variants_unit => #name::#residual_variants_unit),*,
-                    #(#name::#residual_variants_with_fields(v) => #name::#residual_variants_with_fields(v)),*,
+                    #(#name::#residual_variants_unit => #name::#residual_variants_unit,)*
+                    #(#name::#residual_variants_with_fields(v) => #name::#residual_variants_with_fields(v),)*
                 }
             }
         }
