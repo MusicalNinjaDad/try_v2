@@ -126,6 +126,27 @@ fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     impl_try
 }
 
+#[proc_macro_derive(Try_ConvertResult)]
+/// Derives conversion from Result<T, E> where E: Into::into(Self)
+pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
+    impl_try_trait_v2_result(input.into()).into()
+}
+
+fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
+    quote! {
+        impl<T: Termination, E: Into<Exit<T>>> std::ops::FromResidual<std::result::Result<Infallible, E>> for Exit<T>
+        {
+            #[inline]
+            #[track_caller]
+            fn from_residual(residual: std::result::Result<Infallible, E>) -> Self {
+                match residual {
+                    Result::Err(e) => e.into(),
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,6 +197,34 @@ mod tests {
         assert_eq!(
             derived_impl.to_string(),
             impl_try_trait_v2(original).to_string()
+        )
+    }
+    #[test]
+    fn convert_result() {
+        let original: TokenStream2 = quote! {
+            #[derive(Try_ConvertResult)]
+            enum Exit<T: Termination> {
+                Ok(T),
+                TestsFailed,
+                OtherError(String),
+            }
+        };
+
+        let derived_impl: TokenStream2 = quote! {
+            impl<T: Termination, E: Into<Exit<T>>> std::ops::FromResidual<std::result::Result<Infallible, E>> for Exit<T>
+            {
+                #[inline]
+                #[track_caller]
+                fn from_residual(residual: std::result::Result<Infallible, E>) -> Self {
+                    match residual {
+                        Result::Err(e) => e.into(),
+                    }
+                }
+            }
+        };
+        assert_eq!(
+            derived_impl.to_string(),
+            impl_try_trait_v2_result(original).to_string()
         )
     }
 }
