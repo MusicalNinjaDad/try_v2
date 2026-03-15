@@ -18,11 +18,12 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     };
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
 
-    let residual_variants = enum_data.variants.clone();
-    let mut residual_variants = residual_variants.into_iter();
-    let _ = residual_variants.next().unwrap();
-    let residual_variants: Vec<_> = residual_variants.map(|v| v.ident).collect();
-
+    let residual_variants: Vec<_> = enum_data
+        .variants
+        .iter()
+        .skip(1)
+        .map(|v| v.ident.clone())
+        .collect();
     let name = &ast.ident;
 
     let impl_try = quote! {
