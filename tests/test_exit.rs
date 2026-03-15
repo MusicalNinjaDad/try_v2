@@ -11,7 +11,7 @@ use try_v2::Try;
 enum Exit<T: Termination> {
     Ok(T),
     TestsFailed,
-    OtherError,
+    OtherError(String),
 }
 
 #[test]
@@ -26,11 +26,11 @@ fn short_circuit_1() {
 #[test]
 fn short_circuit_2() {
     fn fail() -> Exit<()> {
-        Exit::OtherError?;
+        Exit::OtherError("oops!".to_string())?;
         Exit::TestsFailed?;
         Exit::Ok(())
     }
-    assert_matches!(fail(), Exit::OtherError)
+    assert_matches!(fail(), Exit::OtherError(msg) if msg == "oops!")
 }
 
 #[test]
