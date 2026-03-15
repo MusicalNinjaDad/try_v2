@@ -18,12 +18,22 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     };
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
 
-    let residual_variants: Vec<_> = enum_data
+    let residual_variants_unit: Vec<_> = enum_data
         .variants
         .iter()
         .skip(1)
-        .map(|v| v.ident.clone())
+        .filter(|variant| variant.fields.is_empty())
+        .cloned()
         .collect();
+
+    let residual_variants_with_fields: Vec<_> = enum_data
+        .variants
+        .iter()
+        .skip(1)
+        .filter(|variant| !variant.fields.is_empty())
+        .map(|variant| variant.ident.clone())
+        .collect(); //TODO: multiple fields
+
     let name = &ast.ident;
 
     let impl_try = quote! {
@@ -41,7 +51,8 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                 match self {
                     Self::#output_variant(v) => std::ops::ControlFlow::Continue(v),
-                    #(Self::#residual_variants => std::ops::ControlFlow::Break(#name::#residual_variants)),*,
+                    #(Self::#residual_variants_unit => std::ops::ControlFlow::Break(#name::#residual_variants_unit)),*
+                    #(Self::#residual_variants_with_fields(v) => std::ops::ControlFlow::Break(#name::#residual_variants_with_fields(v))),*,
                 }
             }
         }
@@ -51,7 +62,8 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             #[track_caller]
             fn from_residual(residual: #name<!>) -> Self {
                 match residual {
-                    #(#name::#residual_variants => #name::#residual_variants),*,
+                    #(#name::#residual_variants_unit => #name::#residual_variants_unit),*
+                    #(#name::#residual_variants_with_fields(v) => #name::#residual_variants_with_fields(v)),*,
                 }
             }
         }
@@ -66,12 +78,14 @@ mod tests {
     #[test]
     fn derive() {
         let original: TokenStream2 = quote! {
-            #[derive(TryTraitv2)]
+            #[derive(Try)]
             enum Exit<T: Termination> {
                 Ok(T),
                 TestsFailed,
+                OtherError(String),
             }
         };
+
         let derived_impl: TokenStream2 = quote! {
             impl<T: Termination> std::ops::Try for Exit<T> {
                 type Output = T;
@@ -88,6 +102,7 @@ mod tests {
                     match self {
                         Self::Ok(v) => std::ops::ControlFlow::Continue(v),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
+                        Self::OtherError(v) => std::ops::ControlFlow::Break(Exit::OtherError(v)),
                     }
                 }
             }
@@ -98,6 +113,7 @@ mod tests {
                 fn from_residual(residual: Exit<!>) -> Self {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
+                        Exit::OtherError(v) => Exit::OtherError(v),
                     }
                 }
             }
