@@ -133,18 +133,17 @@ pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
-    let mut ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let name = &ast.ident;
 
-    let original_generics = ast.generics.clone();
-    let (_, ty_generics, _) = &original_generics.split_for_impl();
+    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
+    let mut extended_generics = ast.generics.clone();
     let err_generic: GenericParam = syn::parse2(quote! {E: Into<#name #ty_generics>}).unwrap();
+    extended_generics.params.push(err_generic);
 
-    ast.generics.params.push(err_generic);
-
-    let (impl_generics, _, where_clause) = &ast.generics.split_for_impl();
+    let (impl_generics, _, _) = extended_generics.split_for_impl();
 
     quote! {
         impl #impl_generics std::ops::FromResidual<std::result::Result<Infallible, E>> for #name #ty_generics #where_clause
