@@ -2,8 +2,8 @@
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 
-use std::process::Termination;
 use std::assert_matches::assert_matches;
+use std::process::Termination;
 
 use try_v2::Try;
 
