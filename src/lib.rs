@@ -8,9 +8,10 @@
 //!
 //! ## Current Limitations on the annotated type:
 //!   - must be an `enum`
-//!   - must have _at least one_ generic type
-//!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
+//!   - must have _one_ generic type
+//!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant
+//!   - other (short-circuiting) variants can have _at most one unnamed field_
 //!
 //! ## Example Usage:
 //! ```rust
@@ -48,9 +49,10 @@ use syn::{Data, DeriveInput, GenericParam};
 ///
 /// ## Current Limitations on the annotated type:
 ///   - must be an `enum`
-///   - must have _at least one_ generic type
-///   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
+///   - must have _one_ generic type
+///   - the _first & only_ generic type must be the `Output` type (produced when not short circuiting)
 ///   - the output variant (does not short-circuit) must be the _first_ variant
+///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_try_trait_v2(input.into()).into()
 }

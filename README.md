@@ -11,9 +11,10 @@ A derive macro for [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trai
 ## Current Limitations on the annotated type
 
 - must be an `enum`
-- must have _at least one_ generic type
-- the _first_ generic type must be the `Output` type (produced when not short circuiting)
+- must have _one_ generic type
+- the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant
+- other (short-circuiting) variants can have _at most one unnamed field_
 
 ## Example Usage
 
