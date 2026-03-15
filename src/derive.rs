@@ -16,6 +16,11 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     let Data::Enum(enum_data) = ast.data else {todo!()};
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
     
+    let residual_variants = enum_data.variants.clone();
+    let mut residual_variants = residual_variants.into_iter();
+    let _ = residual_variants.next().unwrap();
+    let residual_variants: Vec<_> = residual_variants.map(|v| {v.ident}).collect();
+
     let name = &ast.ident;
     
     let impl_try = quote! {
@@ -32,8 +37,8 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             #[inline]
             fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
                 match self {
-                    Self::Ok(v) => ControlFlow::Continue(v),
-                    Self::TestsFailed => ControlFlow::Break(Exit::TestsFailed),
+                    Self::#output_variant(v) => ControlFlow::Continue(v),
+                    #(Self::#residual_variants => ControlFlow::Break(#name::#residual_variants)),*,
                 }
             }
         }   
