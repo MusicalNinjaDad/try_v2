@@ -5,9 +5,9 @@
 use std::process::Termination;
 use std::assert_matches::assert_matches;
 
-use try_v2::TryTraitv2;
+use try_v2::Try;
 
-#[derive(Debug, TryTraitv2)]
+#[derive(Debug, Try)]
 enum Exit<T: Termination> {
     Ok(T),
     TestsFailed,
