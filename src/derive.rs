@@ -7,15 +7,15 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let output_ty = ast.generics.params.first().unwrap();
-    let GenericParam::Type(output_ty) = output_ty else {
-        todo!()
+    let output_ty = match ast.generics.params.first().unwrap() {
+        GenericParam::Type(output_ty) => &output_ty.ident,
+        _ => todo!(),
     };
-    let output_ty = &output_ty.ident;
 
     let Data::Enum(enum_data) = ast.data else {
         todo!()
     };
+
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
 
     let residual_variants_unit: Vec<_> = enum_data
