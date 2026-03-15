@@ -71,10 +71,10 @@ use syn::{Data, DeriveInput, GenericParam};
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    impl_try_trait_v2(input.into()).into()
+    impl_derive(input.into()).into()
 }
 
-fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
+fn impl_derive(input: TokenStream2) -> TokenStream2 {
     let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
@@ -148,11 +148,11 @@ fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
 /// 
 /// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
 /// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
-pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
-    impl_try_trait_v2_result(input.into()).into()
+pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
+    impl_convert_result(input.into()).into()
 }
 
-fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
+fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let name = &ast.ident;
@@ -228,7 +228,7 @@ mod tests {
         };
         assert_eq!(
             derived_impl.to_string(),
-            impl_try_trait_v2(original).to_string()
+            impl_derive(original).to_string()
         )
     }
     #[test]
@@ -256,7 +256,7 @@ mod tests {
         };
         assert_eq!(
             derived_impl.to_string(),
-            impl_try_trait_v2_result(original).to_string()
+            impl_convert_result(original).to_string()
         )
     }
 }
