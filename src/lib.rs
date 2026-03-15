@@ -145,6 +145,9 @@ fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
 
 #[proc_macro_derive(Try_ConvertResult)]
 /// Derives conversion from Result<T, E> where E: Into::into(Self)
+/// 
+/// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
+/// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
 pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
     impl_try_trait_v2_result(input.into()).into()
 }
