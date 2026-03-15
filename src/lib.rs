@@ -137,16 +137,17 @@ fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
 
     let name = &ast.ident;
 
-    let (_, ty_generics, _) = &ast.generics.split_for_impl();
+    let original_generics = ast.generics.clone();
+    let (_, ty_generics, _) = &original_generics.split_for_impl();
 
     let err_generic: GenericParam = syn::parse2(quote! {E: Into<#name #ty_generics>}).unwrap();
 
     ast.generics.params.push(err_generic);
 
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+    let (impl_generics, _, where_clause) = &ast.generics.split_for_impl();
 
     quote! {
-        impl #impl_generics std::ops::FromResidual<std::result::Result<Infallible, E>> for Exit<T>
+        impl #impl_generics std::ops::FromResidual<std::result::Result<Infallible, E>> for #name #ty_generics #where_clause
         {
             #[inline]
             #[track_caller]
