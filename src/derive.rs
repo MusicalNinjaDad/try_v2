@@ -43,7 +43,7 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             }
         }   
 
-        impl<T: Termination> FromResidual<Exit<Infallible>> for Exit<T> {
+        impl #impl_generics FromResidual<#name<Infallible>> for #name #ty_generics #where_clause {
             #[inline]
             #[track_caller]
             fn from_residual(residual: Exit<Infallible>) -> Self {
