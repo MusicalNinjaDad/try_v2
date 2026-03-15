@@ -76,7 +76,7 @@ fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
         .iter()
         .skip(1)
         .filter(|variant| variant.fields.is_empty())
-        .cloned()
+        .map(|variant| variant.ident.clone())
         .collect();
 
     let residual_variants_with_fields: Vec<_> = enum_data
