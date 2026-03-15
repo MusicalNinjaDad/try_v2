@@ -135,7 +135,11 @@ pub fn try_trait_v2_result_derive(input: TokenStream1) -> TokenStream1 {
 fn impl_try_trait_v2_result(input: TokenStream2) -> TokenStream2 {
     let mut ast: DeriveInput = syn::parse2(input).unwrap();
 
-    let err_generic: GenericParam = syn::parse2(quote! {E: Into<Exit<T>>}).unwrap();
+    let name = &ast.ident;
+
+    let (_, ty_generics, _) = &ast.generics.split_for_impl();
+
+    let err_generic: GenericParam = syn::parse2(quote! {E: Into<#name #ty_generics>}).unwrap();
 
     ast.generics.params.push(err_generic);
 
