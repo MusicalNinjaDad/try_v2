@@ -1,6 +1,8 @@
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
+//! Also enables auto-conversion from `Result<T, E> where E: Into::into(Self)`
+//!
 //! ## Requires:
 //!   - `RUSTC_BOOTSTRAP = 1` (or nightly)
 //!   - `#![feature(never_type)]`
@@ -17,9 +19,9 @@
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
-//! use try_v2::Try;
+//! use try_v2::{Try, Try_ConvertResult};
 //!
-//! #[derive(Try)]
+//! #[derive(Try, Try_ConvertResult)]
 //! enum TestResult<T> {
 //!     Ok(T),
 //!     TestsFailed,
@@ -32,7 +34,22 @@
 //!     TestResult::Ok(())
 //! }
 //!
-//! assert!(matches!(run_tests(), TestResult::OtherError(msg) if msg == "oops!"))
+//! assert!(matches!(run_tests(), TestResult::OtherError(msg) if msg == "oops!"));
+//!
+//! struct MyError {}
+//!
+//! impl<T> From<MyError> for TestResult<T> {
+//!     fn from(err: MyError) -> Self {
+//!         TestResult::TestsFailed
+//!     }
+//! }
+//!
+//! fn run_more_tests() -> TestResult<()> {
+//!     Err(MyError{})?; // <- Function short-circuits here & converts to a TestResult...
+//!     TestResult::Ok(())
+//! }
+//!
+//! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
@@ -54,11 +71,11 @@ use syn::{Data, DeriveInput, GenericParam};
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    impl_try_trait_v2(input.into()).into()
+    impl_derive(input.into()).into()
 }
 
-fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
-    let ast = syn::parse2::<DeriveInput>(input).unwrap();
+fn impl_derive(input: TokenStream2) -> TokenStream2 {
+    let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
@@ -126,6 +143,42 @@ fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     impl_try
 }
 
+#[proc_macro_derive(Try_ConvertResult)]
+/// Derives conversion from Result<T, E> where E: Into::into(Self)
+///
+/// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
+/// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
+pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
+    impl_convert_result(input.into()).into()
+}
+
+fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
+    let ast: DeriveInput = syn::parse2(input).unwrap();
+
+    let name = &ast.ident;
+
+    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
+
+    let mut extended_generics = ast.generics.clone();
+    let err_generic: GenericParam = syn::parse2(quote! {E: Into<#name #ty_generics>}).unwrap();
+    extended_generics.params.push(err_generic);
+
+    let (impl_generics, _, _) = extended_generics.split_for_impl();
+
+    quote! {
+        impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>> for #name #ty_generics #where_clause
+        {
+            #[inline]
+            #[track_caller]
+            fn from_residual(residual: std::result::Result<std::convert::Infallible, E>) -> Self {
+                match residual {
+                    Result::Err(e) => e.into(),
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,9 +226,34 @@ mod tests {
                 }
             }
         };
+        assert_eq!(derived_impl.to_string(), impl_derive(original).to_string())
+    }
+    #[test]
+    fn convert_result() {
+        let original: TokenStream2 = quote! {
+            #[derive(Try_ConvertResult)]
+            enum Exit<T: Termination> {
+                Ok(T),
+                TestsFailed,
+                OtherError(String),
+            }
+        };
+
+        let derived_impl: TokenStream2 = quote! {
+            impl<T: Termination, E: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>> for Exit<T>
+            {
+                #[inline]
+                #[track_caller]
+                fn from_residual(residual: std::result::Result<std::convert::Infallible, E>) -> Self {
+                    match residual {
+                        Result::Err(e) => e.into(),
+                    }
+                }
+            }
+        };
         assert_eq!(
             derived_impl.to_string(),
-            impl_try_trait_v2(original).to_string()
+            impl_convert_result(original).to_string()
         )
     }
 }
