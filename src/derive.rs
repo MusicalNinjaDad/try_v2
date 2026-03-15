@@ -4,7 +4,7 @@ use syn::{Data, DeriveInput, GenericParam};
 
 pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     let ast = syn::parse2::<DeriveInput>(input).unwrap();
-    
+
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let output_ty = ast.generics.params.first().unwrap();
@@ -13,16 +13,18 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     };
     let output_ty = &output_ty.ident;
 
-    let Data::Enum(enum_data) = ast.data else {todo!()};
+    let Data::Enum(enum_data) = ast.data else {
+        todo!()
+    };
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
-    
+
     let residual_variants = enum_data.variants.clone();
     let mut residual_variants = residual_variants.into_iter();
     let _ = residual_variants.next().unwrap();
-    let residual_variants: Vec<_> = residual_variants.map(|v| {v.ident}).collect();
+    let residual_variants: Vec<_> = residual_variants.map(|v| v.ident).collect();
 
     let name = &ast.ident;
-    
+
     let impl_try = quote! {
         impl #impl_generics Try for #name #ty_generics #where_clause {
             type Output = #output_ty;
@@ -41,7 +43,7 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
                     #(Self::#residual_variants => ControlFlow::Break(#name::#residual_variants)),*,
                 }
             }
-        }   
+        }
 
         impl #impl_generics FromResidual<#name<Infallible>> for #name #ty_generics #where_clause {
             #[inline]
