@@ -27,7 +27,7 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
     let name = &ast.ident;
 
     let impl_try = quote! {
-        impl #impl_generics Try for #name #ty_generics #where_clause {
+        impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
             type Output = #output_ty;
 
             type Residual = #name<!>;
@@ -38,15 +38,15 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             }
 
             #[inline]
-            fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                 match self {
-                    Self::#output_variant(v) => ControlFlow::Continue(v),
-                    #(Self::#residual_variants => ControlFlow::Break(#name::#residual_variants)),*,
+                    Self::#output_variant(v) => std::ops::ControlFlow::Continue(v),
+                    #(Self::#residual_variants => std::ops::ControlFlow::Break(#name::#residual_variants)),*,
                 }
             }
         }
 
-        impl #impl_generics FromResidual<#name<!>> for #name #ty_generics #where_clause {
+        impl #impl_generics std::ops::FromResidual<#name<!>> for #name #ty_generics #where_clause {
             #[inline]
             #[track_caller]
             fn from_residual(residual: #name<!>) -> Self {
@@ -73,7 +73,7 @@ mod tests {
             }
         };
         let derived_impl: TokenStream2 = quote! {
-            impl<T: Termination> Try for Exit<T> {
+            impl<T: Termination> std::ops::Try for Exit<T> {
                 type Output = T;
 
                 type Residual = Exit<!>;
@@ -84,15 +84,15 @@ mod tests {
                 }
 
                 #[inline]
-                fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+                fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                     match self {
-                        Self::Ok(v) => ControlFlow::Continue(v),
-                        Self::TestsFailed => ControlFlow::Break(Exit::TestsFailed),
+                        Self::Ok(v) => std::ops::ControlFlow::Continue(v),
+                        Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
                     }
                 }
             }
 
-            impl<T: Termination> FromResidual<Exit<!>> for Exit<T> {
+            impl<T: Termination> std::ops::FromResidual<Exit<!>> for Exit<T> {
                 #[inline]
                 #[track_caller]
                 fn from_residual(residual: Exit<!>) -> Self {
