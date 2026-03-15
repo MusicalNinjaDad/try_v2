@@ -2,10 +2,23 @@
 name = "try_v2"
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
+description = "Provides a derive macro for `Try` ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))"
+authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
+keywords = ["derive", "Try", "try_trait_v2"]
+homepage = "https://github.com/MusicalNinjaDad/try_v2"
+repository = "https://github.com/MusicalNinjaDad/try_v2"
+categories = ["development-tools"]
+license = "MIT"
+include = [
+    "/src/",
+    "/tests/"
+]
 
 [lib]
 proc-macro = true
 
 [dependencies]
 syn = "2.0.117"
+proc-macro2 = "1.0.106"
 quote = "1.0.45"
