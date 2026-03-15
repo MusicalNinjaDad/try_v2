@@ -46,10 +46,10 @@ pub(crate) fn impl_try_trait_v2(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        impl #impl_generics FromResidual<#name<Infallible>> for #name #ty_generics #where_clause {
+        impl #impl_generics FromResidual<#name<!>> for #name #ty_generics #where_clause {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: #name<Infallible>) -> Self {
+            fn from_residual(residual: #name<!>) -> Self {
                 match residual {
                     #(#name::#residual_variants => #name::#residual_variants),*,
                 }
@@ -92,10 +92,10 @@ mod tests {
                 }
             }
 
-            impl<T: Termination> FromResidual<Exit<Infallible>> for Exit<T> {
+            impl<T: Termination> FromResidual<Exit<!>> for Exit<T> {
                 #[inline]
                 #[track_caller]
-                fn from_residual(residual: Exit<Infallible>) -> Self {
+                fn from_residual(residual: Exit<!>) -> Self {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
                     }
