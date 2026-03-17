@@ -54,7 +54,7 @@
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Data, DeriveInput, GenericParam};
+use syn::{Data, DeriveInput, Error, GenericParam};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -75,17 +75,23 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_derive(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = match syn::parse2(input){
+        Ok(ast) => ast,
+        Err(err) => return err.into_compile_error(),
+    };
+
+    let name = &ast.ident;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let output_ty = match ast.generics.params.first().unwrap() {
-        GenericParam::Type(output_ty) => &output_ty.ident,
-        _ => todo!(),
-    };
-
     let Data::Enum(enum_data) = ast.data else {
         todo!()
+    };
+
+    let output_ty = match ast.generics.params.first() {
+        Some(GenericParam::Type(output_ty)) => &output_ty.ident,
+        Some(_) => todo!(),
+        None => return Error::new(name.span(), "Try requires a generic type for `Output`").into_compile_error(),
     };
 
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
@@ -106,7 +112,7 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
         .map(|variant| variant.ident.clone())
         .collect(); //TODO: multiple fields
 
-    let name = &ast.ident;
+    
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
