@@ -80,7 +80,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input)?;
 
     let name = &ast.ident;
 
