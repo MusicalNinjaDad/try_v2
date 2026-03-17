@@ -11,6 +11,6 @@ enum NoGenerics {
 }
 
 #[test]
-fn foo () {
+fn foo() {
     todo!()
 }
