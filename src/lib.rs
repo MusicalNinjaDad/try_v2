@@ -56,7 +56,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::quote;
-use syn::{Data, DeriveInput, GenericParam};
+use syn::{Data, DeriveInput, GenericParam, spanned::Spanned};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -86,8 +86,18 @@ fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let Data::Enum(enum_data) = ast.data else {
-        todo!()
+    let enum_data = match ast.data {
+        Data::Enum(enum_data) => enum_data,
+        Data::Struct(struct_data) => {
+            return Err(Span::call_site()
+                .error("Try can only be derived for an enum")
+                .span_help(struct_data.struct_token.span(), "not an enum"));
+        }
+        Data::Union(union_data) => {
+            return Err(Span::call_site()
+                .error("Try can only be derived for an enum")
+                .span_help(union_data.union_token.span(), "not an enum"));
+        }
     };
 
     let output_ty = match ast.generics.params.first() {
