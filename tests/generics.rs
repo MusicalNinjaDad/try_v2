@@ -9,8 +9,3 @@ enum NoGenerics {
     TestsFailed,
     OtherError(String),
 }
-
-#[test]
-fn foo() {
-    todo!()
-}
