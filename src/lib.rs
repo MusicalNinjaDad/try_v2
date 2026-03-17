@@ -1,3 +1,4 @@
+#![feature(proc_macro_diagnostic)]
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
@@ -52,9 +53,10 @@
 //! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
+use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::quote;
-use syn::{Data, DeriveInput, Error, GenericParam};
+use syn::{Data, DeriveInput, GenericParam};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -71,14 +73,14 @@ use syn::{Data, DeriveInput, Error, GenericParam};
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    impl_derive(input.into()).into()
+    match impl_derive(input.into()) {
+        Ok(tokens) => tokens.into(),
+        Err(diagnostic) => diagnostic.emit_as_item_tokens().into(),
+    }
 }
 
-fn impl_derive(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = match syn::parse2(input){
-        Ok(ast) => ast,
-        Err(err) => return err.into_compile_error(),
-    };
+fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
+    let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let name = &ast.ident;
 
@@ -91,7 +93,11 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
     let output_ty = match ast.generics.params.first() {
         Some(GenericParam::Type(output_ty)) => &output_ty.ident,
         Some(_) => todo!(),
-        None => return Error::new(name.span(), "Try requires a generic type for `Output`").into_compile_error(),
+        None => {
+            return Err(Span::call_site()
+                .error("Try requires a generic type for `Output`")
+                .span_help(name.span(), "Add <T> after this..."));
+        }
     };
 
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
@@ -111,8 +117,6 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
         .filter(|variant| !variant.fields.is_empty())
         .map(|variant| variant.ident.clone())
         .collect(); //TODO: multiple fields
-
-    
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -146,7 +150,7 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
             }
         }
     };
-    impl_try
+    Ok(impl_try)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
@@ -232,7 +236,10 @@ mod tests {
                 }
             }
         };
-        assert_eq!(derived_impl.to_string(), impl_derive(original).to_string())
+        assert_eq!(
+            derived_impl.to_string(),
+            impl_derive(original).unwrap().to_string()
+        )
     }
     #[test]
     fn convert_result() {
