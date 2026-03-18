@@ -232,6 +232,7 @@ impl DiagnosticResult {
         });
         self
     }
+    #[allow(unused)]
     fn unwrap(self) -> TokenStream2 {
         let Self::Ok(t) = self else {
             panic!("Called unwrap on a not-OK value: {:?}", self)
@@ -253,7 +254,9 @@ struct MyDiagnostic {
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Level {
     Error,
+    #[expect(unused)]
     Warning,
+    #[expect(unused)]
     Note,
     Help,
 }
