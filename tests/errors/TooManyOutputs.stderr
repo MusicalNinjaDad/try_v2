@@ -4,7 +4,7 @@ error: Try requires a single generic type for `Output`
 6 | #[derive(Try)]
   |          ^^^
   |
-help: This should be (T)
+help: change this to (T)
  --> tests/errors/TooManyOutputs.rs:8:7
   |
 8 |     Ok(T, E),

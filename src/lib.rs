@@ -146,7 +146,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
             Span::call_site(),
             "Try requires a single generic type for `Output`",
         )
-        .add_help(fields.span(), format_args!("This should be ({output_ty})"));
+        .add_help(fields.span(), format_args!("change this to ({output_ty})"));
     }
     let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty else {
         todo!()
