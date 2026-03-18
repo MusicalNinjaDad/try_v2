@@ -10,4 +10,10 @@ enum NoGenerics {
     OtherError(String),
 }
 
+#[derive(Try)]
+enum GenericNotOutput<T, E> {
+    Ok(E),
+    Err(T),
+}
+
 fn main() {}

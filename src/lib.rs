@@ -59,7 +59,7 @@
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DeriveInput, GenericParam, spanned::Spanned};
+use syn::{Data, DeriveInput, Fields, FieldsUnnamed, GenericParam, spanned::Spanned};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -116,7 +116,25 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         }
     };
 
-    let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
+    let output_variant = &enum_data.variants[0];
+    let Fields::Unnamed(fields) = &output_variant.fields else {
+        todo!()
+    };
+    // TODO: check only one
+    let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty else {
+        todo!()
+    };
+    let var_ty = type_path.path.get_ident().unwrap();
+    if var_ty != output_ty {
+        return DiagnosticResult::error(
+            Span::call_site(),
+            "Try requires the first generic type to match the `Output` type",
+        )
+        .add_help(output_ty.span(), "Output type defined here")
+        .add_help(var_ty.span(), format!("This should be <{output_ty}>"));
+    }
+
+    let output_variant = &output_variant.ident;
 
     let residual_variants_unit: Vec<_> = enum_data
         .variants
