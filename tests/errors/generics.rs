@@ -16,4 +16,10 @@ enum GenericNotOutput<T, E> {
     Err(T),
 }
 
+#[derive(Try)]
+enum TooManyOutputs<T, E> {
+    Ok(T, E),
+    Err,
+}
+
 fn main() {}

@@ -120,7 +120,13 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
     let Fields::Unnamed(fields) = &output_variant.fields else {
         todo!()
     };
-    // TODO: check only one
+    if fields.unnamed.len() > 1 {
+        return DiagnosticResult::error(
+            Span::call_site(),
+            "Try requires a single generic type for `Output`",
+        )
+        .add_help(fields.span(), format!("This should be ({output_ty})"));
+    }
     let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty else {
         todo!()
     };
