@@ -59,7 +59,7 @@
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, GenericParam, spanned::Spanned};
+use syn::{Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, spanned::Spanned};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -83,11 +83,11 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 fn impl_derive(input: TokenStream2) -> DiagnosticResult {
     let ast: DeriveInput = syn::parse2(input).unwrap();
 
-    let name = &ast.ident;
+    let name: &Ident = &ast.ident;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let enum_data = match ast.data {
+    let enum_data: &DataEnum = match &ast.data {
         Data::Enum(enum_data) => enum_data,
         Data::Struct(struct_data) => {
             return DiagnosticResult::error(
@@ -105,7 +105,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         }
     };
 
-    let output_ty = match ast.generics.type_params().next() {
+    let output_ty: &Ident = match ast.generics.type_params().next() {
         Some(output_ty) => &output_ty.ident,
         None => {
             return DiagnosticResult::error(
@@ -134,7 +134,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         .add_help(var_ty.span(), format!("This should be <{output_ty}>"));
     }
 
-    let output_variant = &output_variant.ident;
+    let output_variant: &Ident = &output_variant.ident;
 
     // if let Fields::Unnamed(fields) = &enum_data.variants[0].fields
     //     && let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty
