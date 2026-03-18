@@ -59,7 +59,7 @@
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, FieldsUnnamed, GenericParam, spanned::Spanned};
+use syn::{Data, DeriveInput, Fields, GenericParam, spanned::Spanned};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -71,9 +71,10 @@ use syn::{Data, DeriveInput, Fields, FieldsUnnamed, GenericParam, spanned::Spann
 ///
 /// ## Current Limitations on the annotated type:
 ///   - must be an `enum`
-///   - must have _one_ generic type
-///   - the _first & only_ generic type must be the `Output` type (produced when not short circuiting)
+///   - must have _at least one_ generic type
+///   - the output type must be the _first_ generic type
 ///   - the output variant (does not short-circuit) must be the _first_ variant
+///     and **only** store _the output type_
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
@@ -135,6 +136,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
     }
 
     let output_variant = &output_variant.ident;
+
+    // if let Fields::Unnamed(fields) = &enum_data.variants[0].fields
+    //     && let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty
+    //     && let Some(output_var_ty) = type_path.path.get_ident()
+    //     && output_var_ty == output_ty
+    // {
+    // } else {
+    //     todo!("fail")
+    // };
 
     let residual_variants_unit: Vec<_> = enum_data
         .variants
