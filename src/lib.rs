@@ -1,4 +1,7 @@
+#![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
+#![feature(try_trait_v2)]
+
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
@@ -194,6 +197,103 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
                 match residual {
                     Result::Err(e) => e.into(),
                 }
+            }
+        }
+    }
+}
+
+enum DiagnosticResult {
+    Ok(TokenStream2),
+    Err(MyDiagnostic),
+}
+
+struct DiagnosticResidual(MyDiagnostic);
+
+#[derive(Debug, Clone)]
+struct MyDiagnostic {
+    level: Level,
+    message: String,
+    spans: Vec<Span>,
+    children: Vec<MyDiagnostic>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Level {
+    Error,
+    Warning,
+    Note,
+    Help,
+}
+
+impl From<Level> for proc_macro::Level {
+    fn from(level: Level) -> Self {
+        match level {
+            Level::Error => Self::Error,
+            Level::Help => Self::Help,
+            Level::Note => Self::Note,
+            Level::Warning => Self::Warning,
+        }
+    }
+}
+
+impl std::ops::Try for DiagnosticResult {
+    type Output = TokenStream2;
+
+    type Residual = DiagnosticResidual;
+
+    fn from_output(output: Self::Output) -> Self {
+        Self::Ok(output)
+    }
+
+    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            Self::Ok(t) => std::ops::ControlFlow::Continue(t),
+            Self::Err(d) => std::ops::ControlFlow::Break(DiagnosticResidual(d)),
+        }
+    }
+}
+
+impl std::ops::FromResidual<DiagnosticResidual> for DiagnosticResult {
+    fn from_residual(residual: DiagnosticResidual) -> Self {
+        DiagnosticResult::Err(residual.0)
+    }
+}
+
+impl MyDiagnostic {
+    fn add_as_child(self, parent: proc_macro::Diagnostic) -> proc_macro::Diagnostic {
+        let msg = self.message.clone();
+        match self.level {
+            Level::Error => parent.span_error(self.as_spans(), msg),
+            Level::Warning => parent.span_warning(self.as_spans(), msg),
+            Level::Note => parent.span_note(self.as_spans(), msg),
+            Level::Help => parent.span_help(self.as_spans(), msg),
+        }
+    }
+}
+
+impl MyDiagnostic {
+    fn as_spans(&self) -> Vec<proc_macro::Span> {
+        self.spans.iter().map(|span| span.unwrap()).collect()
+    }
+}
+
+impl From<DiagnosticResult> for TokenStream1 {
+    fn from(result: DiagnosticResult) -> Self {
+        match result {
+            DiagnosticResult::Ok(t) => t.into(),
+            DiagnosticResult::Err(diagnostic) => {
+                // MSV: unwrap requires rustc 1.29+ *without* semver exempt features
+                let spans = diagnostic.as_spans();
+                let mut pm_diagnostic = proc_macro::Diagnostic::spanned(
+                    spans,
+                    diagnostic.level.into(),
+                    diagnostic.message,
+                );
+                for child in diagnostic.children {
+                    pm_diagnostic = child.add_as_child(pm_diagnostic);
+                }
+                pm_diagnostic.emit();
+                TokenStream1::new()
             }
         }
     }
