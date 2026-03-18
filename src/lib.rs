@@ -55,6 +55,8 @@
 //!
 //! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
+use std::io::StderrLock;
+
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
@@ -89,8 +91,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
     let enum_data = match ast.data {
         Data::Enum(enum_data) => enum_data,
         Data::Struct(struct_data) => {
-            return DiagnosticResult::error(Span::call_site(),"Try can only be derived for an enum");
-                // .span_help(struct_data.struct_token.span(), "not an enum"));
+            return DiagnosticResult::error(
+                Span::call_site(),
+                "Try can only be derived for an enum",
+            ).add_help(struct_data.struct_token.span(), "not an enum");
         }
         Data::Union(union_data) => todo!(),
         // {
@@ -200,6 +204,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     }
 }
 
+#[derive(Debug)]
 enum DiagnosticResult {
     Ok(TokenStream2),
     Err(MyDiagnostic),
@@ -214,8 +219,21 @@ impl DiagnosticResult {
             children: vec![],
         })
     }
+    fn add_help<S: Into<String>>(mut self, span: Span, message: S) -> Self {
+        let Self::Err(ref mut diagnostic) = self else { todo!() };
+        diagnostic.children.push(MyDiagnostic {
+            level: Level::Help,
+            message: message.into(),
+            spans: vec![span],
+            children: vec![],
+        });
+        self
+    }
     fn unwrap(self) -> TokenStream2 {
-        todo!()
+        let Self::Ok(t) = self else {
+            panic!("Called unwrap on a not-OK value: {:?}", self)
+        };
+        t
     }
 }
 
