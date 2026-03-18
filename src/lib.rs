@@ -56,6 +56,8 @@
 //! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
 
+use std::fmt::Display;
+
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
@@ -125,7 +127,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
             Span::call_site(),
             "Try requires a single generic type for `Output`",
         )
-        .add_help(fields.span(), format!("This should be ({output_ty})"));
+        .add_help(fields.span(), format_args!("This should be ({output_ty})"));
     }
     let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty else {
         todo!()
@@ -137,7 +139,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
             "Try requires the first generic type to match the `Output` type",
         )
         .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format!("This should be <{output_ty}>"));
+        .add_help(var_ty.span(), format_args!("This should be <{output_ty}>"));
     }
 
     let output_variant: &Ident = &output_variant.ident;
@@ -244,13 +246,13 @@ impl DiagnosticResult {
             children: vec![],
         })
     }
-    fn add_help<S: Into<String>>(mut self, span: Span, message: S) -> Self {
+    fn add_help<S: Display>(mut self, span: Span, message: S) -> Self {
         let Self::Err(ref mut diagnostic) = self else {
             todo!()
         };
         diagnostic.children.push(Diagnostic {
             level: Level::Help,
-            message: message.into(),
+            message: message.to_string(),
             spans: vec![span],
             children: vec![],
         });
