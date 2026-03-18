@@ -116,7 +116,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         }
     };
 
-    let output_variant = &enum_data.variants[0];
+    let output_variant = enum_data.variants.first().unwrap();
     let Fields::Unnamed(fields) = &output_variant.fields else {
         todo!()
     };
