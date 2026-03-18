@@ -16,7 +16,8 @@
 //!   - must be an `enum`
 //!   - must have _one_ generic type
 //!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
-//!   - the output variant (does not short-circuit) must be the _first_ variant
+//!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
+//!     type as the _only unnamed_ field
 //!   - other (short-circuiting) variants can have _at most one unnamed field_
 //!
 //! ## Example Usage:
@@ -121,7 +122,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
     let output_variant = enum_data.variants.first().unwrap();
     let fields = match &output_variant.fields {
         Fields::Unnamed(fields) => fields,
-        _ => {
+        Fields::Unit => {
             return DiagnosticResult::error(
                 Span::call_site(),
                 "Try requires a generic type for `Output`",
@@ -131,6 +132,14 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
                 format_args!("add ({output_ty}) after this..."),
             );
         }
+        Fields::Named(fields) => {return DiagnosticResult::error(
+                Span::call_site(),
+                "Try requires an unnamed field for the `Output` variant",
+            )
+            .add_help(
+                fields.span(),
+                format_args!("change this to ({output_ty})"),
+            );}
     };
     if fields.unnamed.len() > 1 {
         return DiagnosticResult::error(
