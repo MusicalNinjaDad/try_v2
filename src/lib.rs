@@ -132,14 +132,13 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
                 format_args!("add ({output_ty}) after this..."),
             );
         }
-        Fields::Named(fields) => {return DiagnosticResult::error(
+        Fields::Named(fields) => {
+            return DiagnosticResult::error(
                 Span::call_site(),
                 "Try requires an unnamed field for the `Output` variant",
             )
-            .add_help(
-                fields.span(),
-                format_args!("change this to ({output_ty})"),
-            );}
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+        }
     };
     if fields.unnamed.len() > 1 {
         return DiagnosticResult::error(
