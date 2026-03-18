@@ -94,7 +94,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
             return DiagnosticResult::error(
                 Span::call_site(),
                 "Try can only be derived for an enum",
-            ).add_help(struct_data.struct_token.span(), "not an enum");
+            )
+            .add_help(struct_data.struct_token.span(), "not an enum");
         }
         Data::Union(union_data) => todo!(),
         // {
@@ -220,7 +221,9 @@ impl DiagnosticResult {
         })
     }
     fn add_help<S: Into<String>>(mut self, span: Span, message: S) -> Self {
-        let Self::Err(ref mut diagnostic) = self else { todo!() };
+        let Self::Err(ref mut diagnostic) = self else {
+            todo!()
+        };
         diagnostic.children.push(MyDiagnostic {
             level: Level::Help,
             message: message.into(),
