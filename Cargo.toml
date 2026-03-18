@@ -21,5 +21,4 @@ proc-macro = true
 [dependencies]
 syn = "2.0.117"
 proc-macro2 = "1.0.106"
-proc-macro2-diagnostics = { version = "0.10.1", default-features = false }
 quote = "1.0.45"
