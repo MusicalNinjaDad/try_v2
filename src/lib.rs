@@ -76,14 +76,11 @@ use syn::{Data, DeriveInput, GenericParam, spanned::Spanned};
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    match impl_derive(input.into()) {
-        Ok(tokens) => tokens.into(),
-        Err(diagnostic) => diagnostic.emit_as_item_tokens().into(),
-    }
+    impl_derive(input.into()).into()
 }
 
-fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
-    let ast: DeriveInput = syn::parse2(input)?;
+fn impl_derive(input: TokenStream2) -> DiagnosticResult {
+    let ast: DeriveInput = syn::parse2(input).unwrap();
 
     let name = &ast.ident;
 
@@ -92,25 +89,26 @@ fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
     let enum_data = match ast.data {
         Data::Enum(enum_data) => enum_data,
         Data::Struct(struct_data) => {
-            return Err(Span::call_site()
-                .error("Try can only be derived for an enum")
-                .span_help(struct_data.struct_token.span(), "not an enum"));
+            return DiagnosticResult::error(Span::call_site(),"Try can only be derived for an enum");
+                // .span_help(struct_data.struct_token.span(), "not an enum"));
         }
-        Data::Union(union_data) => {
-            return Err(Span::call_site()
-                .error("Try can only be derived for an enum")
-                .span_help(union_data.union_token.span(), "not an enum"));
-        }
+        Data::Union(union_data) => todo!(),
+        // {
+        //     return Err(Span::call_site()
+        //         .error("Try can only be derived for an enum")
+        //         .span_help(union_data.union_token.span(), "not an enum"));
+        // }
     };
 
     let output_ty = match ast.generics.params.first() {
         Some(GenericParam::Type(output_ty)) => &output_ty.ident,
         Some(_) => todo!(),
-        None => {
-            return Err(Span::call_site()
-                .error("Try requires a generic type for `Output`")
-                .span_help(name.span(), "Add <T> after this..."));
-        }
+        None => todo!(),
+        // {
+        //     return Err(Span::call_site()
+        //         .error("Try requires a generic type for `Output`")
+        //         .span_help(name.span(), "Add <T> after this..."));
+        // }
     };
 
     let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
@@ -163,7 +161,7 @@ fn impl_derive(input: TokenStream2) -> Result<TokenStream2, Diagnostic> {
             }
         }
     };
-    Ok(impl_try)
+    DiagnosticResult::Ok(impl_try)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
@@ -205,6 +203,20 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
 enum DiagnosticResult {
     Ok(TokenStream2),
     Err(MyDiagnostic),
+}
+
+impl DiagnosticResult {
+    fn error<S: Into<String>>(span: Span, message: S) -> Self {
+        Self::Err(MyDiagnostic {
+            level: Level::Error,
+            message: message.into(),
+            spans: vec![span],
+            children: vec![],
+        })
+    }
+    fn unwrap(self) -> TokenStream2 {
+        todo!()
+    }
 }
 
 struct DiagnosticResidual(MyDiagnostic);
