@@ -10,16 +10,4 @@ enum NoGenerics {
     OtherError(String),
 }
 
-#[derive(Try)]
-enum GenericNotOutput<T, E> {
-    Ok(E),
-    Err(T),
-}
-
-#[derive(Try)]
-enum TooManyOutputs<T, E> {
-    Ok(T, E),
-    Err,
-}
-
 fn main() {}

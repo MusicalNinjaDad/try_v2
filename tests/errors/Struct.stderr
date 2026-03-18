@@ -1,0 +1,12 @@
+error: Try can only be derived for an enum
+ --> tests/errors/Struct.rs:6:10
+  |
+6 | #[derive(Try)]
+  |          ^^^
+  |
+help: not an enum
+ --> tests/errors/Struct.rs:7:1
+  |
+7 | struct Struct;
+  | ^^^^^^
+  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
