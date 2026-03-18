@@ -136,15 +136,6 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
 
     let output_variant: &Ident = &output_variant.ident;
 
-    // if let Fields::Unnamed(fields) = &enum_data.variants[0].fields
-    //     && let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty
-    //     && let Some(output_var_ty) = type_path.path.get_ident()
-    //     && output_var_ty == output_ty
-    // {
-    // } else {
-    //     todo!("fail")
-    // };
-
     let residual_variants_unit: Vec<_> = enum_data
         .variants
         .iter()
