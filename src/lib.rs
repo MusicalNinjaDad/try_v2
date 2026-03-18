@@ -105,9 +105,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         }
     };
 
-    let output_ty = match ast.generics.params.first() {
-        Some(GenericParam::Type(output_ty)) => &output_ty.ident,
-        Some(_) => todo!(),
+    let output_ty = match ast.generics.type_params().next() {
+        Some(output_ty) => &output_ty.ident,
         None => {
             return DiagnosticResult::error(
                 Span::call_site(),
