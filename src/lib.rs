@@ -226,12 +226,12 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
 #[derive(Debug)]
 enum DiagnosticResult {
     Ok(TokenStream2),
-    Err(MyDiagnostic),
+    Err(Diagnostic),
 }
 
 impl DiagnosticResult {
     fn error<S: Into<String>>(span: Span, message: S) -> Self {
-        Self::Err(MyDiagnostic {
+        Self::Err(Diagnostic {
             level: Level::Error,
             message: message.into(),
             spans: vec![span],
@@ -242,7 +242,7 @@ impl DiagnosticResult {
         let Self::Err(ref mut diagnostic) = self else {
             todo!()
         };
-        diagnostic.children.push(MyDiagnostic {
+        diagnostic.children.push(Diagnostic {
             level: Level::Help,
             message: message.into(),
             spans: vec![span],
@@ -259,14 +259,14 @@ impl DiagnosticResult {
     }
 }
 
-struct DiagnosticResidual(MyDiagnostic);
+struct DiagnosticResidual(Diagnostic);
 
 #[derive(Debug, Clone)]
-struct MyDiagnostic {
+struct Diagnostic {
     level: Level,
     message: String,
     spans: Vec<Span>,
-    children: Vec<MyDiagnostic>,
+    children: Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -313,7 +313,7 @@ impl std::ops::FromResidual<DiagnosticResidual> for DiagnosticResult {
     }
 }
 
-impl MyDiagnostic {
+impl Diagnostic {
     fn add_as_child(self, parent: proc_macro::Diagnostic) -> proc_macro::Diagnostic {
         let msg = self.message.clone();
         match self.level {
@@ -325,7 +325,7 @@ impl MyDiagnostic {
     }
 }
 
-impl MyDiagnostic {
+impl Diagnostic {
     fn as_spans(&self) -> Vec<proc_macro::Span> {
         self.spans.iter().map(|span| span.unwrap()).collect()
     }
