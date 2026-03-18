@@ -9,7 +9,7 @@ help: Output type defined here
   |
 7 | enum GenericNotOutput<T, E> {
   |                       ^
-help: This should be (T)
+help: change this to T
  --> tests/errors/GenericNotOutput.rs:8:8
   |
 8 |     Ok(E),
