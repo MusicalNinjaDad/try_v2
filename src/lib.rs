@@ -238,10 +238,10 @@ enum DiagnosticResult {
 }
 
 impl DiagnosticResult {
-    fn error<S: Into<String>>(span: Span, message: S) -> Self {
+    fn error<S: Display>(span: Span, message: S) -> Self {
         Self::Err(Diagnostic {
             level: Level::Error,
-            message: message.into(),
+            message: message.to_string(),
             spans: vec![span],
             children: vec![],
         })
