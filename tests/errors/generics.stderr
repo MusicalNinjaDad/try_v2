@@ -22,7 +22,7 @@ help: Output type defined here
    |
 14 | enum GenericNotOutput<T, E> {
    |                       ^
-help: This should be <T>
+help: This should be (T)
   --> tests/errors/generics.rs:15:8
    |
 15 |     Ok(E),
@@ -41,3 +41,9 @@ help: This should be (T)
 21 |     Ok(T, E),
    |       ^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0601]: `main` function not found in crate `$CRATE`
+  --> tests/errors/generics.rs:23:2
+   |
+23 | }
+   |  ^ consider adding a `main` function to `$DIR/tests/errors/generics.rs`

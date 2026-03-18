@@ -139,7 +139,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
             "Try requires the first generic type to match the `Output` type",
         )
         .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("This should be <{output_ty}>"));
+        .add_help(var_ty.span(), format_args!("This should be ({output_ty})"));
     }
 
     let output_variant: &Ident = &output_variant.ident;
