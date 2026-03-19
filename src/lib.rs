@@ -110,7 +110,12 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
 
-    let output_variant = enum_data.variants.first().unwrap();
+    let Some(output_variant) = enum_data.variants.first() else {
+        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+            enum_data.brace_token.span.span(),
+            "add at least two variants here...",
+        );
+    };
     let fields = match &output_variant.fields {
         Fields::Unnamed(fields) => fields,
         Fields::Unit => {
