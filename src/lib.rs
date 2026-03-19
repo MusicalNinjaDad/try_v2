@@ -93,29 +93,20 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let enum_data: &DataEnum = match &ast.data {
         Data::Enum(enum_data) => enum_data,
         Data::Struct(struct_data) => {
-            return DiagnosticResult::error(
-                Span::call_site(),
-                "Try can only be derived for an enum",
-            )
-            .add_help(struct_data.struct_token.span(), "not an enum");
+            return DiagnosticResult::error("Try can only be derived for an enum")
+                .add_help(struct_data.struct_token.span(), "not an enum");
         }
         Data::Union(union_data) => {
-            return DiagnosticResult::error(
-                Span::call_site(),
-                "Try can only be derived for an enum",
-            )
-            .add_help(union_data.union_token.span(), "not an enum");
+            return DiagnosticResult::error("Try can only be derived for an enum")
+                .add_help(union_data.union_token.span(), "not an enum");
         }
     };
 
     let output_ty: &Ident = match ast.generics.type_params().next() {
         Some(output_ty) => &output_ty.ident,
         None => {
-            return DiagnosticResult::error(
-                Span::call_site(),
-                "Try requires a generic type for `Output`",
-            )
-            .add_help(name.span(), "Add <T> after this...");
+            return DiagnosticResult::error("Try requires a generic type for `Output`")
+                .add_help(name.span(), "Add <T> after this...");
         }
     };
 
@@ -123,29 +114,21 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let fields = match &output_variant.fields {
         Fields::Unnamed(fields) => fields,
         Fields::Unit => {
-            return DiagnosticResult::error(
-                Span::call_site(),
-                "Try requires a generic type for `Output`",
-            )
-            .add_help(
+            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
                 output_variant.span(),
                 format_args!("add ({output_ty}) after this..."),
             );
         }
         Fields::Named(fields) => {
             return DiagnosticResult::error(
-                Span::call_site(),
                 "Try requires an unnamed field for the `Output` variant",
             )
             .add_help(fields.span(), format_args!("change this to ({output_ty})"));
         }
     };
     if fields.unnamed.len() > 1 {
-        return DiagnosticResult::error(
-            Span::call_site(),
-            "Try requires a single generic type for `Output`",
-        )
-        .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+        return DiagnosticResult::error("Try requires a single generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
     }
     let syn::Type::Path(type_path) = &fields
         .unnamed
@@ -158,7 +141,6 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let var_ty = type_path.path.get_ident().unwrap();
     if var_ty != output_ty {
         return DiagnosticResult::error(
-            Span::call_site(),
             "Try requires the first generic type to match the `Output` type",
         )
         .add_help(output_ty.span(), "Output type defined here")
@@ -263,11 +245,11 @@ enum DiagnosticResult<T> {
 }
 
 impl<T> DiagnosticResult<T> {
-    fn error<S: Display>(span: Span, message: S) -> Self {
+    fn error<S: Display>(message: S) -> Self {
         Self::Err(Diagnostic {
             level: Level::Error,
             message: message.to_string(),
-            spans: vec![span],
+            spans: vec![Span::call_site()],
             children: vec![],
         })
     }
