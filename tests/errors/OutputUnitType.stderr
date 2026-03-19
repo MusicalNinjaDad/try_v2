@@ -1,0 +1,12 @@
+error: Try requires a generic type for `Output`
+ --> tests/errors/OutputUnitType.rs:6:10
+  |
+6 | #[derive(Try)]
+  |          ^^^
+  |
+help: add (T) after this...
+ --> tests/errors/OutputUnitType.rs:8:5
+  |
+8 |     Ok,
+  |     ^^
+  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

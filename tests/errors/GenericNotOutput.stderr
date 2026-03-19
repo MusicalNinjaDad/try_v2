@@ -1,0 +1,17 @@
+error: Try requires the first generic type to match the `Output` type
+ --> tests/errors/GenericNotOutput.rs:6:10
+  |
+6 | #[derive(Try)]
+  |          ^^^
+  |
+help: Output type defined here
+ --> tests/errors/GenericNotOutput.rs:7:23
+  |
+7 | enum GenericNotOutput<T, E> {
+  |                       ^
+help: change this to T
+ --> tests/errors/GenericNotOutput.rs:8:8
+  |
+8 |     Ok(E),
+  |        ^
+  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

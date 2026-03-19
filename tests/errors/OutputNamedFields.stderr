@@ -1,0 +1,12 @@
+error: Try requires an unnamed field for the `Output` variant
+ --> tests/errors/OutputNamedFields.rs:6:10
+  |
+6 | #[derive(Try)]
+  |          ^^^
+  |
+help: change this to (T)
+ --> tests/errors/OutputNamedFields.rs:8:7
+  |
+8 |     Ok{foo: T},
+  |       ^^^^^^^^
+  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

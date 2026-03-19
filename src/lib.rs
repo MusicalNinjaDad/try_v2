@@ -1,3 +1,7 @@
+#![feature(never_type)]
+#![feature(proc_macro_diagnostic)]
+#![feature(try_trait_v2)]
+
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
@@ -12,7 +16,8 @@
 //!   - must be an `enum`
 //!   - must have _one_ generic type
 //!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
-//!   - the output variant (does not short-circuit) must be the _first_ variant
+//!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
+//!     type as the _only unnamed_ field
 //!   - other (short-circuiting) variants can have _at most one unnamed field_
 //!
 //! ## Example Usage:
@@ -51,10 +56,15 @@
 //!
 //! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
+
+use std::fmt::Display;
+
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DeriveInput, GenericParam};
+use syn::{Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, spanned::Spanned};
+
+use crate::DiagnosticResult::Ok;
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -66,29 +76,43 @@ use syn::{Data, DeriveInput, GenericParam};
 ///
 /// ## Current Limitations on the annotated type:
 ///   - must be an `enum`
-///   - must have _one_ generic type
-///   - the _first & only_ generic type must be the `Output` type (produced when not short circuiting)
+///   - must have _at least one_ generic type
+///   - the output type must be the _first_ generic type
 ///   - the output variant (does not short-circuit) must be the _first_ variant
+///     and **only** store _the output type_
 ///   - other (short-circuiting) variants can have _at most one unnamed field_
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
 
-fn impl_derive(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+fn impl_derive(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+
+    let name: &Ident = &ast.ident;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let output_ty = match ast.generics.params.first().unwrap() {
-        GenericParam::Type(output_ty) => &output_ty.ident,
-        _ => todo!(),
+    let enum_data: &DataEnum = match &ast.data {
+        Data::Enum(enum_data) => enum_data,
+        Data::Struct(struct_data) => {
+            return DiagnosticResult::error("Try can only be derived for an enum")
+                .add_help(struct_data.struct_token.span(), "not an enum");
+        }
+        Data::Union(union_data) => {
+            return DiagnosticResult::error("Try can only be derived for an enum")
+                .add_help(union_data.union_token.span(), "not an enum");
+        }
     };
 
-    let Data::Enum(enum_data) = ast.data else {
-        todo!()
+    let output_ty: &Ident = match ast.generics.type_params().next() {
+        Some(output_ty) => &output_ty.ident,
+        None => {
+            return DiagnosticResult::error("Try requires a generic type for `Output`")
+                .add_help(name.span(), "Add <T> after this...");
+        }
     };
 
-    let output_variant = &enum_data.variants[0].ident; //TODO: validate field type
+    let output_variant: &Ident = parse_output_variant(enum_data, output_ty)?;
 
     let residual_variants_unit: Vec<_> = enum_data
         .variants
@@ -105,8 +129,6 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
         .filter(|variant| !variant.fields.is_empty())
         .map(|variant| variant.ident.clone())
         .collect(); //TODO: multiple fields
-
-    let name = &ast.ident;
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -140,7 +162,59 @@ fn impl_derive(input: TokenStream2) -> TokenStream2 {
             }
         }
     };
-    impl_try
+    DiagnosticResult::Ok(impl_try)
+}
+
+fn parse_output_variant<'ast>(
+    enum_data: &'ast DataEnum,
+    output_ty: &'ast Ident,
+) -> DiagnosticResult<&'ast Ident> {
+    let Some(output_variant) = enum_data.variants.first() else {
+        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+            enum_data.brace_token.span.span(),
+            "add at least two variants here...",
+        );
+    };
+    let fields = match &output_variant.fields {
+        Fields::Unnamed(fields) => fields,
+        Fields::Unit => {
+            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
+                output_variant.span(),
+                format_args!("add ({output_ty}) after this..."),
+            );
+        }
+        Fields::Named(fields) => {
+            return DiagnosticResult::error(
+                "Try requires an unnamed field for the `Output` variant",
+            )
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+        }
+    };
+    if fields.unnamed.len() > 1 {
+        return DiagnosticResult::error("Try requires a single generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    }
+    let syn::Type::Path(type_path) = &fields
+        .unnamed
+        .first()
+        .expect("at least one unnamed field")
+        .ty
+    else {
+        return DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    };
+    let Some(var_ty) = type_path.path.get_ident() else {
+        return DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    };
+    if var_ty != output_ty {
+        return DiagnosticResult::error(
+            "Try requires the first generic type to match the `Output` type",
+        )
+        .add_help(output_ty.span(), "Output type defined here")
+        .add_help(var_ty.span(), format_args!("change this to {output_ty}"));
+    }
+    Ok(&output_variant.ident)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
@@ -174,6 +248,138 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
                 match residual {
                     Result::Err(e) => e.into(),
                 }
+            }
+        }
+    }
+}
+
+type DiagnosticStream = DiagnosticResult<TokenStream2>;
+
+#[derive(Debug)]
+enum DiagnosticResult<T> {
+    Ok(T),
+    Err(Diagnostic),
+}
+
+impl<T> DiagnosticResult<T> {
+    fn error<S: Display>(message: S) -> Self {
+        Self::Err(Diagnostic {
+            level: Level::Error,
+            message: message.to_string(),
+            spans: vec![Span::call_site()],
+            children: vec![],
+        })
+    }
+    fn add_help<S: Display>(mut self, span: Span, message: S) -> Self {
+        let Self::Err(ref mut diagnostic) = self else {
+            todo!()
+        };
+        diagnostic.children.push(Diagnostic {
+            level: Level::Help,
+            message: message.to_string(),
+            spans: vec![span],
+            children: vec![],
+        });
+        self
+    }
+    #[allow(unused)]
+    fn unwrap(self) -> T {
+        let Self::Ok(t) = self else {
+            panic!("Called unwrap on a not-OK value")
+        };
+        t
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Diagnostic {
+    level: Level,
+    message: String,
+    spans: Vec<Span>,
+    children: Vec<Diagnostic>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Level {
+    Error,
+    #[expect(unused)]
+    Warning,
+    #[expect(unused)]
+    Note,
+    Help,
+}
+
+impl From<Level> for proc_macro::Level {
+    fn from(level: Level) -> Self {
+        match level {
+            Level::Error => Self::Error,
+            Level::Help => Self::Help,
+            Level::Note => Self::Note,
+            Level::Warning => Self::Warning,
+        }
+    }
+}
+
+impl<T> std::ops::Try for DiagnosticResult<T> {
+    type Output = T;
+
+    type Residual = DiagnosticResult<!>;
+
+    fn from_output(output: Self::Output) -> Self {
+        Self::Ok(output)
+    }
+
+    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            Self::Ok(t) => std::ops::ControlFlow::Continue(t),
+            Self::Err(d) => std::ops::ControlFlow::Break(DiagnosticResult::Err(d)),
+        }
+    }
+}
+
+impl<T> std::ops::FromResidual<DiagnosticResult<!>> for DiagnosticResult<T> {
+    fn from_residual(residual: DiagnosticResult<!>) -> Self {
+        match residual {
+            DiagnosticResult::Err(residual) => DiagnosticResult::Err(residual),
+        }
+    }
+}
+
+impl Diagnostic {
+    fn add_as_child(self, parent: proc_macro::Diagnostic) -> proc_macro::Diagnostic {
+        let msg = self.message.clone();
+        match self.level {
+            Level::Error => parent.span_error(self.as_spans(), msg),
+            Level::Warning => parent.span_warning(self.as_spans(), msg),
+            Level::Note => parent.span_note(self.as_spans(), msg),
+            Level::Help => parent.span_help(self.as_spans(), msg),
+        }
+    }
+}
+
+impl Diagnostic {
+    fn as_spans(&self) -> Vec<proc_macro::Span> {
+        self.spans.iter().map(|span| span.unwrap()).collect()
+    }
+}
+
+impl From<DiagnosticStream> for TokenStream1 {
+    fn from(result: DiagnosticStream) -> Self {
+        match result {
+            DiagnosticResult::Ok(t) => t.into(),
+            DiagnosticResult::Err(diagnostic) => {
+                // MSV: unwrap requires rustc 1.29+ *without* semver exempt features
+                let spans = diagnostic.as_spans();
+                let mut pm_diagnostic = proc_macro::Diagnostic::spanned(
+                    spans,
+                    diagnostic.level.into(),
+                    diagnostic.message,
+                );
+                for child in diagnostic.children {
+                    pm_diagnostic = child.add_as_child(pm_diagnostic);
+                }
+                pm_diagnostic.emit();
+                TokenStream1::new()
             }
         }
     }
@@ -226,7 +432,10 @@ mod tests {
                 }
             }
         };
-        assert_eq!(derived_impl.to_string(), impl_derive(original).to_string())
+        assert_eq!(
+            derived_impl.to_string(),
+            impl_derive(original).unwrap().to_string()
+        )
     }
     #[test]
     fn convert_result() {
