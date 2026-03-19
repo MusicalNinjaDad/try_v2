@@ -64,6 +64,8 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, spanned::Spanned};
 
+use crate::DiagnosticResult::Ok;
+
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
@@ -110,53 +112,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
 
-    let Some(output_variant) = enum_data.variants.first() else {
-        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
-            enum_data.brace_token.span.span(),
-            "add at least two variants here...",
-        );
-    };
-    let fields = match &output_variant.fields {
-        Fields::Unnamed(fields) => fields,
-        Fields::Unit => {
-            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
-                output_variant.span(),
-                format_args!("add ({output_ty}) after this..."),
-            );
-        }
-        Fields::Named(fields) => {
-            return DiagnosticResult::error(
-                "Try requires an unnamed field for the `Output` variant",
-            )
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-        }
-    };
-    if fields.unnamed.len() > 1 {
-        return DiagnosticResult::error("Try requires a single generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    }
-    let syn::Type::Path(type_path) = &fields
-        .unnamed
-        .first()
-        .expect("at least one unnamed field")
-        .ty
-    else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
-    let Some(var_ty) = type_path.path.get_ident() else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
-    if var_ty != output_ty {
-        return DiagnosticResult::error(
-            "Try requires the first generic type to match the `Output` type",
-        )
-        .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("change this to {output_ty}"));
-    }
-
-    let output_variant: &Ident = &output_variant.ident;
+    let output_variant: &Ident = parse_output_variant(enum_data, output_ty)?;
 
     let residual_variants_unit: Vec<_> = enum_data
         .variants
@@ -207,6 +163,55 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
     DiagnosticResult::Ok(impl_try)
+}
+
+fn parse_output_variant<'ast>(enum_data: &'ast DataEnum, output_ty: &'ast Ident) -> DiagnosticResult<&'ast Ident>{
+    let Some(output_variant) = enum_data.variants.first() else {
+        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+            enum_data.brace_token.span.span(),
+            "add at least two variants here...",
+        );
+    };
+    let fields = match &output_variant.fields {
+        Fields::Unnamed(fields) => fields,
+        Fields::Unit => {
+            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
+                output_variant.span(),
+                format_args!("add ({output_ty}) after this..."),
+            );
+        }
+        Fields::Named(fields) => {
+            return DiagnosticResult::error(
+                "Try requires an unnamed field for the `Output` variant",
+            )
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+        }
+    };
+    if fields.unnamed.len() > 1 {
+        return DiagnosticResult::error("Try requires a single generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    }
+    let syn::Type::Path(type_path) = &fields
+        .unnamed
+        .first()
+        .expect("at least one unnamed field")
+        .ty
+    else {
+        return DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    };
+    let Some(var_ty) = type_path.path.get_ident() else {
+        return DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+    };
+    if var_ty != output_ty {
+        return DiagnosticResult::error(
+            "Try requires the first generic type to match the `Output` type",
+        )
+        .add_help(output_ty.span(), "Output type defined here")
+        .add_help(var_ty.span(), format_args!("change this to {output_ty}"));
+    }
+    Ok(&output_variant.ident)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
