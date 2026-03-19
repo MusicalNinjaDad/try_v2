@@ -141,7 +141,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .expect("at least one unnamed field")
         .ty
     else {
-        todo!()
+        return DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
     };
     let Some(var_ty) = type_path.path.get_ident() else {
         return DiagnosticResult::error("Try requires a generic type for `Output`")
