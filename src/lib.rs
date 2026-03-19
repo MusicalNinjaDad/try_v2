@@ -84,7 +84,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_derive(input: TokenStream2) -> DiagnosticResult {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let name: &Ident = &ast.ident;
 
@@ -147,7 +147,12 @@ fn impl_derive(input: TokenStream2) -> DiagnosticResult {
         )
         .add_help(fields.span(), format_args!("change this to ({output_ty})"));
     }
-    let syn::Type::Path(type_path) = &fields.unnamed.first().unwrap().ty else {
+    let syn::Type::Path(type_path) = &fields
+        .unnamed
+        .first()
+        .expect("at least one unnamed field")
+        .ty
+    else {
         todo!()
     };
     let var_ty = type_path.path.get_ident().unwrap();
