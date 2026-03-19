@@ -83,7 +83,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
 
-fn impl_derive(input: TokenStream2) -> DiagnosticResult {
+fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let name: &Ident = &ast.ident;
@@ -254,13 +254,15 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     }
 }
 
+type DiagnosticStream = DiagnosticResult<TokenStream2>;
+
 #[derive(Debug)]
-enum DiagnosticResult {
-    Ok(TokenStream2),
+enum DiagnosticResult<T> {
+    Ok(T),
     Err(Diagnostic),
 }
 
-impl DiagnosticResult {
+impl<T> DiagnosticResult<T> {
     fn error<S: Display>(span: Span, message: S) -> Self {
         Self::Err(Diagnostic {
             level: Level::Error,
@@ -282,15 +284,13 @@ impl DiagnosticResult {
         self
     }
     #[allow(unused)]
-    fn unwrap(self) -> TokenStream2 {
+    fn unwrap(self) -> T {
         let Self::Ok(t) = self else {
-            panic!("Called unwrap on a not-OK value: {:?}", self)
+            panic!("Called unwrap on a not-OK value")
         };
         t
     }
 }
-
-struct DiagnosticResidual(Diagnostic);
 
 #[derive(Debug, Clone)]
 struct Diagnostic {
@@ -321,10 +321,10 @@ impl From<Level> for proc_macro::Level {
     }
 }
 
-impl std::ops::Try for DiagnosticResult {
-    type Output = TokenStream2;
+impl<T> std::ops::Try for DiagnosticResult<T> {
+    type Output = T;
 
-    type Residual = DiagnosticResidual;
+    type Residual = DiagnosticResult<!>;
 
     fn from_output(output: Self::Output) -> Self {
         Self::Ok(output)
@@ -333,14 +333,16 @@ impl std::ops::Try for DiagnosticResult {
     fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
         match self {
             Self::Ok(t) => std::ops::ControlFlow::Continue(t),
-            Self::Err(d) => std::ops::ControlFlow::Break(DiagnosticResidual(d)),
+            Self::Err(d) => std::ops::ControlFlow::Break(DiagnosticResult::Err(d)),
         }
     }
 }
 
-impl std::ops::FromResidual<DiagnosticResidual> for DiagnosticResult {
-    fn from_residual(residual: DiagnosticResidual) -> Self {
-        DiagnosticResult::Err(residual.0)
+impl<T> std::ops::FromResidual<DiagnosticResult<!>> for DiagnosticResult<T> {
+    fn from_residual(residual: DiagnosticResult<!>) -> Self {
+        match residual {
+            DiagnosticResult::Err(residual) => DiagnosticResult::Err(residual),
+        }
     }
 }
 
@@ -362,8 +364,8 @@ impl Diagnostic {
     }
 }
 
-impl From<DiagnosticResult> for TokenStream1 {
-    fn from(result: DiagnosticResult) -> Self {
+impl From<DiagnosticStream> for TokenStream1 {
+    fn from(result: DiagnosticStream) -> Self {
         match result {
             DiagnosticResult::Ok(t) => t.into(),
             DiagnosticResult::Err(diagnostic) => {
