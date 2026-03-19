@@ -165,7 +165,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     DiagnosticResult::Ok(impl_try)
 }
 
-fn parse_output_variant<'ast>(enum_data: &'ast DataEnum, output_ty: &'ast Ident) -> DiagnosticResult<&'ast Ident>{
+fn parse_output_variant<'ast>(
+    enum_data: &'ast DataEnum,
+    output_ty: &'ast Ident,
+) -> DiagnosticResult<&'ast Ident> {
     let Some(output_variant) = enum_data.variants.first() else {
         return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
             enum_data.brace_token.span.span(),
