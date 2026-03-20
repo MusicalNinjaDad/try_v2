@@ -250,6 +250,15 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
                 }
             }
         }
+
+        impl<E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<std::convert::Infallible, E>
+        {
+            #[inline]
+            #[track_caller]
+            fn from_residual(residual: Exit<!>) -> Self {
+                std::result::Result::Err(residual.into())
+            }
+        }
     }
 }
 
@@ -459,7 +468,17 @@ mod tests {
                     }
                 }
             }
+
+            impl<E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<std::convert::Infallible, E>
+            {
+                #[inline]
+                #[track_caller]
+                fn from_residual(residual: Exit<!>) -> Self {
+                    std::result::Result::Err(residual.into())
+                }
+            }
         };
+
         assert_eq!(
             expected_impl.to_string(),
             impl_convert_result(original).to_string()
