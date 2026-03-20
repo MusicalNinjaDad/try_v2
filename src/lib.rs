@@ -234,17 +234,18 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let mut extended_generics = ast.generics.clone();
-    let err_generic: GenericParam = syn::parse2(quote! {E: Into<#name #ty_generics>}).unwrap();
+    let err_generic: GenericParam =
+        syn::parse2(quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>}).unwrap();
     extended_generics.params.push(err_generic);
 
     let (impl_generics, _, _) = extended_generics.split_for_impl();
 
     quote! {
-        impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>> for #name #ty_generics #where_clause
+        impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for #name #ty_generics #where_clause
         {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: std::result::Result<std::convert::Infallible, E>) -> Self {
+            fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
                 match residual {
                     Result::Err(e) => e.into(),
                 }
@@ -458,11 +459,11 @@ mod tests {
         };
 
         let expected_impl: TokenStream2 = quote! {
-            impl<T: Termination, E: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>> for Exit<T>
+            impl<T: Termination, Derive_TryConvert_ResultE: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T>
             {
                 #[inline]
                 #[track_caller]
-                fn from_residual(residual: std::result::Result<std::convert::Infallible, E>) -> Self {
+                fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
                     match residual {
                         Result::Err(e) => e.into(),
                     }

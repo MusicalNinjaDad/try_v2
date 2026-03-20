@@ -31,6 +31,13 @@ enum NoUnitResiduals<T: Termination> {
     OtherError(String),
 }
 
+#[derive(Debug, Try, Try_ConvertResult)]
+enum ExitE<E> {
+    Ok(E),
+    TestsFailed,
+    OtherError(String),
+}
+
 #[test]
 fn short_circuit_1() {
     fn fail() -> Exit<()> {
