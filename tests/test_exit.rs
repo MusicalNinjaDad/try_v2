@@ -14,6 +14,14 @@ enum Exit<T: Termination> {
     OtherError(String),
 }
 
+impl From<Exit<!>> for AnError {
+    fn from(exit: Exit<!>) -> Self {
+        match exit {
+            Exit::TestsFailed => AnError("tests failed".to_string()),
+            Exit::OtherError(text) => AnError(text),
+        }
+    }
+}
 #[derive(Debug)]
 struct AnError(String);
 
@@ -83,13 +91,4 @@ fn convert_to_result_2() {
         Ok(())
     }
     assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
-}
-
-impl From<Exit<!>> for AnError {
-    fn from(exit: Exit<!>) -> Self {
-        match exit {
-            Exit::TestsFailed => AnError("tests failed".to_string()),
-            Exit::OtherError(text) => AnError(text),
-        }
-    }
 }
