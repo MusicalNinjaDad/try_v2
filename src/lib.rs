@@ -251,11 +251,11 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        impl<E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<std::convert::Infallible, E>
+        impl<E: From<#name<!>>> std::ops::FromResidual<#name<!>> for std::result::Result<std::convert::Infallible, E>
         {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: Exit<!>) -> Self {
+            fn from_residual(residual: #name<!>) -> Self {
                 std::result::Result::Err(residual.into())
             }
         }
