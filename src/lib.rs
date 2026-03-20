@@ -448,7 +448,7 @@ mod tests {
             }
         };
 
-        let derived_impl: TokenStream2 = quote! {
+        let expected_impl: TokenStream2 = quote! {
             impl<T: Termination, E: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>> for Exit<T>
             {
                 #[inline]
@@ -461,7 +461,7 @@ mod tests {
             }
         };
         assert_eq!(
-            derived_impl.to_string(),
+            expected_impl.to_string(),
             impl_convert_result(original).to_string()
         )
     }
