@@ -6,6 +6,7 @@
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
 //! Also enables auto-conversion from `Result<T, E> where E: Into::into(Self)`
+//! and back `where Self<!>: Into::into(E)`
 //!
 //! ## Requires:
 //!   - `RUSTC_BOOTSTRAP = 1` (or nightly)
@@ -218,10 +219,12 @@ fn parse_output_variant<'ast>(
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
-/// Derives conversion from Result<T, E> where E: Into::into(Self)
+/// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
 ///
 /// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
 /// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
+///
+/// For conversion to a `Result<_, ErrorType>` `impl From<MyTryEnum<!>> for ErrorType`
 pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
