@@ -60,7 +60,7 @@ fn no_short_circuit() {
 }
 
 #[test]
-fn convert_to_result() {
+fn convert_to_result_1() {
     fn fail() -> Result<(), AnError> {
         Exit::TestsFailed?;
         Ok(())
@@ -68,8 +68,21 @@ fn convert_to_result() {
     assert_matches!(fail(), Result::Err(e) if e.0 == "tests failed")
 }
 
+#[test]
+fn convert_to_result_2() {
+    fn fail() -> Result<(), AnError> {
+        Exit::OtherError("oops!".to_string())?;
+        Exit::TestsFailed?;
+        Ok(())
+    }
+    assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
+}
+
 impl From<Exit<!>> for AnError {
     fn from(exit: Exit<!>) -> Self {
-        AnError("tests failed".to_string())
+        match exit {
+            Exit::TestsFailed => AnError("tests failed".to_string()),
+            Exit::OtherError(text) => AnError(text),
+        }
     }
 }
