@@ -5,26 +5,44 @@
 use std::assert_matches::assert_matches;
 use std::process::Termination;
 
-use try_v2::Try;
+use try_v2::{Try, Try_ConvertResult};
 
-#[derive(Debug, Try)]
+#[derive(Debug, Try, Try_ConvertResult)]
 enum Exit<T: Termination> {
     Ok(T),
     TestsFailed,
     OtherError(String),
 }
 
-#[derive(Debug, Try)]
+impl From<Exit<!>> for AnError {
+    fn from(exit: Exit<!>) -> Self {
+        match exit {
+            Exit::TestsFailed => AnError("tests failed".to_string()),
+            Exit::OtherError(text) => AnError(text),
+        }
+    }
+}
+#[derive(Debug)]
+struct AnError(String);
+
+#[derive(Debug, Try, Try_ConvertResult)]
 #[allow(unused)] // If it compiles then it already passes
 enum NoFieldResiduals<T: Termination> {
     Ok(T),
     TestsFailed,
 }
 
-#[derive(Debug, Try)]
+#[derive(Debug, Try, Try_ConvertResult)]
 #[allow(unused)] // If it compiles then it already passes
 enum NoUnitResiduals<T: Termination> {
     Ok(T),
+    OtherError(String),
+}
+
+#[derive(Debug, Try, Try_ConvertResult)]
+enum ExitE<E> {
+    Ok(E),
+    TestsFailed,
     OtherError(String),
 }
 
@@ -54,4 +72,23 @@ fn no_short_circuit() {
         Exit::Ok(())
     }
     assert_matches!(pass(), Exit::Ok(()))
+}
+
+#[test]
+fn convert_to_result_1() {
+    fn fail() -> Result<(), AnError> {
+        Exit::TestsFailed?;
+        Ok(())
+    }
+    assert_matches!(fail(), Result::Err(e) if e.0 == "tests failed")
+}
+
+#[test]
+fn convert_to_result_2() {
+    fn fail() -> Result<(), AnError> {
+        Exit::OtherError("oops!".to_string())?;
+        Exit::TestsFailed?;
+        Ok(())
+    }
+    assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
 }
