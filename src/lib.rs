@@ -251,7 +251,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        impl<E: From<#name<!>>> std::ops::FromResidual<#name<!>> for std::result::Result<std::convert::Infallible, E>
+        impl<T, E: From<#name<!>>> std::ops::FromResidual<#name<!>> for std::result::Result<T, E>
         {
             #[inline]
             #[track_caller]
@@ -469,7 +469,7 @@ mod tests {
                 }
             }
 
-            impl<E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<std::convert::Infallible, E>
+            impl<T, E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<T, E>
             {
                 #[inline]
                 #[track_caller]
