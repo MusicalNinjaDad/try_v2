@@ -1,16 +1,16 @@
 error: Try requires the first generic type to match the `Output` type
- --> tests/errors/GenericNotOutput.rs:6:10
+ --> tests/compilation/fail_GenericNotOutput.rs:6:10
   |
 6 | #[derive(Try)]
   |          ^^^
   |
 help: Output type defined here
- --> tests/errors/GenericNotOutput.rs:7:23
+ --> tests/compilation/fail_GenericNotOutput.rs:7:23
   |
 7 | enum GenericNotOutput<T, E> {
   |                       ^
 help: change this to T
- --> tests/errors/GenericNotOutput.rs:8:8
+ --> tests/compilation/fail_GenericNotOutput.rs:8:8
   |
 8 |     Ok(E),
   |        ^

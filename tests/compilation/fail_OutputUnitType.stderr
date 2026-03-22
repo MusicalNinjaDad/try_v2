@@ -1,11 +1,11 @@
 error: Try requires a generic type for `Output`
- --> tests/errors/OutputUnitType.rs:6:10
+ --> tests/compilation/fail_OutputUnitType.rs:6:10
   |
 6 | #[derive(Try)]
   |          ^^^
   |
 help: add (T) after this...
- --> tests/errors/OutputUnitType.rs:8:5
+ --> tests/compilation/fail_OutputUnitType.rs:8:5
   |
 8 |     Ok,
   |     ^^

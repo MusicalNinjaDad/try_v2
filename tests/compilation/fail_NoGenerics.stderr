@@ -1,12 +1,12 @@
 error: Try requires a generic type for `Output`
- --> tests/errors/OutputNotSimpleIdent.rs:6:10
+ --> tests/compilation/fail_NoGenerics.rs:6:10
   |
 6 | #[derive(Try)]
   |          ^^^
   |
-help: change this to (T)
- --> tests/errors/OutputNotSimpleIdent.rs:8:7
+help: Add <T> after this...
+ --> tests/compilation/fail_NoGenerics.rs:7:6
   |
-8 |     Ok(proc_macro2::TokenStream),
-  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 | enum NoGenerics {
+  |      ^^^^^^^^^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
