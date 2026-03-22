@@ -26,20 +26,6 @@ impl From<Exit<!>> for AnError {
 struct AnError(String);
 
 #[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)] // If it compiles then it already passes
-enum NoFieldResiduals<T: Termination> {
-    Ok(T),
-    TestsFailed,
-}
-
-#[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)] // If it compiles then it already passes
-enum NoUnitResiduals<T: Termination> {
-    Ok(T),
-    OtherError(String),
-}
-
-#[derive(Debug, Try, Try_ConvertResult)]
 enum ExitE<E> {
     Ok(E),
     TestsFailed,
