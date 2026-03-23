@@ -219,15 +219,16 @@ fn parse_output_variant<'ast>(
                 .add_help(fields.span(), format_args!("change this to ({output_ty})"))
         }
     }?;
-    let syn::Type::Path(type_path) = &fields
+    let type_path = match &fields
         .unnamed
         .first()
         .expect("at least one unnamed field")
         .ty
-    else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
+    {
+        syn::Type::Path(tp) => Ok(tp),
+        _ => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+    }?;
     match type_path.path.get_ident() {
         Some(var_ty) if var_ty == output_ty => Ok(()),
         Some(var_ty) => DiagnosticResult::error(
