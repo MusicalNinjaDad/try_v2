@@ -183,14 +183,18 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
             });
         }
         (false, Fields::Named(_)) => {
-            let fields: Vec<Ident> = variant.fields.iter().map(|f| f.ident.clone().expect("named field")).collect();
+            let fields: Vec<Ident> = variant
+                .fields
+                .iter()
+                .map(|f| f.ident.clone().expect("named field"))
+                .collect();
             branch_arm = parse_quote! {
                 Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
             };
             residual_arm = Some(parse_quote! {
                 #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
             });
-        },
+        }
     };
     (branch_arm, residual_arm)
 }
