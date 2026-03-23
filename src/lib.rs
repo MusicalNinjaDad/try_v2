@@ -405,18 +405,21 @@ type ResidualArms = Vec<Option<Arm>>;
 
 
 fn arms(enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
-    let variant = &enumdata.variants[0];
-    let vars: Vec<Ident> = (0..variant.fields.len())
+    enumdata.variants.iter().map(
+        |variant| {
+        let vars: Vec<Ident> = (0..variant.fields.len())
         .map(|n| format_ident!("v{n}"))
         .collect();
-    (
-        vec![parse_quote! {
-            Self::Variant1(#(#vars),*) => std::ops::ControlFlow::Break(foo::Variant1(#(#vars),*))
-        }],
-        vec![Some(parse_quote! {
-            foo::Variant1(#(#vars),*) => foo::Variant1(#(#vars),*)
-        })],
-    )
+        (
+            parse_quote! {
+                Self::Variant1(#(#vars),*) => std::ops::ControlFlow::Break(foo::Variant1(#(#vars),*))
+            },
+            Some(parse_quote! {
+                foo::Variant1(#(#vars),*) => foo::Variant1(#(#vars),*)
+            }),
+        )
+        }
+    ).unzip()
 }
 
 #[cfg(test)]
