@@ -264,7 +264,7 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let name = &ast.ident;
 
