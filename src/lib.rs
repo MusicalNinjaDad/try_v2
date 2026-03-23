@@ -96,16 +96,12 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let enum_data: &DataEnum = match &ast.data {
-        Data::Enum(enum_data) => enum_data,
-        Data::Struct(struct_data) => {
-            return DiagnosticResult::error("Try can only be derived for an enum")
-                .add_help(struct_data.struct_token.span(), "not an enum");
-        }
-        Data::Union(union_data) => {
-            return DiagnosticResult::error("Try can only be derived for an enum")
-                .add_help(union_data.union_token.span(), "not an enum");
-        }
-    };
+        Data::Enum(enum_data) => Ok(enum_data),
+        Data::Struct(struct_data) => DiagnosticResult::error("Try can only be derived for an enum")
+            .add_help(struct_data.struct_token.span(), "not an enum"),
+        Data::Union(union_data) => DiagnosticResult::error("Try can only be derived for an enum")
+            .add_help(union_data.union_token.span(), "not an enum"),
+    }?;
 
     let output_ty: &Ident = match ast.generics.type_params().next() {
         Some(output_ty) => &output_ty.ident,
