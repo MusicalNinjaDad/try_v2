@@ -162,6 +162,7 @@ fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
             let (branch_arm, residual_arm);
             match(is_output_variant, &variant.fields) {
                 (true, _) => {
+                    // Output variant always has a single field
                     branch_arm = parse_quote! {
                         Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
                     };
