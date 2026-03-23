@@ -199,6 +199,7 @@ fn check_output_variant<'ast>(
             "add at least two variants here...",
         ),
     )?;
+
     let fields = match &output_variant.fields {
         Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
         Fields::Unnamed(fields) => {
@@ -215,6 +216,7 @@ fn check_output_variant<'ast>(
                 .add_help(fields.span(), format_args!("change this to ({output_ty})"))
         }
     }?;
+
     let type_path = match &fields
         .unnamed
         .first()
@@ -225,6 +227,7 @@ fn check_output_variant<'ast>(
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     }?;
+
     match type_path.path.get_ident() {
         Some(var_ty) if var_ty == output_ty => Ok(()),
         Some(var_ty) => DiagnosticResult::error(
@@ -235,6 +238,7 @@ fn check_output_variant<'ast>(
         None => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     }?;
+
     Ok(&output_variant.ident)
 }
 
