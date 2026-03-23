@@ -197,12 +197,12 @@ fn parse_output_variant<'ast>(
     enum_data: &'ast DataEnum,
     output_ty: &'ast Ident,
 ) -> DiagnosticResult<&'ast Ident> {
-    let Some(output_variant) = enum_data.variants.first() else {
-        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+    let output_variant = enum_data.variants.first().ok_or(
+        DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
             enum_data.brace_token.span.span(),
             "add at least two variants here...",
-        );
-    };
+        ),
+    )?;
     let fields = match &output_variant.fields {
         Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
         Fields::Unnamed(fields) => {
@@ -378,6 +378,16 @@ impl<T> std::ops::FromResidual<DiagnosticResult<!>> for DiagnosticResult<T> {
     fn from_residual(residual: DiagnosticResult<!>) -> Self {
         match residual {
             DiagnosticResult::Err(residual) => DiagnosticResult::Err(residual),
+        }
+    }
+}
+
+impl<T> std::ops::FromResidual<Result<std::convert::Infallible, DiagnosticResult<T>>>
+    for DiagnosticResult<T>
+{
+    fn from_residual(result: Result<std::convert::Infallible, DiagnosticResult<T>>) -> Self {
+        match result {
+            Err(e) => e,
         }
     }
 }
