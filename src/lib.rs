@@ -19,7 +19,7 @@
 //!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
-//!   - other (short-circuiting) variants can have _at most one unnamed field_
+//!   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 //!
 //! ## Example Usage:
 //! ```rust
@@ -62,8 +62,11 @@ use std::fmt::Display;
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::quote;
-use syn::{Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, spanned::Spanned};
+use quote::{format_ident, quote};
+use syn::{
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Variant, parse_quote,
+    spanned::Spanned,
+};
 
 use crate::DiagnosticResult::Ok;
 
@@ -81,7 +84,7 @@ use crate::DiagnosticResult::Ok;
 ///   - the output type must be the _first_ generic type
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///     and **only** store _the output type_
-///   - other (short-circuiting) variants can have _at most one unnamed field_
+///   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
@@ -94,16 +97,12 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let enum_data: &DataEnum = match &ast.data {
-        Data::Enum(enum_data) => enum_data,
-        Data::Struct(struct_data) => {
-            return DiagnosticResult::error("Try can only be derived for an enum")
-                .add_help(struct_data.struct_token.span(), "not an enum");
-        }
-        Data::Union(union_data) => {
-            return DiagnosticResult::error("Try can only be derived for an enum")
-                .add_help(union_data.union_token.span(), "not an enum");
-        }
-    };
+        Data::Enum(enum_data) => Ok(enum_data),
+        Data::Struct(struct_data) => DiagnosticResult::error("Try can only be derived for an enum")
+            .add_help(struct_data.struct_token.span(), "not an enum"),
+        Data::Union(union_data) => DiagnosticResult::error("Try can only be derived for an enum")
+            .add_help(union_data.union_token.span(), "not an enum"),
+    }?;
 
     let output_ty: &Ident = match ast.generics.type_params().next() {
         Some(output_ty) => &output_ty.ident,
@@ -113,23 +112,14 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
 
-    let output_variant: &Ident = parse_output_variant(enum_data, output_ty)?;
+    let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
 
-    let residual_variants_unit: Vec<_> = enum_data
+    let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
         .iter()
-        .skip(1)
-        .filter(|variant| variant.fields.is_empty())
-        .map(|variant| variant.ident.clone())
-        .collect();
-
-    let residual_variants_with_fields: Vec<_> = enum_data
-        .variants
-        .iter()
-        .skip(1)
-        .filter(|variant| !variant.fields.is_empty())
-        .map(|variant| variant.ident.clone())
-        .collect(); //TODO: multiple fields
+        .enumerate()
+        .map(|(i, variant)| generate_arms(name, i, variant))
+        .unzip();
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -145,9 +135,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             #[inline]
             fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                 match self {
-                    Self::#output_variant(v) => std::ops::ControlFlow::Continue(v),
-                    #(Self::#residual_variants_unit => std::ops::ControlFlow::Break(#name::#residual_variants_unit),)*
-                    #(Self::#residual_variants_with_fields(v) => std::ops::ControlFlow::Break(#name::#residual_variants_with_fields(v)),)*
+                    #(#branch_arms)*
                 }
             }
         }
@@ -157,8 +145,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             #[track_caller]
             fn from_residual(residual: #name<!>) -> Self {
                 match residual {
-                    #(#name::#residual_variants_unit => #name::#residual_variants_unit,)*
-                    #(#name::#residual_variants_with_fields(v) => #name::#residual_variants_with_fields(v),)*
+                    #(#residual_arms)*
                 }
             }
         }
@@ -166,55 +153,92 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     DiagnosticResult::Ok(impl_try)
 }
 
-fn parse_output_variant<'ast>(
+fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option<Arm>) {
+    let var_name: &Ident = &variant.ident;
+    let is_output_variant = i == 0;
+    let (branch_arm, residual_arm);
+    match (is_output_variant, &variant.fields) {
+        (true, _) => {
+            // Output variant always has a single field
+            branch_arm = parse_quote! {
+                Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
+            };
+            residual_arm = None;
+        }
+        (false, Fields::Unnamed(_)) => {
+            let vars: Vec<Ident> = (0..variant.fields.len())
+                .map(|n| format_ident!("v{n}"))
+                .collect();
+            branch_arm = parse_quote! {
+                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+            });
+        }
+        (false, Fields::Unit) => {
+            branch_arm = parse_quote! {
+                Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name => #enum_name::#var_name,
+            });
+        }
+        (false, Fields::Named(_)) => todo!("Error for or handle named fields"),
+    };
+    (branch_arm, residual_arm)
+}
+
+fn check_output_variant<'ast>(
     enum_data: &'ast DataEnum,
     output_ty: &'ast Ident,
 ) -> DiagnosticResult<&'ast Ident> {
-    let Some(output_variant) = enum_data.variants.first() else {
-        return DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+    let output_variant = enum_data.variants.first().ok_or(
+        DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
             enum_data.brace_token.span.span(),
             "add at least two variants here...",
-        );
-    };
+        ),
+    )?;
+
     let fields = match &output_variant.fields {
-        Fields::Unnamed(fields) => fields,
-        Fields::Unit => {
-            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
+        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
+        Fields::Unnamed(fields) => {
+            DiagnosticResult::error("Try requires a single generic type for `Output`")
+                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
+        }
+        Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(
                 output_variant.span(),
                 format_args!("add ({output_ty}) after this..."),
-            );
-        }
+            ),
         Fields::Named(fields) => {
-            return DiagnosticResult::error(
-                "Try requires an unnamed field for the `Output` variant",
-            )
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+            DiagnosticResult::error("Try requires an unnamed field for the `Output` variant")
+                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
         }
-    };
-    if fields.unnamed.len() > 1 {
-        return DiagnosticResult::error("Try requires a single generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    }
-    let syn::Type::Path(type_path) = &fields
+    }?;
+
+    let type_path = match &fields
         .unnamed
         .first()
         .expect("at least one unnamed field")
         .ty
-    else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
-    let Some(var_ty) = type_path.path.get_ident() else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
-    if var_ty != output_ty {
-        return DiagnosticResult::error(
+    {
+        syn::Type::Path(tp) => Ok(tp),
+        _ => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+    }?;
+
+    match type_path.path.get_ident() {
+        Some(var_ty) if var_ty == output_ty => Ok(()),
+        Some(var_ty) => DiagnosticResult::error(
             "Try requires the first generic type to match the `Output` type",
         )
         .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("change this to {output_ty}"));
-    }
+        .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
+        None => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+    }?;
+
     Ok(&output_variant.ident)
 }
 
@@ -238,7 +262,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
 
     let mut extended_generics = ast.generics.clone();
     let err_generic: GenericParam =
-        syn::parse2(quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>}).unwrap();
+        parse_quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>};
     extended_generics.params.push(err_generic);
 
     let (impl_generics, _, _) = extended_generics.split_for_impl();
@@ -358,6 +382,16 @@ impl<T> std::ops::FromResidual<DiagnosticResult<!>> for DiagnosticResult<T> {
     }
 }
 
+impl<T> std::ops::FromResidual<Result<std::convert::Infallible, DiagnosticResult<T>>>
+    for DiagnosticResult<T>
+{
+    fn from_residual(result: Result<std::convert::Infallible, DiagnosticResult<T>>) -> Self {
+        match result {
+            Err(e) => e,
+        }
+    }
+}
+
 impl Diagnostic {
     fn add_as_child(self, parent: proc_macro::Diagnostic) -> proc_macro::Diagnostic {
         let msg = self.message.clone();
@@ -427,9 +461,9 @@ mod tests {
                 #[inline]
                 fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                     match self {
-                        Self::Ok(v) => std::ops::ControlFlow::Continue(v),
+                        Self::Ok(v0) => std::ops::ControlFlow::Continue(v0),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
-                        Self::OtherError(v) => std::ops::ControlFlow::Break(Exit::OtherError(v)),
+                        Self::OtherError(v0) => std::ops::ControlFlow::Break(Exit::OtherError(v0)),
                     }
                 }
             }
@@ -440,7 +474,7 @@ mod tests {
                 fn from_residual(residual: Exit<!>) -> Self {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
-                        Exit::OtherError(v) => Exit::OtherError(v),
+                        Exit::OtherError(v0) => Exit::OtherError(v0),
                     }
                 }
             }

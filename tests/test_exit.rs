@@ -12,6 +12,7 @@ enum Exit<T: Termination> {
     Ok(T),
     TestsFailed,
     OtherError(String),
+    NumberedError(String, i32),
 }
 
 impl From<Exit<!>> for AnError {
@@ -19,32 +20,12 @@ impl From<Exit<!>> for AnError {
         match exit {
             Exit::TestsFailed => AnError("tests failed".to_string()),
             Exit::OtherError(text) => AnError(text),
+            Exit::NumberedError(text, n) => AnError(format!("{n}: {text}")),
         }
     }
 }
 #[derive(Debug)]
 struct AnError(String);
-
-#[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)] // If it compiles then it already passes
-enum NoFieldResiduals<T: Termination> {
-    Ok(T),
-    TestsFailed,
-}
-
-#[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)] // If it compiles then it already passes
-enum NoUnitResiduals<T: Termination> {
-    Ok(T),
-    OtherError(String),
-}
-
-#[derive(Debug, Try, Try_ConvertResult)]
-enum ExitE<E> {
-    Ok(E),
-    TestsFailed,
-    OtherError(String),
-}
 
 #[test]
 fn short_circuit_1() {
@@ -63,6 +44,16 @@ fn short_circuit_2() {
         Exit::Ok(())
     }
     assert_matches!(fail(), Exit::OtherError(msg) if msg == "oops!")
+}
+
+#[test]
+fn short_circuit_3() {
+    fn fail() -> Exit<()> {
+        Exit::NumberedError("oops!".to_string(), 4)?;
+        Exit::TestsFailed?;
+        Exit::Ok(())
+    }
+    assert_matches!(fail(), Exit::NumberedError(msg, n) if msg == "oops!" && n == 4)
 }
 
 #[test]

@@ -1,11 +1,11 @@
 error: Try requires an unnamed field for the `Output` variant
- --> tests/errors/OutputNamedFields.rs:6:10
+ --> tests/compilation/fail_OutputNamedFields.rs:6:10
   |
 6 | #[derive(Try)]
   |          ^^^
   |
 help: change this to (T)
- --> tests/errors/OutputNamedFields.rs:8:7
+ --> tests/compilation/fail_OutputNamedFields.rs:8:7
   |
 8 |     Ok{foo: T},
   |       ^^^^^^^^
