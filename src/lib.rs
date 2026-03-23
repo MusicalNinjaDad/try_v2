@@ -204,24 +204,21 @@ fn parse_output_variant<'ast>(
         );
     };
     let fields = match &output_variant.fields {
-        Fields::Unnamed(fields) => fields,
-        Fields::Unit => {
-            return DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
+        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
+        Fields::Unnamed(fields) => {
+            DiagnosticResult::error("Try requires a single generic type for `Output`")
+                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
+        }
+        Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(
                 output_variant.span(),
                 format_args!("add ({output_ty}) after this..."),
-            );
-        }
+            ),
         Fields::Named(fields) => {
-            return DiagnosticResult::error(
-                "Try requires an unnamed field for the `Output` variant",
-            )
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
+            DiagnosticResult::error("Try requires an unnamed field for the `Output` variant")
+                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
         }
-    };
-    if fields.unnamed.len() > 1 {
-        return DiagnosticResult::error("Try requires a single generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    }
+    }?;
     let syn::Type::Path(type_path) = &fields
         .unnamed
         .first()
@@ -231,17 +228,16 @@ fn parse_output_variant<'ast>(
         return DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})"));
     };
-    let Some(var_ty) = type_path.path.get_ident() else {
-        return DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})"));
-    };
-    if var_ty != output_ty {
-        return DiagnosticResult::error(
+    match type_path.path.get_ident() {
+        Some(var_ty) if var_ty == output_ty => Ok(()),
+        Some(var_ty) => DiagnosticResult::error(
             "Try requires the first generic type to match the `Output` type",
         )
         .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("change this to {output_ty}"));
-    }
+        .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
+        None => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+    }?;
     Ok(&output_variant.ident)
 }
 
