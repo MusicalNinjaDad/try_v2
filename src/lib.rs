@@ -398,7 +398,7 @@ fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
             match(is_output_variant, &variant.fields) {
                 (true, _) => (
                     parse_quote! {
-                        Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Continue(#(#vars),*),
+                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
                     },
                     None,
                 ),
