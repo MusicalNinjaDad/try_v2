@@ -61,7 +61,10 @@ fn short_circuit_3() {
 #[test]
 fn short_circuit_4() {
     fn fail() -> Exit<()> {
-        Exit::FormalError { errno: 2, data: "oops!".to_string() }?;
+        Exit::FormalError {
+            errno: 2,
+            data: "oops!".to_string(),
+        }?;
         Exit::TestsFailed?;
         Exit::Ok(())
     }

@@ -16,7 +16,6 @@ Also enables auto-conversion from `Result<T, E> where E: Into::into(Self)`
 - must have _one_ generic type
 - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
-- other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 
 ## Example Usage
 
