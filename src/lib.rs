@@ -64,7 +64,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, parse_quote,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Variant, parse_quote,
     spanned::Spanned,
 };
 
@@ -401,10 +401,15 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
-fn branch_patterns(enumdata: &DataEnum) -> Arm {
-    parse_quote! {
-        Self::Variant1(v1) => std::ops::ControlFlow::Break(foo::Variant1(v1))
-    }
+fn arms(variant: &Variant) -> (Arm, Arm) {
+    (
+        parse_quote! {
+            Self::Variant1(v1) => std::ops::ControlFlow::Break(foo::Variant1(v1))
+        },
+        parse_quote! {
+            foo::Variant1(v1) => foo::Variant1(v1)
+        },
+    )
 }
 
 #[cfg(test)]
@@ -422,11 +427,15 @@ mod tests {
         let Data::Enum(enumdata) = &input.data else {
             panic!("Not an enum")
         };
-        let branches = branch_patterns(enumdata);
-        let expected: Arm = parse_quote! {
+        let (branch, residual) = arms(&enumdata.variants[0]);
+        let expected_branch: Arm = parse_quote! {
             Self::Variant1(v1) => std::ops::ControlFlow::Break(foo::Variant1(v1))
         };
-        assert_eq!(quote!(#expected).to_string(), quote!(#branches).to_string())
+        assert_eq!(quote!(#expected_branch).to_string(), quote!(#branch).to_string());
+        let expected_residual: Arm = parse_quote! {
+            foo::Variant1(v1) => foo::Variant1(v1)
+        }; 
+        assert_eq!(quote!(#expected_residual).to_string(), quote!(#residual).to_string());
     }
 
     #[test]
