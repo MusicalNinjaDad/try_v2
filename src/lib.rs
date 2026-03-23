@@ -19,7 +19,6 @@
 //!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
-//!   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 //!
 //! ## Example Usage:
 //! ```rust
@@ -84,7 +83,6 @@ use crate::DiagnosticResult::Ok;
 ///   - the output type must be the _first_ generic type
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///     and **only** store _the output type_
-///   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
@@ -166,14 +164,14 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
             residual_arm = None;
         }
         (false, Fields::Unnamed(_)) => {
-            let vars: Vec<Ident> = (0..variant.fields.len())
+            let fields: Vec<Ident> = (0..variant.fields.len())
                 .map(|n| format_ident!("v{n}"))
                 .collect();
             branch_arm = parse_quote! {
-                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+                Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
             };
             residual_arm = Some(parse_quote! {
-                #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+                #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
             });
         }
         (false, Fields::Unit) => {
@@ -184,7 +182,19 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
                 #enum_name::#var_name => #enum_name::#var_name,
             });
         }
-        (false, Fields::Named(_)) => todo!("Error for or handle named fields"),
+        (false, Fields::Named(_)) => {
+            let fields: Vec<Ident> = variant
+                .fields
+                .iter()
+                .map(|f| f.ident.clone().expect("named field"))
+                .collect();
+            branch_arm = parse_quote! {
+                Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
+            });
+        }
     };
     (branch_arm, residual_arm)
 }
@@ -254,7 +264,7 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
 }
 
 fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = syn::parse2(input).unwrap();
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let name = &ast.ident;
 
@@ -444,6 +454,7 @@ mod tests {
                 Ok(T),
                 TestsFailed,
                 OtherError(String),
+                NamedError{err: String, text: String},
             }
         };
 
@@ -464,6 +475,7 @@ mod tests {
                         Self::Ok(v0) => std::ops::ControlFlow::Continue(v0),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
                         Self::OtherError(v0) => std::ops::ControlFlow::Break(Exit::OtherError(v0)),
+                        Self::NamedError{err, text} => std::ops::ControlFlow::Break(Exit::NamedError{err, text}),
                     }
                 }
             }
@@ -475,6 +487,7 @@ mod tests {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
                         Exit::OtherError(v0) => Exit::OtherError(v0),
+                        Exit::NamedError{err, text} => Exit::NamedError{err, text},
                     }
                 }
             }

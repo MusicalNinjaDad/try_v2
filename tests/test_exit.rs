@@ -13,6 +13,7 @@ enum Exit<T: Termination> {
     TestsFailed,
     OtherError(String),
     NumberedError(String, i32),
+    FormalError { errno: i32, data: String },
 }
 
 impl From<Exit<!>> for AnError {
@@ -21,6 +22,7 @@ impl From<Exit<!>> for AnError {
             Exit::TestsFailed => AnError("tests failed".to_string()),
             Exit::OtherError(text) => AnError(text),
             Exit::NumberedError(text, n) => AnError(format!("{n}: {text}")),
+            Exit::FormalError { errno, data } => AnError(format!("{errno}: {data}")),
         }
     }
 }
@@ -54,6 +56,19 @@ fn short_circuit_3() {
         Exit::Ok(())
     }
     assert_matches!(fail(), Exit::NumberedError(msg, n) if msg == "oops!" && n == 4)
+}
+
+#[test]
+fn short_circuit_4() {
+    fn fail() -> Exit<()> {
+        Exit::FormalError {
+            errno: 2,
+            data: "oops!".to_string(),
+        }?;
+        Exit::TestsFailed?;
+        Exit::Ok(())
+    }
+    assert_matches!(fail(), Exit::FormalError{errno, data} if data == "oops!" && errno == 2)
 }
 
 #[test]
