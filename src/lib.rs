@@ -19,7 +19,7 @@
 //!   - the _first and only_ generic type must be the `Output` type (produced when not short circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
-//!   - other (short-circuiting) variants can have _at most one unnamed field_
+//!   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 //!
 //! ## Example Usage:
 //! ```rust
@@ -84,7 +84,7 @@ use crate::DiagnosticResult::Ok;
 ///   - the output type must be the _first_ generic type
 ///   - the output variant (does not short-circuit) must be the _first_ variant
 ///     and **only** store _the output type_
-///   - other (short-circuiting) variants can have _at most one unnamed field_
+///   - other (short-circuiting) variants can be unit, or have multiple _unnamed_ fields
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
