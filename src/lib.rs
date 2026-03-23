@@ -112,7 +112,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
 
-    let output_variant: &Ident = parse_output_variant(enum_data, output_ty)?;
+    let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
 
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
@@ -189,7 +189,7 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
     (branch_arm, residual_arm)
 }
 
-fn parse_output_variant<'ast>(
+fn check_output_variant<'ast>(
     enum_data: &'ast DataEnum,
     output_ty: &'ast Ident,
 ) -> DiagnosticResult<&'ast Ident> {
