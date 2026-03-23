@@ -400,17 +400,22 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
-fn arms(variant: &Variant) -> (Arm, Arm) {
+type BranchArms = Vec<Arm>;
+type ResidualArms = Vec<Option<Arm>>;
+
+
+fn arms(enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
+    let variant = &enumdata.variants[0];
     let vars: Vec<Ident> = (0..variant.fields.len())
         .map(|n| format_ident!("v{n}"))
         .collect();
     (
-        parse_quote! {
+        vec![parse_quote! {
             Self::Variant1(#(#vars),*) => std::ops::ControlFlow::Break(foo::Variant1(#(#vars),*))
-        },
-        parse_quote! {
+        }],
+        vec![Some(parse_quote! {
             foo::Variant1(#(#vars),*) => foo::Variant1(#(#vars),*)
-        },
+        })],
     )
 }
 
@@ -429,20 +434,20 @@ mod tests {
         let Data::Enum(enumdata) = &input.data else {
             panic!("Not an enum")
         };
-        let (branch, residual) = arms(&enumdata.variants[0]);
+        let (branch, residual) = arms(&enumdata);
         let expected_branch: Arm = parse_quote! {
             Self::Variant1(v0) => std::ops::ControlFlow::Break(foo::Variant1(v0))
         };
         assert_eq!(
             quote!(#expected_branch).to_string(),
-            quote!(#branch).to_string()
+            quote!(#(#branch),*).to_string()
         );
         let expected_residual: Arm = parse_quote! {
             foo::Variant1(v0) => foo::Variant1(v0)
         };
         assert_eq!(
             quote!(#expected_residual).to_string(),
-            quote!(#residual).to_string()
+            quote!(#(#residual),*).to_string()
         );
     }
 
@@ -457,20 +462,20 @@ mod tests {
         let Data::Enum(enumdata) = &input.data else {
             panic!("Not an enum")
         };
-        let (branch, residual) = arms(&enumdata.variants[0]);
+        let (branch, residual) = arms(&enumdata);
         let expected_branch: Arm = parse_quote! {
             Self::Variant1(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Variant1(v0,v1,v2))
         };
         assert_eq!(
             quote!(#expected_branch).to_string(),
-            quote!(#branch).to_string()
+            quote!(#(#branch),*).to_string()
         );
         let expected_residual: Arm = parse_quote! {
             foo::Variant1(v0,v1,v2) => foo::Variant1(v0,v1,v2)
         };
         assert_eq!(
             quote!(#expected_residual).to_string(),
-            quote!(#residual).to_string()
+            quote!(#(#residual),*).to_string()
         );
     }
 
