@@ -64,7 +64,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Variant, parse_quote,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, parse_quote,
     spanned::Spanned,
 };
 
