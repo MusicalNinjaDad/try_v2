@@ -166,14 +166,14 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
             residual_arm = None;
         }
         (false, Fields::Unnamed(_)) => {
-            let vars: Vec<Ident> = (0..variant.fields.len())
+            let fields: Vec<Ident> = (0..variant.fields.len())
                 .map(|n| format_ident!("v{n}"))
                 .collect();
             branch_arm = parse_quote! {
-                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+                Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
             };
             residual_arm = Some(parse_quote! {
-                #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+                #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
             });
         }
         (false, Fields::Unit) => {
@@ -184,7 +184,15 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
                 #enum_name::#var_name => #enum_name::#var_name,
             });
         }
-        (false, Fields::Named(_)) => todo!("Error for or handle named fields"),
+        (false, Fields::Named(_)) => {
+            let fields: Vec<Ident> = variant.fields.iter().map(|f| f.ident.clone().expect("named field")).collect();
+            branch_arm = parse_quote! {
+                Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
+            });
+        },
     };
     (branch_arm, residual_arm)
 }
@@ -444,6 +452,7 @@ mod tests {
                 Ok(T),
                 TestsFailed,
                 OtherError(String),
+                NamedError{err: String, text: String},
             }
         };
 
@@ -464,6 +473,7 @@ mod tests {
                         Self::Ok(v0) => std::ops::ControlFlow::Continue(v0),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
                         Self::OtherError(v0) => std::ops::ControlFlow::Break(Exit::OtherError(v0)),
+                        Self::NamedError{err, text} => std::ops::ControlFlow::Break(Exit::NamedError{err, text}),
                     }
                 }
             }
@@ -475,6 +485,7 @@ mod tests {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
                         Exit::OtherError(v0) => Exit::OtherError(v0),
+                        Exit::NamedError{err, text} => Exit::NamedError{err, text},
                     }
                 }
             }
