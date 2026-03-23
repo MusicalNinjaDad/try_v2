@@ -417,7 +417,7 @@ fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
                 Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
             },
             Some(parse_quote! {
-                #enum_name::Variant1(#(#vars),*) => #enum_name::Variant1(#(#vars),*),
+                #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
             }),
         )} else {
         (
@@ -496,6 +496,39 @@ mod tests {
     }
 
     #[test]
+    fn all_arm_types() {
+        let input: DeriveInput = syn::parse2(quote!(
+            enum foo<T> {
+                Output(T),
+                Residual1(i32),
+                Residual3(i32, i32, String),
+            }
+        ))
+        .unwrap();
+        let Data::Enum(enumdata) = &input.data else {
+            panic!("Not an enum")
+        };
+        let (branch, residual) = arms(&input.ident, &enumdata);
+        let expected_branch: Vec<Arm> = parse_quote! {
+            Self::Output(v0) => std::ops::ControlFlow::Continue(foo::Output(v0)),
+            Self::Residual1(v0) => std::ops::ControlFlow::Break(foo::Residual1(v0)),
+            Self::Residual3(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Residual3(v0,v1,v2)),
+        };
+        assert_eq!(
+            quote!(#(#expected_branch)*).to_string(),
+            quote!(#(#branch)*).to_string()
+        );
+        let expected_residual: Vec<Arm> = parse_quote! {
+            foo::Residual1(v0) => foo::Residual1(v0),
+            foo::Residual3(v0,v1,v2) => foo::Residual3(v0,v1,v2),
+        };
+        assert_eq!(
+            quote!(#(#expected_residual)*).to_string(),
+            quote!(#(#residual)*).to_string()
+        );
+    }
+
+    #[test]
     fn derive() {
         let original: TokenStream2 = quote! {
             #[derive(Try)]
@@ -522,7 +555,7 @@ mod tests {
                     match self {
                         Self::Ok(v) => std::ops::ControlFlow::Continue(v),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
-                        Self::OtherError(v1) => std::ops::ControlFlow::Break(Exit::OtherError(v1)),
+                        Self::OtherError(v0) => std::ops::ControlFlow::Break(Exit::OtherError(v0)),
                     }
                 }
             }
@@ -533,7 +566,7 @@ mod tests {
                 fn from_residual(residual: Exit<!>) -> Self {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
-                        Exit::OtherError(v1) => Exit::OtherError(v1),
+                        Exit::OtherError(v0) => Exit::OtherError(v0),
                     }
                 }
             }
