@@ -429,7 +429,7 @@ mod tests {
                     match self {
                         Self::Ok(v) => std::ops::ControlFlow::Continue(v),
                         Self::TestsFailed => std::ops::ControlFlow::Break(Exit::TestsFailed),
-                        Self::OtherError(v) => std::ops::ControlFlow::Break(Exit::OtherError(v)),
+                        Self::OtherError(v1) => std::ops::ControlFlow::Break(Exit::OtherError(v1)),
                     }
                 }
             }
@@ -440,7 +440,7 @@ mod tests {
                 fn from_residual(residual: Exit<!>) -> Self {
                     match residual {
                         Exit::TestsFailed => Exit::TestsFailed,
-                        Exit::OtherError(v) => Exit::OtherError(v),
+                        Exit::OtherError(v1) => Exit::OtherError(v1),
                     }
                 }
             }
