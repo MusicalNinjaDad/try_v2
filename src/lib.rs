@@ -63,7 +63,10 @@ use std::fmt::Display;
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, spanned::Spanned};
+use syn::{
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, parse_quote,
+    spanned::Spanned,
+};
 
 use crate::DiagnosticResult::Ok;
 
@@ -398,9 +401,33 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
+fn branch_patterns(enumdata: &DataEnum) -> Arm {
+    parse_quote! {
+        Self::Variant1(v1) => std::ops::ControlFlow::Break(foo::Variant1(v1))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn branch_with_fields() {
+        let input: DeriveInput = syn::parse2(quote!(
+            enum foo {
+                Variant1(i32),
+            }
+        ))
+        .unwrap();
+        let Data::Enum(enumdata) = &input.data else {
+            panic!("Not an enum")
+        };
+        let branches = branch_patterns(enumdata);
+        let expected: Arm = parse_quote! {
+            Self::Variant1(v1) => std::ops::ControlFlow::Break(foo::Variant1(v1))
+        };
+        assert_eq!(quote!(#expected).to_string(), quote!(#branches).to_string())
+    }
 
     #[test]
     fn derive() {
