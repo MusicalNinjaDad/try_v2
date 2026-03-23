@@ -404,7 +404,7 @@ type BranchArms = Vec<Arm>;
 type ResidualArms = Vec<Option<Arm>>;
 
 
-fn arms(enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
+fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
     enumdata.variants.iter().enumerate().map(
         |(i, variant)| {
         let vars: Vec<Ident> = (0..variant.fields.len())
@@ -414,15 +414,15 @@ fn arms(enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
         if i > 0 {
         (
             parse_quote! {
-                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(foo::#var_name(#(#vars),*)),
+                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
             },
             Some(parse_quote! {
-                foo::Variant1(#(#vars),*) => foo::Variant1(#(#vars),*),
+                #enum_name::Variant1(#(#vars),*) => #enum_name::Variant1(#(#vars),*),
             }),
         )} else {
         (
             parse_quote! {
-                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Continue(foo::#var_name(#(#vars),*)),
+                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Continue(#enum_name::#var_name(#(#vars),*)),
             },
             None,
         )    
@@ -447,7 +447,7 @@ mod tests {
         let Data::Enum(enumdata) = &input.data else {
             panic!("Not an enum")
         };
-        let (branch, residual) = arms(&enumdata);
+        let (branch, residual) = arms(&input.ident, &enumdata);
         let expected_branch: Vec<Arm> = parse_quote! {
             Self::Output(v0) => std::ops::ControlFlow::Continue(foo::Output(v0)),
             Self::Variant1(v0) => std::ops::ControlFlow::Break(foo::Variant1(v0)),
