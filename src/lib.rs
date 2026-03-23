@@ -159,37 +159,36 @@ fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
         |(i, variant)| {
             let var_name: &Ident = &variant.ident;
             let is_output_variant = i == 0;
+            let (branch_arm, residual_arm);
             match(is_output_variant, &variant.fields) {
-                (true, _) => (
-                    parse_quote! {
+                (true, _) => {
+                    branch_arm = parse_quote! {
                         Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-                    },
-                    None,
-                ),
-                (_,Fields::Unnamed(_)) => {
+                    };
+                    residual_arm = None;
+                },
+                (false, Fields::Unnamed(_)) => {
                     let vars: Vec<Ident> = (0..variant.fields.len())
-                    .map(|n| format_ident!("v{n}"))
-                    .collect();
-                    (
-                        parse_quote! {
-                            Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
-                        },
-                        Some(parse_quote! {
-                            #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
-                        }),
-                    )
-                }
-                ,
-                (_,Fields::Unit) => (
-                    parse_quote! {
+                        .map(|n| format_ident!("v{n}"))
+                        .collect();
+                    branch_arm = parse_quote! {
+                        Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+                    };
+                    residual_arm = Some(parse_quote! {
+                        #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+                    });
+                },
+                (false, Fields::Unit) => {
+                    branch_arm = parse_quote! {
                         Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                    },
-                    Some(parse_quote! {
+                    };
+                    residual_arm = Some(parse_quote! {
                         #enum_name::#var_name => #enum_name::#var_name,
-                    }),
-                ),
-                (_,_) => todo!("Error for or handle named fields")
-            }
+                    });
+                },
+                (false, Fields::Named(_)) => todo!("Error for or handle named fields")
+            };
+            (branch_arm, residual_arm)
         }
     ).unzip()
 }
