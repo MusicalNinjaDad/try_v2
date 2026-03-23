@@ -465,33 +465,35 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn branch_with_fields() {
-    //     let input: DeriveInput = syn::parse2(quote!(
-    //         enum foo {
-    //             Variant1(i32, i32, String),
-    //         }
-    //     ))
-    //     .unwrap();
-    //     let Data::Enum(enumdata) = &input.data else {
-    //         panic!("Not an enum")
-    //     };
-    //     let (branch, residual) = arms(&enumdata);
-    //     let expected_branch: Arm = parse_quote! {
-    //         Self::Variant1(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Variant1(v0,v1,v2))
-    //     };
-    //     assert_eq!(
-    //         quote!(#expected_branch).to_string(),
-    //         quote!(#(#branch),*).to_string()
-    //     );
-    //     let expected_residual: Arm = parse_quote! {
-    //         foo::Variant1(v0,v1,v2) => foo::Variant1(v0,v1,v2)
-    //     };
-    //     assert_eq!(
-    //         quote!(#expected_residual).to_string(),
-    //         quote!(#(#residual),*).to_string()
-    //     );
-    // }
+    #[test]
+    fn branch_with_fields() {
+        let input: DeriveInput = syn::parse2(quote!(
+            enum foo<T> {
+                Output(T),
+                Variant1(i32, i32, String),
+            }
+        ))
+        .unwrap();
+        let Data::Enum(enumdata) = &input.data else {
+            panic!("Not an enum")
+        };
+        let (branch, residual) = arms(&input.ident, &enumdata);
+        let expected_branch: Vec<Arm> = parse_quote! {
+            Self::Output(v0) => std::ops::ControlFlow::Continue(foo::Output(v0)),
+            Self::Variant1(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Variant1(v0,v1,v2)),
+        };
+        assert_eq!(
+            quote!(#(#expected_branch)*).to_string(),
+            quote!(#(#branch)*).to_string()
+        );
+        let expected_residual: Arm = parse_quote! {
+            foo::Variant1(v0,v1,v2) => foo::Variant1(v0,v1,v2),
+        };
+        assert_eq!(
+            quote!(#expected_residual).to_string(),
+            quote!(#(#residual)*).to_string()
+        );
+    }
 
     #[test]
     fn derive() {
