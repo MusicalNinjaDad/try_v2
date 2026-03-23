@@ -64,7 +64,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, parse_quote, spanned::Spanned,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Variant, parse_quote,
+    spanned::Spanned,
 };
 
 use crate::DiagnosticResult::Ok;
@@ -113,7 +114,12 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
     let output_variant: &Ident = parse_output_variant(enum_data, output_ty)?;
 
-    let (branch, residual) = arms(name, enum_data);
+    let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
+        .variants
+        .iter()
+        .enumerate()
+        .map(|(i, variant)| generate_arms(name, i, variant))
+        .unzip();
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -129,7 +135,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             #[inline]
             fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
                 match self {
-                    #(#branch)*
+                    #(#branch_arms)*
                 }
             }
         }
@@ -139,7 +145,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             #[track_caller]
             fn from_residual(residual: #name<!>) -> Self {
                 match residual {
-                    #(#residual)*
+                    #(#residual_arms)*
                 }
             }
         }
@@ -147,47 +153,40 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     DiagnosticResult::Ok(impl_try)
 }
 
-type BranchArms = Vec<Arm>;
-type ResidualArms = Vec<Option<Arm>>;
-
-fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
-    enumdata.variants.iter().enumerate().map(
-        |(i, variant)| {
-            let var_name: &Ident = &variant.ident;
-            let is_output_variant = i == 0;
-            let (branch_arm, residual_arm);
-            match(is_output_variant, &variant.fields) {
-                (true, _) => {
-                    // Output variant always has a single field
-                    branch_arm = parse_quote! {
-                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-                    };
-                    residual_arm = None;
-                },
-                (false, Fields::Unnamed(_)) => {
-                    let vars: Vec<Ident> = (0..variant.fields.len())
-                        .map(|n| format_ident!("v{n}"))
-                        .collect();
-                    branch_arm = parse_quote! {
-                        Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
-                    };
-                    residual_arm = Some(parse_quote! {
-                        #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
-                    });
-                },
-                (false, Fields::Unit) => {
-                    branch_arm = parse_quote! {
-                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                    };
-                    residual_arm = Some(parse_quote! {
-                        #enum_name::#var_name => #enum_name::#var_name,
-                    });
-                },
-                (false, Fields::Named(_)) => todo!("Error for or handle named fields")
+fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option<Arm>) {
+    let var_name: &Ident = &variant.ident;
+    let is_output_variant = i == 0;
+    let (branch_arm, residual_arm);
+    match (is_output_variant, &variant.fields) {
+        (true, _) => {
+            // Output variant always has a single field
+            branch_arm = parse_quote! {
+                Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
             };
-            (branch_arm, residual_arm)
+            residual_arm = None;
         }
-    ).unzip()
+        (false, Fields::Unnamed(_)) => {
+            let vars: Vec<Ident> = (0..variant.fields.len())
+                .map(|n| format_ident!("v{n}"))
+                .collect();
+            branch_arm = parse_quote! {
+                Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+            });
+        }
+        (false, Fields::Unit) => {
+            branch_arm = parse_quote! {
+                Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+            };
+            residual_arm = Some(parse_quote! {
+                #enum_name::#var_name => #enum_name::#var_name,
+            });
+        }
+        (false, Fields::Named(_)) => todo!("Error for or handle named fields"),
+    };
+    (branch_arm, residual_arm)
 }
 
 fn parse_output_variant<'ast>(
@@ -432,102 +431,6 @@ impl From<DiagnosticStream> for TokenStream1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn branch_with_field() {
-        let input: DeriveInput = syn::parse2(quote!(
-            enum foo<T> {
-                Output(T),
-                Variant1(i32),
-            }
-        ))
-        .unwrap();
-        let Data::Enum(enumdata) = &input.data else {
-            panic!("Not an enum")
-        };
-        let (branch, residual) = arms(&input.ident, enumdata);
-        let expected_branch: Vec<Arm> = parse_quote! {
-            Self::Output(v0) => std::ops::ControlFlow::Continue(v0),
-            Self::Variant1(v0) => std::ops::ControlFlow::Break(foo::Variant1(v0)),
-        };
-        assert_eq!(
-            quote!(#(#expected_branch)*).to_string(),
-            quote!(#(#branch)*).to_string()
-        );
-        let expected_residual: Arm = parse_quote! {
-            foo::Variant1(v0) => foo::Variant1(v0),
-        };
-        assert_eq!(
-            quote!(#expected_residual).to_string(),
-            quote!(#(#residual)*).to_string()
-        );
-    }
-
-    #[test]
-    fn branch_with_fields() {
-        let input: DeriveInput = syn::parse2(quote!(
-            enum foo<T> {
-                Output(T),
-                Variant1(i32, i32, String),
-            }
-        ))
-        .unwrap();
-        let Data::Enum(enumdata) = &input.data else {
-            panic!("Not an enum")
-        };
-        let (branch, residual) = arms(&input.ident, enumdata);
-        let expected_branch: Vec<Arm> = parse_quote! {
-            Self::Output(v0) => std::ops::ControlFlow::Continue(v0),
-            Self::Variant1(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Variant1(v0,v1,v2)),
-        };
-        assert_eq!(
-            quote!(#(#expected_branch)*).to_string(),
-            quote!(#(#branch)*).to_string()
-        );
-        let expected_residual: Arm = parse_quote! {
-            foo::Variant1(v0,v1,v2) => foo::Variant1(v0,v1,v2),
-        };
-        assert_eq!(
-            quote!(#expected_residual).to_string(),
-            quote!(#(#residual)*).to_string()
-        );
-    }
-
-    #[test]
-    fn all_arm_types() {
-        let input: DeriveInput = syn::parse2(quote!(
-            enum foo<T> {
-                Output(T),
-                Residual1(i32),
-                Residual2,
-                Residual3(i32, i32, String),
-            }
-        ))
-        .unwrap();
-        let Data::Enum(enumdata) = &input.data else {
-            panic!("Not an enum")
-        };
-        let (branch, residual) = arms(&input.ident, enumdata);
-        let expected_branch: Vec<Arm> = parse_quote! {
-            Self::Output(v0) => std::ops::ControlFlow::Continue(v0),
-            Self::Residual1(v0) => std::ops::ControlFlow::Break(foo::Residual1(v0)),
-            Self::Residual2 => std::ops::ControlFlow::Break(foo::Residual2),
-            Self::Residual3(v0,v1,v2) => std::ops::ControlFlow::Break(foo::Residual3(v0,v1,v2)),
-        };
-        assert_eq!(
-            quote!(#(#expected_branch)*).to_string(),
-            quote!(#(#branch)*).to_string()
-        );
-        let expected_residual: Vec<Arm> = parse_quote! {
-            foo::Residual1(v0) => foo::Residual1(v0),
-            foo::Residual2 => foo::Residual2,
-            foo::Residual3(v0,v1,v2) => foo::Residual3(v0,v1,v2),
-        };
-        assert_eq!(
-            quote!(#(#expected_residual)*).to_string(),
-            quote!(#(#residual)*).to_string()
-        );
-    }
 
     #[test]
     fn derive() {
