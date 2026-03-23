@@ -258,7 +258,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
 
     let mut extended_generics = ast.generics.clone();
     let err_generic: GenericParam =
-        syn::parse2(quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>}).unwrap();
+        parse_quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>};
     extended_generics.params.push(err_generic);
 
     let (impl_generics, _, _) = extended_generics.split_for_impl();
