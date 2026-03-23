@@ -151,6 +151,49 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     DiagnosticResult::Ok(impl_try)
 }
 
+type BranchArms = Vec<Arm>;
+type ResidualArms = Vec<Option<Arm>>;
+
+fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
+    enumdata.variants.iter().enumerate().map(
+        |(i, variant)| {
+            let var_name: &Ident = &variant.ident;
+            let is_output_variant = i == 0;
+            match(is_output_variant, &variant.fields) {
+                (true, _) => (
+                    parse_quote! {
+                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
+                    },
+                    None,
+                ),
+                (_,Fields::Unnamed(_)) => {
+                    let vars: Vec<Ident> = (0..variant.fields.len())
+                    .map(|n| format_ident!("v{n}"))
+                    .collect();
+                    (
+                        parse_quote! {
+                            Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
+                        },
+                        Some(parse_quote! {
+                            #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
+                        }),
+                    )
+                }
+                ,
+                (_,Fields::Unit) => (
+                    parse_quote! {
+                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+                    },
+                    Some(parse_quote! {
+                        #enum_name::#var_name => #enum_name::#var_name,
+                    }),
+                ),
+                (_,_) => todo!("Error for or handle named fields")
+            }
+        }
+    ).unzip()
+}
+
 fn parse_output_variant<'ast>(
     enum_data: &'ast DataEnum,
     output_ty: &'ast Ident,
@@ -381,49 +424,6 @@ impl From<DiagnosticStream> for TokenStream1 {
             }
         }
     }
-}
-
-type BranchArms = Vec<Arm>;
-type ResidualArms = Vec<Option<Arm>>;
-
-fn arms(enum_name: &Ident, enumdata: &DataEnum) -> (BranchArms, ResidualArms) {
-    enumdata.variants.iter().enumerate().map(
-        |(i, variant)| {
-            let var_name: &Ident = &variant.ident;
-            let is_output_variant = i == 0;
-            match(is_output_variant, &variant.fields) {
-                (true, _) => (
-                    parse_quote! {
-                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-                    },
-                    None,
-                ),
-                (_,Fields::Unnamed(_)) => {
-                    let vars: Vec<Ident> = (0..variant.fields.len())
-                    .map(|n| format_ident!("v{n}"))
-                    .collect();
-                    (
-                        parse_quote! {
-                            Self::#var_name(#(#vars),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#vars),*)),
-                        },
-                        Some(parse_quote! {
-                            #enum_name::#var_name(#(#vars),*) => #enum_name::#var_name(#(#vars),*),
-                        }),
-                    )
-                }
-                ,
-                (_,Fields::Unit) => (
-                    parse_quote! {
-                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                    },
-                    Some(parse_quote! {
-                        #enum_name::#var_name => #enum_name::#var_name,
-                    }),
-                ),
-                (_,_) => todo!("Error for or handle named fields")
-            }
-        }
-    ).unzip()
 }
 
 #[cfg(test)]
