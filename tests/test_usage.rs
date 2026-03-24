@@ -129,3 +129,13 @@ mod multiple_generics {
         assert_matches!(fail(), MyResult::Err(msg) if msg == "oops!");
     }
 }
+
+// mod lifetimes {
+//     use super::*;
+
+//     #[derive(Debug, Try, Try_ConvertResult)]
+//     enum MyResult<'t, 'e, T, E> {
+//         Ok(&'t T),
+//         Err(&'e E),
+//     }
+// }
