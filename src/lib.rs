@@ -111,7 +111,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     };
 
     let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
-    let residual_type: Type = generate_residual(name, enum_data)?;
+    let residual_type: Type = generate_residual(&ast)?;
 
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
@@ -443,7 +443,8 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
-fn generate_residual(name: &Ident, _enum_data: &DataEnum) -> DiagnosticResult<Type> {
+fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
+    let name = &ast.ident;
     Ok(parse_quote! {#name<!>})
 }
 
@@ -460,14 +461,28 @@ mod tests {
                 TestsFailed,
             }
         };
-        let name = &original.ident;
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let residual = generate_residual(name, enum_data).unwrap();
+        let residual = generate_residual(&original).unwrap();
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
+
+    // #[test]
+    // fn multiple_generics_residual() {
+    //     let original: DeriveInput = parse_quote! {
+    //         #[derive(Try)]
+    //         enum Exit<T, E> {
+    //             Ok(T),
+    //             TestsFailed(E),
+    //         }
+    //     };
+    //     let name = &original.ident;
+    //     let Data::Enum(enum_data) = &original.data else {
+    //         panic!()
+    //     };
+    //     let residual = generate_residual(name, enum_data).unwrap();
+    //     let expected_residual: Type = parse_quote! {Exit<!, E>};
+    //     assert_eq!(expected_residual, residual);
+    // }
 
     #[test]
     fn derive() {
