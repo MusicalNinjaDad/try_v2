@@ -256,6 +256,32 @@ fn check_output_variant<'ast>(
     Ok(&output_variant.ident)
 }
 
+/// Generate the residual type with appropriate arguments (! + remaining generics).
+///
+/// Infallible as we already guarantee we are processing an enum with at least one generic type.
+fn generate_residual(ast: &DeriveInput) -> Type {
+    let name = &ast.ident;
+    let (_, tygenerics, _) = ast.generics.split_for_impl();
+    let mut residual_type: Type = parse_quote! {#name #tygenerics};
+    let last_segment: &mut PathSegment = match residual_type {
+        Type::Path(ref mut t) => t
+            .path
+            .segments
+            .last_mut()
+            .expect("valid type has at least one segment"),
+        _ => unreachable!("enum name must be Type::Path"),
+    };
+    let first_argument: &mut GenericArgument = match last_segment.arguments {
+        PathArguments::AngleBracketed(ref mut a) => a
+            .args
+            .first_mut()
+            .expect("first argument must be generic output type"),
+        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+    };
+    *first_argument = GenericArgument::Type(parse_quote!(!));
+    residual_type
+}
+
 #[proc_macro_derive(Try_ConvertResult)]
 /// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
 ///
@@ -303,32 +329,6 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
     }
-}
-
-/// Generate the residual type with appropriate arguments (! + remaining generics).
-///
-/// Infallible as we already guarantee we are processing an enum with at least one generic type.
-fn generate_residual(ast: &DeriveInput) -> Type {
-    let name = &ast.ident;
-    let (_, tygenerics, _) = ast.generics.split_for_impl();
-    let mut residual_type: Type = parse_quote! {#name #tygenerics};
-    let last_segment: &mut PathSegment = match residual_type {
-        Type::Path(ref mut t) => t
-            .path
-            .segments
-            .last_mut()
-            .expect("valid type has at least one segment"),
-        _ => unreachable!("enum name must be Type::Path"),
-    };
-    let first_argument: &mut GenericArgument = match last_segment.arguments {
-        PathArguments::AngleBracketed(ref mut a) => a
-            .args
-            .first_mut()
-            .expect("first argument must be generic output type"),
-        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-    };
-    *first_argument = GenericArgument::Type(parse_quote!(!));
-    residual_type
 }
 
 #[cfg(test)]
