@@ -444,7 +444,7 @@ impl From<DiagnosticStream> for TokenStream1 {
 }
 
 /// Generate the residual type with appropriate arguments (! + remaining generics).
-/// 
+///
 /// Infallible as we already guarantee we are processing an enum with at least one generic type.
 fn generate_residual(ast: &DeriveInput) -> Type {
     let name = &ast.ident;
