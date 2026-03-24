@@ -63,7 +63,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Type, Variant, parse_quote, spanned::Spanned
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Type, Variant, parse_quote,
+    spanned::Spanned,
 };
 
 use crate::DiagnosticResult::Ok;
@@ -443,7 +444,7 @@ impl From<DiagnosticStream> for TokenStream1 {
 }
 
 fn generate_residual(name: &Ident, _enum_data: &DataEnum) -> DiagnosticResult<Type> {
-    Ok(parse_quote!{#name<!>})
+    Ok(parse_quote! {#name<!>})
 }
 
 #[cfg(test)]
@@ -460,9 +461,11 @@ mod tests {
             }
         };
         let name = &original.ident;
-        let Data::Enum(enum_data) = &original.data else {panic!()}; 
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let residual = generate_residual(name, enum_data).unwrap();
-        let expected_residual: Type = parse_quote!{Exit<!>};
+        let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
 
