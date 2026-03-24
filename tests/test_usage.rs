@@ -3,12 +3,11 @@
 #![feature(try_trait_v2)]
 
 use std::assert_matches::assert_matches;
-use std::process::Termination;
-
 use try_v2::{Try, Try_ConvertResult};
 
-mod exit {
+mod bound_ok_type {
     use super::*;
+    use std::process::Termination;
 
     #[derive(Debug, Try, Try_ConvertResult)]
     enum Exit<T: Termination> {
