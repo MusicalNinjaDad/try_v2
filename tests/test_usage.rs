@@ -113,7 +113,7 @@ mod multiple_generics {
 
     #[test]
     fn short_circuit_ok() {
-        fn pass() -> MyResult<usize, String>{
+        fn pass() -> MyResult<usize, String> {
             let foo = MyResult::Ok(5)?;
             MyResult::Ok(foo)
         }
@@ -122,7 +122,7 @@ mod multiple_generics {
 
     #[test]
     fn short_circuit_fail() {
-        fn fail() -> MyResult<String, String>{
+        fn fail() -> MyResult<String, String> {
             let foo = MyResult::Err("oops!".to_string())?;
             MyResult::Ok(foo)
         }
