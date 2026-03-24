@@ -63,8 +63,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Type, Variant, parse_quote,
-    spanned::Spanned,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments, Type, TypeNever, Variant, parse_quote, spanned::Spanned
 };
 
 use crate::DiagnosticResult::Ok;
@@ -445,7 +444,20 @@ impl From<DiagnosticStream> for TokenStream1 {
 
 fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
     let name = &ast.ident;
-    Ok(parse_quote! {#name<!>})
+    let (_, tygenerics, _) = ast.generics.split_for_impl();
+    let mut residual_type: Type = parse_quote! {#name #tygenerics};
+    let args: &mut PathArguments = match residual_type {
+        Type::Path(ref mut t) => &mut t.path.segments.first_mut().unwrap().arguments,
+        _ => todo!("unhandle path stuff")
+    };
+    let arg1: &mut GenericArgument = match args {
+        PathArguments::AngleBracketed(a) => a.args.first_mut().unwrap(),
+        _ => todo!("more unhandled path stuff")
+    };
+    let bang: TypeNever = parse_quote!(!);
+    let bang_ga = GenericArgument::Type(bang.into());
+    *arg1 = bang_ga;
+    Ok(residual_type)
 }
 
 #[cfg(test)]
@@ -466,23 +478,19 @@ mod tests {
         assert_eq!(expected_residual, residual);
     }
 
-    // #[test]
-    // fn multiple_generics_residual() {
-    //     let original: DeriveInput = parse_quote! {
-    //         #[derive(Try)]
-    //         enum Exit<T, E> {
-    //             Ok(T),
-    //             TestsFailed(E),
-    //         }
-    //     };
-    //     let name = &original.ident;
-    //     let Data::Enum(enum_data) = &original.data else {
-    //         panic!()
-    //     };
-    //     let residual = generate_residual(name, enum_data).unwrap();
-    //     let expected_residual: Type = parse_quote! {Exit<!, E>};
-    //     assert_eq!(expected_residual, residual);
-    // }
+    #[test]
+    fn multiple_generics_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum Exit<T, E> {
+                Ok(T),
+                TestsFailed(E),
+            }
+        };
+        let residual = generate_residual(&original).unwrap();
+        let expected_residual: Type = parse_quote! {Exit<!, E>};
+        assert_eq!(expected_residual, residual);
+    }
 
     #[test]
     fn derive() {
