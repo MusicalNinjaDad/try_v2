@@ -229,28 +229,26 @@ fn check_output_variant<'ast>(
         }
     }?;
 
-    let type_path = match &fields
+    match &fields
         .unnamed
         .first()
         .expect("at least one unnamed field")
         .ty
     {
-        syn::Type::Path(tp) => Ok(tp),
+        syn::Type::Path(tp) => match tp.path.get_ident() {
+            Some(var_ty) if var_ty == output_ty => Ok(()),
+            Some(var_ty) => DiagnosticResult::error(
+                "Try requires the first generic type to match the `Output` type",
+            )
+            .add_help(output_ty.span(), "Output type defined here")
+            .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
+            None => DiagnosticResult::error("Try requires a generic type for `Output`")
+                .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+        },
+        syn::Type::Reference(_) => todo!("references"),
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     }?;
-
-    match type_path.path.get_ident() {
-        Some(var_ty) if var_ty == output_ty => Ok(()),
-        Some(var_ty) => DiagnosticResult::error(
-            "Try requires the first generic type to match the `Output` type",
-        )
-        .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
-        None => DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
-    }?;
-
     Ok(&output_variant.ident)
 }
 

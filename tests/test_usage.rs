@@ -133,9 +133,9 @@ mod multiple_generics {
 // mod lifetimes {
 //     use super::*;
 
-//     #[derive(Debug, Try, Try_ConvertResult)]
-//     enum MyResult<'t, 'e, T, E> {
+//     #[derive(Debug, Try)]
+//     enum MyResult<'t, T, E> {
 //         Ok(&'t T),
-//         Err(&'e E),
+//         Err(E),
 //     }
 // }
