@@ -64,7 +64,7 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
     Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    Type, TypeNever, Variant, parse_quote, spanned::Spanned,
+    Type, Variant, parse_quote, spanned::Spanned,
 };
 
 use crate::DiagnosticResult::Ok;
@@ -448,16 +448,24 @@ fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics};
     let args: &mut PathArguments = match residual_type {
-        Type::Path(ref mut t) => &mut t.path.segments.first_mut().unwrap().arguments,
-        _ => todo!("unhandle path stuff"),
+        Type::Path(ref mut t) => {
+            &mut t
+                .path
+                .segments
+                .last_mut()
+                .expect("valid type has at least one segment")
+                .arguments
+        }
+        _ => todo!("unhandled path stuff"),
     };
     let arg1: &mut GenericArgument = match args {
-        PathArguments::AngleBracketed(a) => a.args.first_mut().unwrap(),
+        PathArguments::AngleBracketed(a) => a
+            .args
+            .first_mut()
+            .expect("first argument must be generic output type"),
         _ => todo!("more unhandled path stuff"),
     };
-    let bang: TypeNever = parse_quote!(!);
-    let bang_ga = GenericArgument::Type(bang.into());
-    *arg1 = bang_ga;
+    *arg1 = GenericArgument::Type(parse_quote!(!));
     Ok(residual_type)
 }
 
