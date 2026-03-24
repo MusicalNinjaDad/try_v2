@@ -14,7 +14,7 @@ Also enables auto-conversion from `Result<T, E> where E: Into::into(Self)`
 
 - must be an `enum`
 - must have _at least one_ generic type
-- the _first_ generic type must be the `Output` type (produced when not short circuiting)
+- the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
 
 ## Example Usage
