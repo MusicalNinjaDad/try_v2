@@ -102,3 +102,31 @@ mod exit {
         assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
     }
 }
+
+mod multiple_generics {
+    use super::*;
+
+    #[derive(Debug, Try, Try_ConvertResult)]
+    enum MyResult<T, E> {
+        Ok(T),
+        Err(E),
+    }
+
+    #[test]
+    fn short_circuit_ok() {
+        fn pass() -> MyResult<usize, String>{
+            let foo = MyResult::Ok(5)?;
+            MyResult::Ok(foo)
+        }
+        assert_matches!(pass(), MyResult::Ok(val) if val == 5);
+    }
+
+    #[test]
+    fn short_circuit_fail() {
+        fn fail() -> MyResult<String, String>{
+            let foo = MyResult::Err("oops!".to_string())?;
+            MyResult::Ok(foo)
+        }
+        assert_matches!(fail(), MyResult::Err(msg) if msg == "oops!");
+    }
+}
