@@ -111,7 +111,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     };
 
     let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
-    let residual_type: Type = generate_residual(&ast)?;
+    let residual_type: Type = generate_residual(&ast);
 
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
@@ -443,7 +443,10 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
-fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
+/// Generate the residual type with appropriate arguments (! + remaining generics).
+/// 
+/// Infallible as we already guarantee we are processing an enum with at least one generic type.
+fn generate_residual(ast: &DeriveInput) -> Type {
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics};
@@ -463,7 +466,7 @@ fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
     *first_argument = GenericArgument::Type(parse_quote!(!));
-    Ok(residual_type)
+    residual_type
 }
 
 #[cfg(test)]
@@ -479,7 +482,7 @@ mod tests {
                 TestsFailed,
             }
         };
-        let residual = generate_residual(&original).unwrap();
+        let residual = generate_residual(&original);
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
@@ -493,7 +496,7 @@ mod tests {
                 TestsFailed(E),
             }
         };
-        let residual = generate_residual(&original).unwrap();
+        let residual = generate_residual(&original);
         let expected_residual: Type = parse_quote! {Exit<!, E>};
         assert_eq!(expected_residual, residual);
     }
