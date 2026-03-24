@@ -277,6 +277,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     extended_generics.params.push(err_generic);
 
     let (impl_generics, _, _) = extended_generics.split_for_impl();
+    let residual = generate_residual(&ast);
 
     quote! {
         impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for #name #ty_generics #where_clause
@@ -290,11 +291,11 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        impl<T, E: From<#name<!>>> std::ops::FromResidual<#name<!>> for std::result::Result<T, E>
+        impl<T, E: From<#residual>> std::ops::FromResidual<#residual> for std::result::Result<T, E>
         {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: #name<!>) -> Self {
+            fn from_residual(residual: #residual) -> Self {
                 std::result::Result::Err(residual.into())
             }
         }
@@ -575,7 +576,7 @@ mod tests {
                 }
             }
 
-            impl<T, E: From<Exit<!>>> std::ops::FromResidual<Exit<!>> for std::result::Result<T, E>
+            impl<T, E: From<Exit<!> >> std::ops::FromResidual<Exit<!> > for std::result::Result<T, E>
             {
                 #[inline]
                 #[track_caller]
