@@ -64,7 +64,7 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
     Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    Type, Variant, parse_quote, spanned::Spanned,
+    PathSegment, Type, Variant, parse_quote, spanned::Spanned,
 };
 
 use crate::DiagnosticResult::Ok;
@@ -447,25 +447,22 @@ fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics};
-    let args: &mut PathArguments = match residual_type {
-        Type::Path(ref mut t) => {
-            &mut t
-                .path
-                .segments
-                .last_mut()
-                .expect("valid type has at least one segment")
-                .arguments
-        }
+    let last_segment: &mut PathSegment = match residual_type {
+        Type::Path(ref mut t) => t
+            .path
+            .segments
+            .last_mut()
+            .expect("valid type has at least one segment"),
         _ => unreachable!("enum name must be Type::Path"),
     };
-    let arg1: &mut GenericArgument = match args {
-        PathArguments::AngleBracketed(a) => a
+    let first_argument: &mut GenericArgument = match last_segment.arguments {
+        PathArguments::AngleBracketed(ref mut a) => a
             .args
             .first_mut()
             .expect("first argument must be generic output type"),
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
-    *arg1 = GenericArgument::Type(parse_quote!(!));
+    *first_argument = GenericArgument::Type(parse_quote!(!));
     Ok(residual_type)
 }
 
