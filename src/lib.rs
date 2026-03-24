@@ -58,7 +58,7 @@
 //! ```
 
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::{TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
@@ -67,7 +67,10 @@ use syn::{
 
 mod diagnostic;
 
-use diagnostic::{DiagnosticResult::{self, Ok}, DiagnosticStream};
+use diagnostic::{
+    DiagnosticResult::{self, Ok},
+    DiagnosticStream,
+};
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
