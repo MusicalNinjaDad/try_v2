@@ -93,10 +93,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    let name: &Ident = &ast.ident;
-
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-
+    // Fail fast
     let enum_data: &DataEnum = match &ast.data {
         Data::Enum(enum_data) => Ok(enum_data),
         Data::Struct(struct_data) => DiagnosticResult::error("Try can only be derived for an enum")
@@ -105,6 +102,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             .add_help(union_data.union_token.span(), "not an enum"),
     }?;
 
+    let name: &Ident = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let output_ty: &Ident = match ast.generics.type_params().next() {
         Some(output_ty) => &output_ty.ident,
         None => {
@@ -112,16 +111,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 .add_help(name.span(), "Add <T> after this...");
         }
     };
-
     let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
-    let residual_type: Type = generate_residual(&ast);
-
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
         .iter()
         .enumerate()
         .map(|(i, variant)| generate_arms(name, i, variant))
         .unzip();
+    // Must be done late, after validating suitable generics
+    let residual_type: Type = generate_residual(&ast);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
