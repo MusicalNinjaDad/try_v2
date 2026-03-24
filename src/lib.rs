@@ -63,7 +63,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments, Type, TypeNever, Variant, parse_quote, spanned::Spanned
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
+    Type, TypeNever, Variant, parse_quote, spanned::Spanned,
 };
 
 use crate::DiagnosticResult::Ok;
@@ -448,11 +449,11 @@ fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
     let mut residual_type: Type = parse_quote! {#name #tygenerics};
     let args: &mut PathArguments = match residual_type {
         Type::Path(ref mut t) => &mut t.path.segments.first_mut().unwrap().arguments,
-        _ => todo!("unhandle path stuff")
+        _ => todo!("unhandle path stuff"),
     };
     let arg1: &mut GenericArgument = match args {
         PathArguments::AngleBracketed(a) => a.args.first_mut().unwrap(),
-        _ => todo!("more unhandled path stuff")
+        _ => todo!("more unhandled path stuff"),
     };
     let bang: TypeNever = parse_quote!(!);
     let bang_ga = GenericArgument::Type(bang.into());
