@@ -16,7 +16,7 @@ include = ["/src/", "/tests/"]
 proc-macro = true
 
 [dependencies]
-syn = {version = "2.0.117", features = ["full"]}
+syn = {version = "2.0.117", features = ["full","extra-traits"]}
 proc-macro2 = "1.0.106"
 quote = "1.0.45"
 
