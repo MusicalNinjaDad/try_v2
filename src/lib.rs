@@ -456,14 +456,14 @@ fn generate_residual(ast: &DeriveInput) -> DiagnosticResult<Type> {
                 .expect("valid type has at least one segment")
                 .arguments
         }
-        _ => todo!("unhandled path stuff"),
+        _ => unreachable!("enum name must be Type::Path"),
     };
     let arg1: &mut GenericArgument = match args {
         PathArguments::AngleBracketed(a) => a
             .args
             .first_mut()
             .expect("first argument must be generic output type"),
-        _ => todo!("more unhandled path stuff"),
+        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
     *arg1 = GenericArgument::Type(parse_quote!(!));
     Ok(residual_type)
