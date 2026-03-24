@@ -63,7 +63,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Generics, Ident, Type, Variant, parse_quote, spanned::Spanned
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericParam, Ident, Type, Variant, parse_quote, spanned::Spanned
 };
 
 use crate::DiagnosticResult::Ok;
@@ -110,6 +110,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     };
 
     let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
+    let residual_type: Type = generate_residual(name, enum_data)?;
 
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
@@ -122,7 +123,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
             type Output = #output_ty;
 
-            type Residual = #name<!>;
+            type Residual = #residual_type;
 
             #[inline]
             fn from_output(output: Self::Output) -> Self {
@@ -137,10 +138,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         }
 
-        impl #impl_generics std::ops::FromResidual<#name<!>> for #name #ty_generics #where_clause {
+        impl #impl_generics std::ops::FromResidual<#residual_type> for #name #ty_generics #where_clause {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: #name<!>) -> Self {
+            fn from_residual(residual: #residual_type) -> Self {
                 match residual {
                     #(#residual_arms)*
                 }
@@ -441,8 +442,8 @@ impl From<DiagnosticStream> for TokenStream1 {
     }
 }
 
-fn generate_residual(name: &Ident, enum_data: &DataEnum) -> DiagnosticResult<Type> {
-    Ok(parse_quote!{Exit<!>})
+fn generate_residual(name: &Ident, _enum_data: &DataEnum) -> DiagnosticResult<Type> {
+    Ok(parse_quote!{#name<!>})
 }
 
 #[cfg(test)]
@@ -499,7 +500,7 @@ mod tests {
                 }
             }
 
-            impl<T: Termination> std::ops::FromResidual<Exit<!>> for Exit<T> {
+            impl<T: Termination> std::ops::FromResidual<Exit<!> > for Exit<T> {
                 #[inline]
                 #[track_caller]
                 fn from_residual(residual: Exit<!>) -> Self {
