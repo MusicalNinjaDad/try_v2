@@ -62,7 +62,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned,
+    Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
@@ -296,29 +296,30 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
-    let last_segment: &mut PathSegment = match residual_type {
+    let PathArguments::AngleBracketed(path_args) = &mut match residual_type {
         Type::Path(ref mut t) => t
             .path
             .segments
             .first_mut()
             .expect("valid enum definition has exactly one segment"),
         _ => unreachable!("enum name must be Type::Path"),
+    }
+    .arguments
+    else {
+        unreachable!("TypeGenerics quotes to angle bracketed arguments")
     };
-    match last_segment.arguments {
-        PathArguments::AngleBracketed(ref mut args) => args
-            .args
-            .iter_mut()
-            .find_map(|a| {
-                // relies on invariant: first generic type is output type
-                let &mut GenericArgument::Type(ref mut t) = a else {
-                    return None;
-                };
-                *t = parse_quote!(!);
-                Some(a)
-            })
-            .expect("must have at least one generic output type"),
-        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-    };
+    path_args
+        .args
+        .iter_mut()
+        .find_map(|a| {
+            // relies on invariant: first generic type is output type
+            let &mut GenericArgument::Type(ref mut t) = a else {
+                return None;
+            };
+            *t = parse_quote!(!);
+            Some(a)
+        })
+        .expect("must have at least one generic output type");
     if let Type::Reference(tr) = output_type {
         let output_lifetime = tr
             .lifetime
@@ -335,23 +336,16 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
         }) {
             // do nothing - at least one other variant uses the output lifetime
         } else {
-            let wanted_args = match last_segment.arguments {
-                PathArguments::AngleBracketed(ref mut args) => {
-                    args.args.clone().into_iter().filter(|a| {
-                        if let GenericArgument::Lifetime(l) = a {
-                            l != output_lifetime
-                        } else {
-                            true
-                        }
-                    })
+            let wanted_args = path_args.args.clone().into_iter().filter(|a| {
+                if let GenericArgument::Lifetime(l) = a {
+                    l != output_lifetime
+                } else {
+                    true
                 }
-                _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-            };
-            if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
-                args.args = wanted_args.collect();
-            }
-        };
-    }
+            });
+            path_args.args = wanted_args.collect();
+        }
+    };
     residual_type
 }
 
