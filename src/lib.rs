@@ -90,41 +90,73 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
 
+/// A destructured Enum with validated invariants
+struct TryEnum<'ast> {
+    name: &'ast Ident,
+    enum_data: &'ast DataEnum,
+    output_variant: &'ast Ident,
+    output_type: &'ast Type,
+    residual_type: Type,
+}
+
+impl<'ast> TryEnum<'ast> {
+    fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
+        // Fail fast
+        let enum_data: &DataEnum = match &ast.data {
+            Data::Enum(enum_data) => Ok(enum_data),
+            Data::Struct(struct_data) => {
+                DiagnosticResult::error("Try can only be derived for an enum")
+                    .add_help(struct_data.struct_token.span(), "not an enum")
+            }
+            Data::Union(union_data) => {
+                DiagnosticResult::error("Try can only be derived for an enum")
+                    .add_help(union_data.union_token.span(), "not an enum")
+            }
+        }?;
+        let name: &Ident = &ast.ident;
+        let first_generic_type: &Ident = match ast.generics.type_params().next() {
+            Some(output_ty) => &output_ty.ident,
+            None => {
+                return DiagnosticResult::error("Try requires a generic type for `Output`")
+                    .add_help(name.span(), "Add <T> after this...");
+            }
+        };
+        let (output_variant, output_type): (&Ident, &Type) =
+            check_output_variant(enum_data, first_generic_type)?;
+        // Must be done late, after validating suitable generics
+        let residual_type: Type = generate_residual(ast, output_type, enum_data);
+        Ok(Self {
+            name,
+            enum_data,
+            output_variant,
+            output_type,
+            residual_type,
+        })
+    }
+}
+
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    // Fail fast
-    let enum_data: &DataEnum = match &ast.data {
-        Data::Enum(enum_data) => Ok(enum_data),
-        Data::Struct(struct_data) => DiagnosticResult::error("Try can only be derived for an enum")
-            .add_help(struct_data.struct_token.span(), "not an enum"),
-        Data::Union(union_data) => DiagnosticResult::error("Try can only be derived for an enum")
-            .add_help(union_data.union_token.span(), "not an enum"),
-    }?;
+    let TryEnum {
+        name,
+        enum_data,
+        output_variant,
+        output_type,
+        residual_type,
+    } = TryEnum::try_parse(&ast)?;
 
-    let name: &Ident = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let output_ty: &Ident = match ast.generics.type_params().next() {
-        Some(output_ty) => &output_ty.ident,
-        None => {
-            return DiagnosticResult::error("Try requires a generic type for `Output`")
-                .add_help(name.span(), "Add <T> after this...");
-        }
-    };
-    let (output_variant, output_type): (&Ident, &Type) =
-        check_output_variant(enum_data, output_ty)?;
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
         .iter()
         .enumerate()
         .map(|(i, variant)| generate_arms(name, i, variant))
         .unzip();
-    // Must be done late, after validating suitable generics
-    let residual_type: Type = generate_residual(&ast, output_type, enum_data);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
-            type Output = #output_ty;
+            type Output = #output_type;
 
             type Residual = #residual_type;
 
