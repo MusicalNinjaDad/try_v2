@@ -61,8 +61,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned,
+    Arm, Data, DataEnum, DeriveInput, Field, Fields, GenericArgument, GenericParam, Ident,
+    PathArguments, PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
@@ -120,7 +120,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .map(|(i, variant)| generate_arms(name, i, variant))
         .unzip();
     // Must be done late, after validating suitable generics
-    let residual_type: Type = generate_residual(&ast, output_type);
+    let residual_type: Type = generate_residual(&ast, output_type, enum_data);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -260,7 +260,7 @@ fn check_output_variant<'ast>(
 /// Generate the residual type with appropriate arguments (! + remaining generics).
 ///
 /// Infallible as we already guarantee we are processing an enum with at least one generic type.
-fn generate_residual(ast: &DeriveInput, output_type: &Type) -> Type {
+fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum) -> Type {
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
@@ -288,26 +288,37 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type) -> Type {
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
     if let Type::Reference(tr) = output_type {
-        let lifetime = tr
+        let output_lifetime = tr
             .lifetime
             .as_ref()
             .expect("enum variants must use explicit lifetimes for stored refs");
-        let wanted_args = match last_segment.arguments {
-            PathArguments::AngleBracketed(ref mut args) => {
-                args.args.clone().into_iter().filter(|a| {
-                    if let GenericArgument::Lifetime(l) = a
-                    {
-                        l != lifetime
-                    } else {
-                        true
-                    }
-                })
+        if enum_data.variants.iter().skip(1).any(|variant| {
+            variant.fields.iter().any(|field| {
+                if let Type::Reference(r) = &field.ty {
+                    r.lifetime.as_ref() == Some(output_lifetime)
+                } else {
+                    false
+                }
+            })
+        }) {
+            // do nothing - at least one other variant uses the output lifetime
+        } else {
+            let wanted_args = match last_segment.arguments {
+                PathArguments::AngleBracketed(ref mut args) => {
+                    args.args.clone().into_iter().filter(|a| {
+                        if let GenericArgument::Lifetime(l) = a {
+                            l != output_lifetime
+                        } else {
+                            true
+                        }
+                    })
+                }
+                _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+            };
+            if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
+                args.args = wanted_args.collect();
             }
-            _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
         };
-        if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
-            args.args = wanted_args.collect();
-        }
     }
     residual_type
 }
@@ -375,8 +386,11 @@ mod tests {
                 TestsFailed,
             }
         };
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let output_type: Type = parse_quote!(T);
-        let residual = generate_residual(&original, &output_type);
+        let residual = generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
@@ -390,8 +404,11 @@ mod tests {
                 TestsFailed(E),
             }
         };
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let output_type: Type = parse_quote!(T);
-        let residual = generate_residual(&original, &output_type);
+        let residual = generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {Exit<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -405,8 +422,11 @@ mod tests {
                 Err(E),
             }
         };
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let output_type: Type = parse_quote!(&'static T);
-        let residual = generate_residual(&original, &output_type);
+        let residual = generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -420,8 +440,11 @@ mod tests {
                 Err(&'r E),
             }
         };
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let output_type: Type = parse_quote!(&'r T);
-        let residual = generate_residual(&original, &output_type);
+        let residual = generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -435,8 +458,11 @@ mod tests {
                 Err(&'e E),
             }
         };
+        let Data::Enum(enum_data) = &original.data else {
+            panic!()
+        };
         let output_type: Type = parse_quote!(&'t T);
-        let residual = generate_residual(&original, &output_type);
+        let residual = generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<'e, !, E>};
         assert_eq!(expected_residual, residual);
     }
