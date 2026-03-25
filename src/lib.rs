@@ -228,7 +228,7 @@ fn check_output_variant<'ast>(
         }
     }?;
 
-    let check = |tp: &TypePath| {
+    let validate_ident = |tp: &TypePath| {
         match tp.path.get_ident() {
             Some(var_ty) if var_ty == output_ty => Ok(()),
             Some(var_ty) => DiagnosticResult::error(
@@ -247,9 +247,9 @@ fn check_output_variant<'ast>(
         .expect("at least one unnamed field")
         .ty
     {
-        Type::Path(tp) => check(tp),
+        Type::Path(tp) => validate_ident(tp),
         Type::Reference(tr) => match tr.elem.as_ref() {
-            Type::Path(tp) => check(tp),
+            Type::Path(tp) => validate_ident(tp),
             _ => todo!("{:?}",tr.elem.as_ref()),
         },
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
