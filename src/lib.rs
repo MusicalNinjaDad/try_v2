@@ -264,13 +264,13 @@ fn check_output_variant<'ast>(
 fn generate_residual(ast: &DeriveInput) -> Type {
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
-    let mut residual_type: Type = parse_quote! {#name #tygenerics};
+    let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
     let last_segment: &mut PathSegment = match residual_type {
         Type::Path(ref mut t) => t
             .path
             .segments
-            .last_mut()
-            .expect("valid type has at least one segment"),
+            .first_mut()
+            .expect("valid enum definition has exactly one segment"),
         _ => unreachable!("enum name must be Type::Path"),
     };
     let first_argument: &mut GenericArgument = match last_segment.arguments {
@@ -280,7 +280,7 @@ fn generate_residual(ast: &DeriveInput) -> Type {
             .expect("first argument must be generic output type"),
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
-    *first_argument = GenericArgument::Type(parse_quote!(!));
+    *first_argument = GenericArgument::Type(parse_quote!(!)); // -> e.g. `Foo<!,E,U>`
     residual_type
 }
 
