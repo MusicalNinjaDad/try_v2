@@ -62,8 +62,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    Type, TypePath, Variant, parse_quote, spanned::Spanned,
+    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
+    GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
 
 use std::ops::Not::not;
@@ -299,17 +299,20 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
-    let PathArguments::AngleBracketed(path_args) = &mut match residual_type {
-        Type::Path(ref mut t) => t
+    let path_args: &mut AngleBracketedGenericArguments = {
+        let Type::Path(ref mut tp) = residual_type else {
+            unreachable!("enum name must be Type::Path")
+        };
+        match tp
             .path
             .segments
             .first_mut()
-            .expect("valid enum definition has exactly one segment"),
-        _ => unreachable!("enum name must be Type::Path"),
-    }
-    .arguments
-    else {
-        unreachable!("TypeGenerics quotes to angle bracketed arguments")
+            .expect("valid enum definition has exactly one segment")
+            .arguments
+        {
+            PathArguments::AngleBracketed(ref mut args) => args,
+            _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+        }
     };
     path_args
         .args
@@ -339,10 +342,9 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
         };
         let mut residual_variants = enum_data.variants.iter().skip(1);
         if !residual_variants.any(uses_output_lifetime) {
-            let wanted_args =
-                path_args.args.clone().into_iter().filter(|arg| {
-                    not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
-                });
+            let wanted_args = path_args.args.clone().into_iter().filter(|arg| {
+                not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
+            });
             path_args.args = wanted_args.collect();
         }
     };
