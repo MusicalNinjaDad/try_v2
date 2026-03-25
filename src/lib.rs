@@ -272,14 +272,20 @@ fn generate_residual(ast: &DeriveInput) -> Type {
             .expect("valid enum definition has exactly one segment"),
         _ => unreachable!("enum name must be Type::Path"),
     };
-    let first_argument: &mut GenericArgument = match last_segment.arguments {
-        PathArguments::AngleBracketed(ref mut a) => a
+    match last_segment.arguments {
+        PathArguments::AngleBracketed(ref mut args) => args
             .args
-            .first_mut()
-            .expect("first argument must be generic output type"),
+            .iter_mut()
+            .find_map(|a| {
+                let &mut GenericArgument::Type(ref mut t) = a else {
+                    return None;
+                };
+                *t = parse_quote!(!);
+                Some(a)
+            })
+            .expect("must have at least one generic output type"),
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
-    *first_argument = GenericArgument::Type(parse_quote!(!)); // -> e.g. `Foo<!,E,U>`
     residual_type
 }
 
@@ -375,6 +381,20 @@ mod tests {
         };
         let residual = generate_residual(&original);
         let expected_residual: Type = parse_quote! {MyResult<!, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn lifetime_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<'r, T, E> {
+                Ok(&'r T),
+                Err(&'r E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
         assert_eq!(expected_residual, residual);
     }
 

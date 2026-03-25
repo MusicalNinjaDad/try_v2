@@ -135,6 +135,12 @@ mod lifetimes {
     use super::*;
 
     // #[derive(Debug, Try)]
+    // enum MyResult<'r, T, E> {
+    //     Ok(&'r T),
+    //     Err(&'r E),
+    // }
+
+    // #[derive(Debug, Try)]
     // enum MyResult<T: 'static, E> {
     //     Ok(&'static T),
     //     Err(E),
