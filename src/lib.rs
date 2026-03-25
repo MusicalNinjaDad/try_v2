@@ -247,8 +247,9 @@ fn check_output_variant<'ast>(
         .expect("at least one unnamed field")
         .ty
     {
-        syn::Type::Path(tp) => check(tp),
-        syn::Type::Reference(tr) => match tr.elem.as_ref() {
+        Type::Path(tp) => check(tp),
+        Type::Reference(tr) => match tr.elem.as_ref() {
+            Type::Path(tp) => check(tp),
             _ => todo!("{:?}",tr.elem.as_ref()),
         },
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
