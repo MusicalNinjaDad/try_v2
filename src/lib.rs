@@ -300,10 +300,10 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
     let path_args: &mut AngleBracketedGenericArguments = {
-        let Type::Path(ref mut tp) = residual_type else {
+        let Type::Path(ref mut residual_type) = residual_type else {
             unreachable!("enum name must be Type::Path")
         };
-        match tp
+        match residual_type
             .path
             .segments
             .first_mut()
