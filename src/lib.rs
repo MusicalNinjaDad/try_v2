@@ -61,7 +61,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments, PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
+    PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
@@ -228,17 +229,15 @@ fn check_output_variant<'ast>(
         }
     }?;
 
-    let validate_ident = |tp: &TypePath| {
-        match tp.path.get_ident() {
-            Some(var_ty) if var_ty == output_ty => Ok(()),
-            Some(var_ty) => DiagnosticResult::error(
-                "Try requires the first generic type to match the `Output` type",
-            )
-            .add_help(output_ty.span(), "Output type defined here")
-            .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
-            None => DiagnosticResult::error("Try requires a generic type for `Output`")
-                .add_help(fields.span(), format_args!("change this to ({output_ty})")),
-        }
+    let validate_ident = |tp: &TypePath| match tp.path.get_ident() {
+        Some(var_ty) if var_ty == output_ty => Ok(()),
+        Some(var_ty) => DiagnosticResult::error(
+            "Try requires the first generic type to match the `Output` type",
+        )
+        .add_help(output_ty.span(), "Output type defined here")
+        .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
+        None => DiagnosticResult::error("Try requires a generic type for `Output`")
+            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     };
 
     match &fields
@@ -250,7 +249,7 @@ fn check_output_variant<'ast>(
         Type::Path(tp) => validate_ident(tp),
         Type::Reference(tr) => match tr.elem.as_ref() {
             Type::Path(tp) => validate_ident(tp),
-            _ => todo!("{:?}",tr.elem.as_ref()),
+            _ => todo!("{:?}", tr.elem.as_ref()),
         },
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
