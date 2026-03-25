@@ -287,6 +287,19 @@ fn generate_residual(ast: &DeriveInput) -> Type {
             .expect("must have at least one generic output type"),
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
+    let wanted_args = match last_segment.arguments {
+        PathArguments::AngleBracketed(ref mut args) => args.args.clone().into_iter().filter(|a| {
+            if let GenericArgument::Lifetime(_) = a {
+                false
+            } else {
+                true
+            }
+        }),
+        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+    };
+    if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
+        args.args = wanted_args.collect();
+    }
     residual_type
 }
 
