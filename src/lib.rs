@@ -61,7 +61,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Field, Fields, GenericArgument, GenericParam, Ident,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident,
     PathArguments, PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
 
@@ -369,7 +369,14 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
 fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    let name = &ast.ident;
+    #[allow(unused_variables)]
+    let TryEnum {
+        name,
+        enum_data,
+        output_variant,
+        output_type,
+        residual_type,
+    } = TryEnum::try_parse(&ast).unwrap();
 
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
@@ -379,7 +386,6 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     extended_generics.params.push(err_generic);
 
     let (impl_generics, _, _) = extended_generics.split_for_impl();
-    let residual = generate_residual(&ast);
 
     quote! {
         impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for #name #ty_generics #where_clause
@@ -394,11 +400,11 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         }
 
         //TODO BROKEN - what if residual has generics named E / named something else...?
-        impl<T, E: From<#residual>> std::ops::FromResidual<#residual> for std::result::Result<T, E>
+        impl<T, E: From<#residual_type>> std::ops::FromResidual<#residual_type> for std::result::Result<T, E>
         {
             #[inline]
             #[track_caller]
-            fn from_residual(residual: #residual) -> Self {
+            fn from_residual(residual: #residual_type) -> Self {
                 std::result::Result::Err(residual.into())
             }
         }
