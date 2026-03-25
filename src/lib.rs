@@ -328,6 +328,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
+        //TODO BROKEN - what if residual has generics named E / named something else...?
         impl<T, E: From<#residual>> std::ops::FromResidual<#residual> for std::result::Result<T, E>
         {
             #[inline]
