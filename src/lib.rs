@@ -320,12 +320,12 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
             Some(a)
         })
         .expect("must have at least one generic output type");
-    if let Type::Reference(tr) = output_type {
-        let output_lifetime = tr
+    if let Type::Reference(output_type) = output_type {
+        let output_lifetime = output_type
             .lifetime
             .as_ref()
             .expect("enum variants must use explicit lifetimes for stored refs");
-        if enum_data.variants.iter().skip(1).any(|variant| {
+        let uses_output_lifetime = |variant: &Variant| {
             variant.fields.iter().any(|field| {
                 if let Type::Reference(r) = &field.ty {
                     r.lifetime.as_ref() == Some(output_lifetime)
@@ -333,11 +333,12 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
                     false
                 }
             })
-        }) {
-            // do nothing - at least one other variant uses the output lifetime
-        } else {
+        };
+        let mut residual_variants = enum_data.variants.iter().skip(1);
+        if !residual_variants.any(uses_output_lifetime) {
             let wanted_args = path_args.args.clone().into_iter().filter(|a| {
                 if let GenericArgument::Lifetime(l) = a {
+                    //remove output lifetime
                     l != output_lifetime
                 } else {
                     true
