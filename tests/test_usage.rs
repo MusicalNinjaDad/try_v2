@@ -130,12 +130,19 @@ mod multiple_generics {
     }
 }
 
-// mod lifetimes {
-//     use super::*;
+mod lifetimes {
+    #[allow(unused)]
+    use super::*;
 
-//     #[derive(Debug, Try)]
-//     enum MyResult<'t, T, E> {
-//         Ok(&'t T),
-//         Err(E),
-//     }
-// }
+    // #[derive(Debug, Try)]
+    // enum MyResult<T: 'static, E> {
+    //     Ok(&'static T),
+    //     Err(E),
+    // }
+
+    // #[derive(Debug, Try)]
+    // enum MyResult<'t, T, E> {
+    //     Ok(&'t T),
+    //     Err(E),
+    // }
+}

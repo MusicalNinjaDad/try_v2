@@ -365,6 +365,20 @@ mod tests {
     }
 
     #[test]
+    fn static_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<T: 'static, E> {
+                Ok(&'static T),
+                Err(E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<!, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
     fn derive() {
         let original: TokenStream2 = quote! {
             #[derive(Try)]
