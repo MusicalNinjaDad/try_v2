@@ -3,9 +3,9 @@
 
 use std::process::Termination;
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2::Try;
 
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
 #[allow(unused)] // If it compiles then it already passes
 enum NoUnitResiduals<T: Termination> {
     Ok(T),
