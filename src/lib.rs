@@ -277,6 +277,7 @@ fn generate_residual(ast: &DeriveInput) -> Type {
             .args
             .iter_mut()
             .find_map(|a| {
+                // relies on invariant: first generic type is output type
                 let &mut GenericArgument::Type(ref mut t) = a else {
                     return None;
                 };
