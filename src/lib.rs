@@ -1,3 +1,4 @@
+#![feature(import_trait_associated_functions)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
@@ -64,6 +65,8 @@ use syn::{
     Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
     Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
+
+use std::ops::Not::not;
 
 mod diagnostic;
 
@@ -311,8 +314,8 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
     path_args
         .args
         .iter_mut()
+        // using find_map relies on invariant: first generic type is output type
         .find_map(|a| {
-            // relies on invariant: first generic type is output type
             let &mut GenericArgument::Type(ref mut t) = a else {
                 return None;
             };
@@ -336,14 +339,10 @@ fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum
         };
         let mut residual_variants = enum_data.variants.iter().skip(1);
         if !residual_variants.any(uses_output_lifetime) {
-            let wanted_args = path_args.args.clone().into_iter().filter(|a| {
-                if let GenericArgument::Lifetime(l) = a {
-                    //remove output lifetime
-                    l != output_lifetime
-                } else {
-                    true
-                }
-            });
+            let wanted_args =
+                path_args.args.clone().into_iter().filter(|arg| {
+                    not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
+                });
             path_args.args = wanted_args.collect();
         }
     };
