@@ -61,8 +61,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments,
-    PathSegment, Type, Variant, parse_quote, spanned::Spanned,
+    Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument, GenericParam, Ident, PathArguments, PathSegment, Type, TypePath, Variant, parse_quote, spanned::Spanned
 };
 
 mod diagnostic;
@@ -229,13 +228,8 @@ fn check_output_variant<'ast>(
         }
     }?;
 
-    match &fields
-        .unnamed
-        .first()
-        .expect("at least one unnamed field")
-        .ty
-    {
-        syn::Type::Path(tp) => match tp.path.get_ident() {
+    let check = |tp: &TypePath| {
+        match tp.path.get_ident() {
             Some(var_ty) if var_ty == output_ty => Ok(()),
             Some(var_ty) => DiagnosticResult::error(
                 "Try requires the first generic type to match the `Output` type",
@@ -244,8 +238,19 @@ fn check_output_variant<'ast>(
             .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
             None => DiagnosticResult::error("Try requires a generic type for `Output`")
                 .add_help(fields.span(), format_args!("change this to ({output_ty})")),
+        }
+    };
+
+    match &fields
+        .unnamed
+        .first()
+        .expect("at least one unnamed field")
+        .ty
+    {
+        syn::Type::Path(tp) => check(tp),
+        syn::Type::Reference(tr) => match tr.elem.as_ref() {
+            _ => todo!("{:?}",tr.elem.as_ref()),
         },
-        syn::Type::Reference(_) => todo!("references"),
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     }?;
