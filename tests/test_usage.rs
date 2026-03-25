@@ -3,13 +3,13 @@
 #![feature(try_trait_v2)]
 
 use std::assert_matches::assert_matches;
-use try_v2::Try;
+use try_v2::{Try, Try_ConvertResult};
 
 mod bound_ok_type {
     use super::*;
     use std::process::Termination;
 
-    #[derive(Debug, Try)]
+    #[derive(Debug, Try, Try_ConvertResult)]
     enum Exit<T: Termination> {
         Ok(T),
         TestsFailed,
@@ -17,6 +17,19 @@ mod bound_ok_type {
         NumberedError(String, i32),
         FormalError { errno: i32, data: String },
     }
+
+    impl From<Exit<!>> for AnError {
+        fn from(exit: Exit<!>) -> Self {
+            match exit {
+                Exit::TestsFailed => AnError("tests failed".to_string()),
+                Exit::OtherError(text) => AnError(text),
+                Exit::NumberedError(text, n) => AnError(format!("{n}: {text}")),
+                Exit::FormalError { errno, data } => AnError(format!("{errno}: {data}")),
+            }
+        }
+    }
+    #[derive(Debug)]
+    struct AnError(String);
 
     #[test]
     fn short_circuit_1() {
@@ -68,12 +81,31 @@ mod bound_ok_type {
         }
         assert_matches!(pass(), Exit::Ok(()))
     }
+
+    #[test]
+    fn convert_to_result_1() {
+        fn fail() -> Result<(), AnError> {
+            Exit::TestsFailed?;
+            Ok(())
+        }
+        assert_matches!(fail(), Result::Err(e) if e.0 == "tests failed")
+    }
+
+    #[test]
+    fn convert_to_result_2() {
+        fn fail() -> Result<(), AnError> {
+            Exit::OtherError("oops!".to_string())?;
+            Exit::TestsFailed?;
+            Ok(())
+        }
+        assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
+    }
 }
 
 mod multiple_generics {
     use super::*;
 
-    #[derive(Debug, Try)]
+    #[derive(Debug, Try, Try_ConvertResult)]
     enum MyResult<T, E> {
         Ok(T),
         Err(E),
