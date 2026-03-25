@@ -111,7 +111,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 .add_help(name.span(), "Add <T> after this...");
         }
     };
-    let output_variant: &Ident = check_output_variant(enum_data, output_ty)?;
+    let (output_variant, output_type): (&Ident, &Type) =
+        check_output_variant(enum_data, output_ty)?;
     let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
         .variants
         .iter()
@@ -119,7 +120,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .map(|(i, variant)| generate_arms(name, i, variant))
         .unzip();
     // Must be done late, after validating suitable generics
-    let residual_type: Type = generate_residual(&ast);
+    let residual_type: Type = generate_residual(&ast, output_type);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -204,7 +205,7 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
 fn check_output_variant<'ast>(
     enum_data: &'ast DataEnum,
     output_ty: &'ast Ident,
-) -> DiagnosticResult<&'ast Ident> {
+) -> DiagnosticResult<(&'ast Ident, &'ast Type)> {
     let output_variant = enum_data.variants.first().ok_or(
         DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
             enum_data.brace_token.span.span(),
@@ -239,13 +240,12 @@ fn check_output_variant<'ast>(
         None => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     };
-
-    match &fields
+    let output_type = &fields
         .unnamed
         .first()
         .expect("at least one unnamed field")
-        .ty
-    {
+        .ty;
+    match output_type {
         Type::Path(tp) => validate_ident(tp),
         Type::Reference(tr) => match tr.elem.as_ref() {
             Type::Path(tp) => validate_ident(tp),
@@ -254,13 +254,13 @@ fn check_output_variant<'ast>(
         _ => DiagnosticResult::error("Try requires a generic type for `Output`")
             .add_help(fields.span(), format_args!("change this to ({output_ty})")),
     }?;
-    Ok(&output_variant.ident)
+    Ok((&output_variant.ident, output_type))
 }
 
 /// Generate the residual type with appropriate arguments (! + remaining generics).
 ///
 /// Infallible as we already guarantee we are processing an enum with at least one generic type.
-fn generate_residual(ast: &DeriveInput) -> Type {
+fn generate_residual(ast: &DeriveInput, output_type: &Type) -> Type {
     let name = &ast.ident;
     let (_, tygenerics, _) = ast.generics.split_for_impl();
     let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
@@ -287,71 +287,80 @@ fn generate_residual(ast: &DeriveInput) -> Type {
             .expect("must have at least one generic output type"),
         _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
     };
-    let wanted_args = match last_segment.arguments {
-        PathArguments::AngleBracketed(ref mut args) => args.args.clone().into_iter().filter(|a| {
-            if let GenericArgument::Lifetime(_) = a {
-                false
-            } else {
-                true
+    if let Type::Reference(tr) = output_type {
+        let lifetime = tr
+            .lifetime
+            .as_ref()
+            .expect("enum variants must use explicit lifetimes for stored refs");
+        let wanted_args = match last_segment.arguments {
+            PathArguments::AngleBracketed(ref mut args) => {
+                args.args.clone().into_iter().filter(|a| {
+                    if let GenericArgument::Lifetime(l) = a
+                    {
+                        l != lifetime
+                    } else {
+                        true
+                    }
+                })
             }
-        }),
-        _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-    };
-    if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
-        args.args = wanted_args.collect();
+            _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+        };
+        if let PathArguments::AngleBracketed(ref mut args) = last_segment.arguments {
+            args.args = wanted_args.collect();
+        }
     }
     residual_type
 }
 
-#[proc_macro_derive(Try_ConvertResult)]
-/// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
-///
-/// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
-/// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
-///
-/// For conversion to a `Result<_, ErrorType>` `impl From<MyTryEnum<!>> for ErrorType`
-pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
-    impl_convert_result(input.into()).into()
-}
+// #[proc_macro_derive(Try_ConvertResult)]
+// /// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
+// ///
+// /// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
+// /// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
+// ///
+// /// For conversion to a `Result<_, ErrorType>` `impl From<MyTryEnum<!>> for ErrorType`
+// pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
+//     impl_convert_result(input.into()).into()
+// }
 
-fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
-    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+// fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
+//     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    let name = &ast.ident;
+//     let name = &ast.ident;
 
-    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
+//     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let mut extended_generics = ast.generics.clone();
-    let err_generic: GenericParam =
-        parse_quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>};
-    extended_generics.params.push(err_generic);
+//     let mut extended_generics = ast.generics.clone();
+//     let err_generic: GenericParam =
+//         parse_quote! {Derive_TryConvert_ResultE: Into<#name #ty_generics>};
+//     extended_generics.params.push(err_generic);
 
-    let (impl_generics, _, _) = extended_generics.split_for_impl();
-    let residual = generate_residual(&ast);
+//     let (impl_generics, _, _) = extended_generics.split_for_impl();
+//     let residual = generate_residual(&ast);
 
-    quote! {
-        impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for #name #ty_generics #where_clause
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
-                match residual {
-                    Result::Err(e) => e.into(),
-                }
-            }
-        }
+//     quote! {
+//         impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for #name #ty_generics #where_clause
+//         {
+//             #[inline]
+//             #[track_caller]
+//             fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
+//                 match residual {
+//                     Result::Err(e) => e.into(),
+//                 }
+//             }
+//         }
 
-        //TODO BROKEN - what if residual has generics named E / named something else...?
-        impl<T, E: From<#residual>> std::ops::FromResidual<#residual> for std::result::Result<T, E>
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: #residual) -> Self {
-                std::result::Result::Err(residual.into())
-            }
-        }
-    }
-}
+//         //TODO BROKEN - what if residual has generics named E / named something else...?
+//         impl<T, E: From<#residual>> std::ops::FromResidual<#residual> for std::result::Result<T, E>
+//         {
+//             #[inline]
+//             #[track_caller]
+//             fn from_residual(residual: #residual) -> Self {
+//                 std::result::Result::Err(residual.into())
+//             }
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -366,7 +375,8 @@ mod tests {
                 TestsFailed,
             }
         };
-        let residual = generate_residual(&original);
+        let output_type: Type = parse_quote!(T);
+        let residual = generate_residual(&original, &output_type);
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
@@ -380,7 +390,8 @@ mod tests {
                 TestsFailed(E),
             }
         };
-        let residual = generate_residual(&original);
+        let output_type: Type = parse_quote!(T);
+        let residual = generate_residual(&original, &output_type);
         let expected_residual: Type = parse_quote! {Exit<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -394,7 +405,8 @@ mod tests {
                 Err(E),
             }
         };
-        let residual = generate_residual(&original);
+        let output_type: Type = parse_quote!(&'static T);
+        let residual = generate_residual(&original, &output_type);
         let expected_residual: Type = parse_quote! {MyResult<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -408,8 +420,24 @@ mod tests {
                 Err(&'r E),
             }
         };
-        let residual = generate_residual(&original);
+        let output_type: Type = parse_quote!(&'r T);
+        let residual = generate_residual(&original, &output_type);
         let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn mutliple_lifetimes_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<'t, 'e, T, E> {
+                Ok(&'t T),
+                Err(&'e E),
+            }
+        };
+        let output_type: Type = parse_quote!(&'t T);
+        let residual = generate_residual(&original, &output_type);
+        let expected_residual: Type = parse_quote! {MyResult<'e, !, E>};
         assert_eq!(expected_residual, residual);
     }
 
@@ -464,42 +492,42 @@ mod tests {
             impl_derive(original).unwrap().to_string()
         )
     }
-    #[test]
-    fn convert_result() {
-        let original: TokenStream2 = quote! {
-            #[derive(Try_ConvertResult)]
-            enum Exit<T: Termination> {
-                Ok(T),
-                TestsFailed,
-                OtherError(String),
-            }
-        };
+    // #[test]
+    // fn convert_result() {
+    //     let original: TokenStream2 = quote! {
+    //         #[derive(Try_ConvertResult)]
+    //         enum Exit<T: Termination> {
+    //             Ok(T),
+    //             TestsFailed,
+    //             OtherError(String),
+    //         }
+    //     };
 
-        let expected_impl: TokenStream2 = quote! {
-            impl<T: Termination, Derive_TryConvert_ResultE: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
-                    match residual {
-                        Result::Err(e) => e.into(),
-                    }
-                }
-            }
+    //     let expected_impl: TokenStream2 = quote! {
+    //         impl<T: Termination, Derive_TryConvert_ResultE: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T>
+    //         {
+    //             #[inline]
+    //             #[track_caller]
+    //             fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
+    //                 match residual {
+    //                     Result::Err(e) => e.into(),
+    //                 }
+    //             }
+    //         }
 
-            impl<T, E: From<Exit<!> >> std::ops::FromResidual<Exit<!> > for std::result::Result<T, E>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: Exit<!>) -> Self {
-                    std::result::Result::Err(residual.into())
-                }
-            }
-        };
+    //         impl<T, E: From<Exit<!> >> std::ops::FromResidual<Exit<!> > for std::result::Result<T, E>
+    //         {
+    //             #[inline]
+    //             #[track_caller]
+    //             fn from_residual(residual: Exit<!>) -> Self {
+    //                 std::result::Result::Err(residual.into())
+    //             }
+    //         }
+    //     };
 
-        assert_eq!(
-            expected_impl.to_string(),
-            impl_convert_result(original).to_string()
-        )
-    }
+    //     assert_eq!(
+    //         expected_impl.to_string(),
+    //         impl_convert_result(original).to_string()
+    //     )
+    // }
 }
