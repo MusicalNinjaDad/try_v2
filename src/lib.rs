@@ -385,7 +385,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let result_e = format_ident!("Derive_TryConvert_ResultE");
-    let _result_t = format_ident!("Derive_TryConvert_ResultT");
+    let result_t = format_ident!("Derive_TryConvert_ResultT");
 
     let mut extended_generics = ast.generics.clone();
     let err_generic: GenericParam =
@@ -406,8 +406,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        //TODO BROKEN - what if residual has generics named E / named something else...?
-        impl<T, #result_e: From<#residual_type>> std::ops::FromResidual<#residual_type> for std::result::Result<T, #result_e>
+        impl<#result_t, #result_e: From<#residual_type>> std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
         {
             #[inline]
             #[track_caller]
@@ -567,15 +566,15 @@ mod tests {
     fn convert_result() {
         let original: TokenStream2 = quote! {
             #[derive(Try_ConvertResult)]
-            enum Exit<T: Termination> {
+            enum Exit<T: Termination, E> {
                 Ok(T),
                 TestsFailed,
-                OtherError(String),
+                OtherError(E),
             }
         };
 
         let expected_impl: TokenStream2 = quote! {
-            impl<T: Termination, Derive_TryConvert_ResultE: Into< Exit<T> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T>
+            impl<T: Termination, E, Derive_TryConvert_ResultE: Into< Exit<T, E> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T, E>
             {
                 #[inline]
                 #[track_caller]
@@ -586,11 +585,11 @@ mod tests {
                 }
             }
 
-            impl<T, Derive_TryConvert_ResultE: From<Exit<!> >> std::ops::FromResidual<Exit<!> > for std::result::Result<T, Derive_TryConvert_ResultE>
+            impl<E, Derive_TryConvert_ResultT, Derive_TryConvert_ResultE: From<Exit<!, E> >> std::ops::FromResidual<Exit<!, E> > for std::result::Result<Derive_TryConvert_ResultT, Derive_TryConvert_ResultE>
             {
                 #[inline]
                 #[track_caller]
-                fn from_residual(residual: Exit<!>) -> Self {
+                fn from_residual(residual: Exit<!, E>) -> Self {
                     std::result::Result::Err(residual.into())
                 }
             }
