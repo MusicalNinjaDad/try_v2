@@ -189,8 +189,8 @@ impl<'ast> TryEnum<'ast> {
         }?;
 
         // Must be done late, after validating suitable generics
-        let residual_type: Type = generate_residual(ast, output_type, enum_data);
-        
+        let residual_type: Type = Self::generate_residual(ast, output_type, enum_data);
+
         Ok(Self {
             name,
             enum_data,
@@ -198,6 +198,66 @@ impl<'ast> TryEnum<'ast> {
             output_type,
             residual_type,
         })
+    }
+
+    /// Generate the residual type with appropriate arguments (! + remaining generics).
+    ///
+    /// Infallible as we already guarantee we are processing an enum with at least one generic type.
+    fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum) -> Type {
+        // Separate function to allow direct tests
+        let name = &ast.ident;
+        let (_, tygenerics, _) = ast.generics.split_for_impl();
+        let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
+        let path_args: &mut AngleBracketedGenericArguments = {
+            let Type::Path(ref mut residual_type) = residual_type else {
+                unreachable!("enum name must be Type::Path")
+            };
+            match residual_type
+                .path
+                .segments
+                .first_mut()
+                .expect("valid enum definition has exactly one segment")
+                .arguments
+            {
+                PathArguments::AngleBracketed(ref mut args) => args,
+                _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
+            }
+        };
+        path_args
+            .args
+            .iter_mut()
+            // using find_map relies on invariant: first generic type is output type
+            .find_map(|a| {
+                let &mut GenericArgument::Type(ref mut t) = a else {
+                    return None;
+                };
+                *t = parse_quote!(!);
+                Some(a)
+            })
+            .expect("must have at least one generic output type");
+        if let Type::Reference(output_type) = output_type {
+            let output_lifetime = output_type
+                .lifetime
+                .as_ref()
+                .expect("enum variants must use explicit lifetimes for stored refs");
+            let uses_output_lifetime = |variant: &Variant| {
+                variant.fields.iter().any(|field| {
+                    if let Type::Reference(r) = &field.ty {
+                        r.lifetime.as_ref() == Some(output_lifetime)
+                    } else {
+                        false
+                    }
+                })
+            };
+            let mut residual_variants = enum_data.variants.iter().skip(1);
+            if !residual_variants.any(uses_output_lifetime) {
+                let wanted_args = path_args.args.clone().into_iter().filter(|arg| {
+                    not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
+                });
+                path_args.args = wanted_args.collect();
+            }
+        };
+        residual_type
     }
 }
 
@@ -300,65 +360,6 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
     (branch_arm, residual_arm)
 }
 
-/// Generate the residual type with appropriate arguments (! + remaining generics).
-///
-/// Infallible as we already guarantee we are processing an enum with at least one generic type.
-fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum) -> Type {
-    let name = &ast.ident;
-    let (_, tygenerics, _) = ast.generics.split_for_impl();
-    let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
-    let path_args: &mut AngleBracketedGenericArguments = {
-        let Type::Path(ref mut residual_type) = residual_type else {
-            unreachable!("enum name must be Type::Path")
-        };
-        match residual_type
-            .path
-            .segments
-            .first_mut()
-            .expect("valid enum definition has exactly one segment")
-            .arguments
-        {
-            PathArguments::AngleBracketed(ref mut args) => args,
-            _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-        }
-    };
-    path_args
-        .args
-        .iter_mut()
-        // using find_map relies on invariant: first generic type is output type
-        .find_map(|a| {
-            let &mut GenericArgument::Type(ref mut t) = a else {
-                return None;
-            };
-            *t = parse_quote!(!);
-            Some(a)
-        })
-        .expect("must have at least one generic output type");
-    if let Type::Reference(output_type) = output_type {
-        let output_lifetime = output_type
-            .lifetime
-            .as_ref()
-            .expect("enum variants must use explicit lifetimes for stored refs");
-        let uses_output_lifetime = |variant: &Variant| {
-            variant.fields.iter().any(|field| {
-                if let Type::Reference(r) = &field.ty {
-                    r.lifetime.as_ref() == Some(output_lifetime)
-                } else {
-                    false
-                }
-            })
-        };
-        let mut residual_variants = enum_data.variants.iter().skip(1);
-        if !residual_variants.any(uses_output_lifetime) {
-            let wanted_args = path_args.args.clone().into_iter().filter(|arg| {
-                not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
-            });
-            path_args.args = wanted_args.collect();
-        }
-    };
-    residual_type
-}
-
 #[proc_macro_derive(Try_ConvertResult)]
 /// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
 ///
@@ -432,7 +433,7 @@ mod tests {
             panic!()
         };
         let output_type: Type = parse_quote!(T);
-        let residual = generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
@@ -450,7 +451,7 @@ mod tests {
             panic!()
         };
         let output_type: Type = parse_quote!(T);
-        let residual = generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {Exit<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -468,7 +469,7 @@ mod tests {
             panic!()
         };
         let output_type: Type = parse_quote!(&'static T);
-        let residual = generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -486,7 +487,7 @@ mod tests {
             panic!()
         };
         let output_type: Type = parse_quote!(&'r T);
-        let residual = generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -504,7 +505,7 @@ mod tests {
             panic!()
         };
         let output_type: Type = parse_quote!(&'t T);
-        let residual = generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
         let expected_residual: Type = parse_quote! {MyResult<'e, !, E>};
         assert_eq!(expected_residual, residual);
     }
