@@ -407,12 +407,11 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
                 true
             }
         })
+        .chain([
+            parse_quote! {#result_t},
+            parse_quote! {#result_e: From<#residual_type>},
+        ])
         .collect();
-    to_result_generics.params.push(parse_quote! {#result_t});
-    to_result_generics
-        .params
-        .push(parse_quote! {#result_e: From<#residual_type>});
-
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
     quote! {
