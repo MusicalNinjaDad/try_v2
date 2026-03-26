@@ -1,4 +1,3 @@
-#![feature(import_trait_associated_functions)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
@@ -65,8 +64,6 @@ use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
     GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned,
 };
-
-use std::ops::Not::not;
 
 mod diagnostic;
 
@@ -193,7 +190,7 @@ impl<'ast> TryEnum<'ast> {
         }?;
 
         // Must be done late, after validating suitable generics
-        let residual_type: Type = Self::generate_residual(ast, output_type, enum_data);
+        let residual_type: Type = Self::generate_residual(ast);
 
         Ok(Self {
             name,
@@ -208,7 +205,7 @@ impl<'ast> TryEnum<'ast> {
     /// Generate the residual type with appropriate arguments (! + remaining generics).
     ///
     /// Infallible as we already guarantee we are processing an enum with at least one generic type.
-    fn generate_residual(ast: &DeriveInput, output_type: &Type, enum_data: &DataEnum) -> Type {
+    fn generate_residual(ast: &DeriveInput) -> Type {
         // Separate function to allow direct tests
         let name = &ast.ident;
         let (_, tygenerics, _) = ast.generics.split_for_impl();
@@ -240,28 +237,6 @@ impl<'ast> TryEnum<'ast> {
                 Some(a)
             })
             .expect("must have at least one generic output type");
-        if let Type::Reference(output_type) = output_type {
-            let output_lifetime = output_type
-                .lifetime
-                .as_ref()
-                .expect("enum variants must use explicit lifetimes for stored refs");
-            let uses_output_lifetime = |variant: &Variant| {
-                variant.fields.iter().any(|field| {
-                    if let Type::Reference(r) = &field.ty {
-                        r.lifetime.as_ref() == Some(output_lifetime)
-                    } else {
-                        false
-                    }
-                })
-            };
-            let mut residual_variants = enum_data.variants.iter().skip(1);
-            if !residual_variants.any(uses_output_lifetime) {
-                let wanted_args = path_args.args.clone().into_iter().filter(|arg| {
-                    not(matches!(arg, GenericArgument::Lifetime(lt) if lt == output_lifetime))
-                });
-                path_args.args = wanted_args.collect();
-            }
-        };
         residual_type
     }
 
@@ -280,11 +255,11 @@ impl<'ast> TryEnum<'ast> {
                     let branch_arm = parse_quote! {
                         Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
                     };
-                    let residual_arm = if owned_output { 
-                        None 
+                    let residual_arm = if owned_output {
+                        None
                     } else {
                         // required for when Output stores a reference.
-                        // &! is not recognised as infallible, but ! will coerce to any other type. 
+                        // &! is not recognised as infallible, but ! will coerce to any other type.
                         // - see https://github.com/rust-lang/unsafe-code-guidelines/issues/413
                         // - and https://users.rust-lang.org/t/whats-the-right-syntax-for-an-infallible-reference/139188
                         Some(parse_quote! {
@@ -471,11 +446,7 @@ mod tests {
                 TestsFailed,
             }
         };
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let output_type: Type = parse_quote!(T);
-        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original);
         let expected_residual: Type = parse_quote! {Exit<!>};
         assert_eq!(expected_residual, residual);
     }
@@ -489,11 +460,7 @@ mod tests {
                 TestsFailed(E),
             }
         };
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let output_type: Type = parse_quote!(T);
-        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original);
         let expected_residual: Type = parse_quote! {Exit<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -507,11 +474,7 @@ mod tests {
                 Err(E),
             }
         };
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let output_type: Type = parse_quote!(&'static T);
-        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original);
         let expected_residual: Type = parse_quote! {MyResult<!, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -525,11 +488,7 @@ mod tests {
                 Err(&'r E),
             }
         };
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let output_type: Type = parse_quote!(&'r T);
-        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
+        let residual = TryEnum::generate_residual(&original);
         let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
         assert_eq!(expected_residual, residual);
     }
@@ -543,12 +502,8 @@ mod tests {
                 Err(&'e E),
             }
         };
-        let Data::Enum(enum_data) = &original.data else {
-            panic!()
-        };
-        let output_type: Type = parse_quote!(&'t T);
-        let residual = TryEnum::generate_residual(&original, &output_type, enum_data);
-        let expected_residual: Type = parse_quote! {MyResult<'e, !, E>};
+        let residual = TryEnum::generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<'t, 'e, !, E>};
         assert_eq!(expected_residual, residual);
     }
 
