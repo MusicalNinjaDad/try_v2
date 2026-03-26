@@ -266,49 +266,50 @@ impl<'ast> TryEnum<'ast> {
         let arms = |(i, variant): (usize, &Variant)| {
             let var_name: &Ident = &variant.ident;
             let is_output_variant = i == 0;
-            let (branch_arm, residual_arm);
-            match (is_output_variant, &variant.fields) {
-                (true, _) => {
+            match &variant.fields {
+                _ if is_output_variant => {
                     // Output variant always has a single field
-                    branch_arm = parse_quote! {
+                    let branch_arm = parse_quote! {
                         Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
                     };
-                    residual_arm = None;
+                    (branch_arm, None)
                 }
-                (false, Fields::Unnamed(_)) => {
+                Fields::Unnamed(_) => {
                     let fields: Vec<Ident> = (0..variant.fields.len())
                         .map(|n| format_ident!("v{n}"))
                         .collect();
-                    branch_arm = parse_quote! {
+                    let branch_arm = parse_quote! {
                         Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
                     };
-                    residual_arm = Some(parse_quote! {
+                    let residual_arm = parse_quote! {
                         #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
-                    });
+                    };
+                    (branch_arm, Some(residual_arm))
                 }
-                (false, Fields::Unit) => {
-                    branch_arm = parse_quote! {
+                Fields::Unit => {
+                    let branch_arm = parse_quote! {
                         Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
                     };
-                    residual_arm = Some(parse_quote! {
+                    let residual_arm = parse_quote! {
                         #enum_name::#var_name => #enum_name::#var_name,
-                    });
+                    };
+                    (branch_arm, Some(residual_arm))
                 }
-                (false, Fields::Named(_)) => {
+                Fields::Named(_) => {
                     let fields: Vec<Ident> = variant
                         .fields
                         .iter()
                         .map(|f| f.ident.clone().expect("named field"))
                         .collect();
-                    branch_arm = parse_quote! {
+                    let branch_arm = parse_quote! {
                         Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
                     };
-                    residual_arm = Some(parse_quote! {
+                    let residual_arm = parse_quote! {
                         #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
-                    });
+                    };
+                    (branch_arm, Some(residual_arm))
                 }
-            };
-            (branch_arm, residual_arm)
+            }
         };
 
         enum_data.variants.iter().enumerate().map(arms).unzip()
