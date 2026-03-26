@@ -259,6 +259,58 @@ impl<'ast> TryEnum<'ast> {
         };
         residual_type
     }
+
+    fn generate_arms(enum_name: &Ident, enum_data: &DataEnum) -> (Vec<Arm>, Vec<Option<Arm>>) {
+        let arms = |(i, variant): (usize, &Variant)| {
+            let var_name: &Ident = &variant.ident;
+            let is_output_variant = i == 0;
+            let (branch_arm, residual_arm);
+            match (is_output_variant, &variant.fields) {
+                (true, _) => {
+                    // Output variant always has a single field
+                    branch_arm = parse_quote! {
+                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
+                    };
+                    residual_arm = None;
+                }
+                (false, Fields::Unnamed(_)) => {
+                    let fields: Vec<Ident> = (0..variant.fields.len())
+                        .map(|n| format_ident!("v{n}"))
+                        .collect();
+                    branch_arm = parse_quote! {
+                        Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
+                    };
+                    residual_arm = Some(parse_quote! {
+                        #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
+                    });
+                }
+                (false, Fields::Unit) => {
+                    branch_arm = parse_quote! {
+                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+                    };
+                    residual_arm = Some(parse_quote! {
+                        #enum_name::#var_name => #enum_name::#var_name,
+                    });
+                }
+                (false, Fields::Named(_)) => {
+                    let fields: Vec<Ident> = variant
+                        .fields
+                        .iter()
+                        .map(|f| f.ident.clone().expect("named field"))
+                        .collect();
+                    branch_arm = parse_quote! {
+                        Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
+                    };
+                    residual_arm = Some(parse_quote! {
+                        #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
+                    });
+                }
+            };
+            (branch_arm, residual_arm)
+        };
+
+        enum_data.variants.iter().enumerate().map(arms).unzip()
+    }
 }
 
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
@@ -273,12 +325,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     } = TryEnum::try_parse(&ast)?;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let (branch_arms, residual_arms): (Vec<_>, Vec<_>) = enum_data
-        .variants
-        .iter()
-        .enumerate()
-        .map(|(i, variant)| generate_arms(name, i, variant))
-        .unzip();
+    let (branch_arms, residual_arms) = TryEnum::generate_arms(name, enum_data);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -310,54 +357,6 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         }
     };
     DiagnosticResult::Ok(impl_try)
-}
-
-fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option<Arm>) {
-    let var_name: &Ident = &variant.ident;
-    let is_output_variant = i == 0;
-    let (branch_arm, residual_arm);
-    match (is_output_variant, &variant.fields) {
-        (true, _) => {
-            // Output variant always has a single field
-            branch_arm = parse_quote! {
-                Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-            };
-            residual_arm = None;
-        }
-        (false, Fields::Unnamed(_)) => {
-            let fields: Vec<Ident> = (0..variant.fields.len())
-                .map(|n| format_ident!("v{n}"))
-                .collect();
-            branch_arm = parse_quote! {
-                Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
-            };
-            residual_arm = Some(parse_quote! {
-                #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
-            });
-        }
-        (false, Fields::Unit) => {
-            branch_arm = parse_quote! {
-                Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-            };
-            residual_arm = Some(parse_quote! {
-                #enum_name::#var_name => #enum_name::#var_name,
-            });
-        }
-        (false, Fields::Named(_)) => {
-            let fields: Vec<Ident> = variant
-                .fields
-                .iter()
-                .map(|f| f.ident.clone().expect("named field"))
-                .collect();
-            branch_arm = parse_quote! {
-                Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
-            };
-            residual_arm = Some(parse_quote! {
-                #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
-            });
-        }
-    };
-    (branch_arm, residual_arm)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
