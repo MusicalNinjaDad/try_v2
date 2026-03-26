@@ -268,7 +268,9 @@ impl<'ast> TryEnum<'ast> {
     fn generate_arms(
         enum_name: &Ident,
         enum_data: &DataEnum,
+        output_type: &Type,
     ) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
+        let owned_output = matches!(output_type, Type::Path(_));
         let arms = |(i, variant): (usize, &Variant)| -> (BranchArm, Option<ResidualArm>) {
             let var_name: &Ident = &variant.ident;
             let is_output_variant = i == 0;
@@ -278,7 +280,18 @@ impl<'ast> TryEnum<'ast> {
                     let branch_arm = parse_quote! {
                         Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
                     };
-                    (branch_arm, None)
+                    let residual_arm = if owned_output { 
+                        None 
+                    } else {
+                        // required for when Output stores a reference.
+                        // &! is not recognised as infallible, but ! will coerce to any other type. 
+                        // - see https://github.com/rust-lang/unsafe-code-guidelines/issues/413
+                        // - and https://users.rust-lang.org/t/whats-the-right-syntax-for-an-infallible-reference/139188
+                        Some(parse_quote! {
+                            #enum_name::#var_name(never) => *never,
+                        })
+                    };
+                    (branch_arm, residual_arm)
                 }
                 Fields::Unit => {
                     let branch_arm = parse_quote! {
@@ -336,7 +349,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     } = TryEnum::try_parse(&ast)?;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let (branch_arms, residual_arms) = TryEnum::generate_arms(name, enum_data);
+    let (branch_arms, residual_arms) = TryEnum::generate_arms(name, enum_data, output_type);
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -393,7 +406,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         output_type_name,
         residual_type,
     } = TryEnum::try_parse(&ast).unwrap();
-    
+
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
