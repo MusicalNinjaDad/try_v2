@@ -103,6 +103,9 @@ struct TryEnum<'ast> {
     residual_type: Type,
 }
 
+type BranchArm = Arm;
+type ResidualArm = Arm;
+
 impl<'ast> TryEnum<'ast> {
     fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
         // Fail fast
@@ -262,8 +265,11 @@ impl<'ast> TryEnum<'ast> {
         residual_type
     }
 
-    fn generate_arms(enum_name: &Ident, enum_data: &DataEnum) -> (Vec<Arm>, Vec<Option<Arm>>) {
-        let arms = |(i, variant): (usize, &Variant)| {
+    fn generate_arms(
+        enum_name: &Ident,
+        enum_data: &DataEnum,
+    ) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
+        let arms = |(i, variant): (usize, &Variant)| -> (BranchArm, Option<ResidualArm>) {
             let var_name: &Ident = &variant.ident;
             let is_output_variant = i == 0;
             match &variant.fields {
