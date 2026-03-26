@@ -393,6 +393,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         output_type_name,
         residual_type,
     } = TryEnum::try_parse(&ast).unwrap();
+    
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
