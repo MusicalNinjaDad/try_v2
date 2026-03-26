@@ -116,18 +116,81 @@ impl<'ast> TryEnum<'ast> {
                     .add_help(union_data.union_token.span(), "not an enum")
             }
         }?;
+
         let name: &Ident = &ast.ident;
-        let first_generic_type: &Ident = match ast.generics.type_params().next() {
-            Some(output_ty) => &output_ty.ident,
-            None => {
-                return DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(name.span(), "Add <T> after this...");
-            }
-        };
-        let (output_variant, output_type): (&Ident, &Type) =
-            check_output_variant(enum_data, first_generic_type)?;
+
+        let (output_variant, output_type): (&Ident, &Type) = {
+            let first_generic_type: &Ident = match ast.generics.type_params().next() {
+                Some(output_ty) => Ok(&output_ty.ident),
+                None => DiagnosticResult::error("Try requires a generic type for `Output`")
+                    .add_help(name.span(), "Add <T> after this..."),
+            }?;
+            let output_variant = enum_data.variants.first().ok_or(
+                DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+                    enum_data.brace_token.span.span(),
+                    "add at least two variants here...",
+                ),
+            )?;
+            let field = match &output_variant.fields {
+                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
+                Fields::Unnamed(fields) => {
+                    DiagnosticResult::error("Try requires a single generic type for `Output`")
+                        .add_help(
+                            fields.span(),
+                            format_args!("change this to ({first_generic_type})"),
+                        )
+                }
+                Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
+                    .add_help(
+                        output_variant.span(),
+                        format_args!("add ({first_generic_type}) after this..."),
+                    ),
+                Fields::Named(fields) => DiagnosticResult::error(
+                    "Try requires an unnamed field for the `Output` variant",
+                )
+                .add_help(
+                    fields.span(),
+                    format_args!("change this to ({first_generic_type})"),
+                ),
+            }?;
+            let output_type = &field
+                .unnamed
+                .first()
+                .expect("at least one unnamed field")
+                .ty;
+            let is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
+                Some(var_ty) if var_ty == first_generic_type => Ok(()),
+                Some(var_ty) => DiagnosticResult::error(
+                    "Try requires the first generic type to match the `Output` type",
+                )
+                .add_help(first_generic_type.span(), "Output type defined here")
+                .add_help(
+                    var_ty.span(),
+                    format_args!("change this to {first_generic_type}"),
+                ),
+                None => DiagnosticResult::error("Try requires a generic type for `Output`")
+                    .add_help(
+                        field.span(),
+                        format_args!("change this to ({first_generic_type})"),
+                    ),
+            };
+            match output_type {
+                Type::Path(tp) => is_first_generic_type(tp),
+                Type::Reference(tr) => match tr.elem.as_ref() {
+                    Type::Path(tp) => is_first_generic_type(tp),
+                    _ => todo!("{:?}", tr.elem.as_ref()),
+                },
+                _ => DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
+                    field.span(),
+                    format_args!("change this to ({first_generic_type})"),
+                ),
+            }?;
+            Ok((&output_variant.ident, output_type))
+        }?;
+
         // Must be done late, after validating suitable generics
         let residual_type: Type = generate_residual(ast, output_type, enum_data);
+        
         Ok(Self {
             name,
             enum_data,
@@ -235,61 +298,6 @@ fn generate_arms(enum_name: &Ident, i: usize, variant: &Variant) -> (Arm, Option
         }
     };
     (branch_arm, residual_arm)
-}
-
-fn check_output_variant<'ast>(
-    enum_data: &'ast DataEnum,
-    output_ty: &'ast Ident,
-) -> DiagnosticResult<(&'ast Ident, &'ast Type)> {
-    let output_variant = enum_data.variants.first().ok_or(
-        DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
-            enum_data.brace_token.span.span(),
-            "add at least two variants here...",
-        ),
-    )?;
-
-    let fields = match &output_variant.fields {
-        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
-        Fields::Unnamed(fields) => {
-            DiagnosticResult::error("Try requires a single generic type for `Output`")
-                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
-        }
-        Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(
-                output_variant.span(),
-                format_args!("add ({output_ty}) after this..."),
-            ),
-        Fields::Named(fields) => {
-            DiagnosticResult::error("Try requires an unnamed field for the `Output` variant")
-                .add_help(fields.span(), format_args!("change this to ({output_ty})"))
-        }
-    }?;
-
-    let validate_ident = |tp: &TypePath| match tp.path.get_ident() {
-        Some(var_ty) if var_ty == output_ty => Ok(()),
-        Some(var_ty) => DiagnosticResult::error(
-            "Try requires the first generic type to match the `Output` type",
-        )
-        .add_help(output_ty.span(), "Output type defined here")
-        .add_help(var_ty.span(), format_args!("change this to {output_ty}")),
-        None => DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
-    };
-    let output_type = &fields
-        .unnamed
-        .first()
-        .expect("at least one unnamed field")
-        .ty;
-    match output_type {
-        Type::Path(tp) => validate_ident(tp),
-        Type::Reference(tr) => match tr.elem.as_ref() {
-            Type::Path(tp) => validate_ident(tp),
-            _ => todo!("{:?}", tr.elem.as_ref()),
-        },
-        _ => DiagnosticResult::error("Try requires a generic type for `Output`")
-            .add_help(fields.span(), format_args!("change this to ({output_ty})")),
-    }?;
-    Ok((&output_variant.ident, output_type))
 }
 
 /// Generate the residual type with appropriate arguments (! + remaining generics).
