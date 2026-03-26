@@ -99,6 +99,7 @@ struct TryEnum<'ast> {
     enum_data: &'ast DataEnum,
     output_variant: &'ast Ident,
     output_type: &'ast Type,
+    output_type_name: &'ast Ident,
     residual_type: Type,
 }
 
@@ -119,7 +120,7 @@ impl<'ast> TryEnum<'ast> {
 
         let name: &Ident = &ast.ident;
 
-        let (output_variant, output_type): (&Ident, &Type) = {
+        let (output_variant, output_type, output_type_name): (&Ident, &Type, &Ident) = {
             let first_generic_type: &Ident = match ast.generics.type_params().next() {
                 Some(output_ty) => Ok(&output_ty.ident),
                 None => DiagnosticResult::error("Try requires a generic type for `Output`")
@@ -185,7 +186,7 @@ impl<'ast> TryEnum<'ast> {
                     format_args!("change this to ({first_generic_type})"),
                 ),
             }?;
-            Ok((&output_variant.ident, output_type))
+            Ok((&output_variant.ident, output_type, first_generic_type))
         }?;
 
         // Must be done late, after validating suitable generics
@@ -196,6 +197,7 @@ impl<'ast> TryEnum<'ast> {
             enum_data,
             output_variant,
             output_type,
+            output_type_name,
             residual_type,
         })
     }
@@ -316,11 +318,13 @@ impl<'ast> TryEnum<'ast> {
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
+    #[allow(unused_variables)]
     let TryEnum {
         name,
         enum_data,
         output_variant,
         output_type,
+        output_type_name,
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
@@ -379,23 +383,40 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         enum_data,
         output_variant,
         output_type,
+        output_type_name,
         residual_type,
     } = TryEnum::try_parse(&ast).unwrap();
-
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
-
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
 
-    let mut extended_generics = ast.generics.clone();
-    let err_generic: GenericParam =
-        parse_quote! {#result_e: Into<#name #ty_generics>};
-    extended_generics.params.push(err_generic);
+    let mut from_result_generics = ast.generics.clone();
+    from_result_generics
+        .params
+        .push(parse_quote! {#result_e: Into<#name #ty_generics>});
+    let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-    let (impl_generics, _, _) = extended_generics.split_for_impl();
+    let mut to_result_generics = ast.generics.clone();
+    to_result_generics.params = to_result_generics
+        .params
+        .into_iter()
+        .filter(|p| {
+            if let GenericParam::Type(t) = p {
+                &t.ident != output_type_name
+            } else {
+                true
+            }
+        })
+        .collect();
+    to_result_generics.params.push(parse_quote! {#result_t});
+    to_result_generics
+        .params
+        .push(parse_quote! {#result_e: From<#residual_type>});
+
+    let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
     quote! {
-        impl #impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
+        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
         {
             #[inline]
             #[track_caller]
@@ -406,7 +427,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
             }
         }
 
-        impl<#result_t, #result_e: From<#residual_type>> std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
+        impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
         {
             #[inline]
             #[track_caller]
@@ -585,7 +606,7 @@ mod tests {
                 }
             }
 
-            impl<E, Derive_TryConvert_ResultT, Derive_TryConvert_ResultE: From<Exit<!, E> >> std::ops::FromResidual<Exit<!, E> > for std::result::Result<Derive_TryConvert_ResultT, Derive_TryConvert_ResultE>
+            impl<E, Derive_TryConvert_ResultT, Derive_TryConvert_ResultE: From<Exit<!, E> > > std::ops::FromResidual<Exit<!, E> > for std::result::Result<Derive_TryConvert_ResultT, Derive_TryConvert_ResultE>
             {
                 #[inline]
                 #[track_caller]
