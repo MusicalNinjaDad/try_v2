@@ -280,6 +280,15 @@ impl<'ast> TryEnum<'ast> {
                     };
                     (branch_arm, None)
                 }
+                Fields::Unit => {
+                    let branch_arm = parse_quote! {
+                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+                    };
+                    let residual_arm = parse_quote! {
+                        #enum_name::#var_name => #enum_name::#var_name,
+                    };
+                    (branch_arm, Some(residual_arm))
+                }
                 Fields::Unnamed(_) => {
                     let fields: Vec<Ident> = (0..variant.fields.len())
                         .map(|n| format_ident!("v{n}"))
@@ -289,15 +298,6 @@ impl<'ast> TryEnum<'ast> {
                     };
                     let residual_arm = parse_quote! {
                         #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
-                    };
-                    (branch_arm, Some(residual_arm))
-                }
-                Fields::Unit => {
-                    let branch_arm = parse_quote! {
-                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                    };
-                    let residual_arm = parse_quote! {
-                        #enum_name::#var_name => #enum_name::#var_name,
                     };
                     (branch_arm, Some(residual_arm))
                 }
