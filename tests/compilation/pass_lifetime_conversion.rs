@@ -25,6 +25,12 @@ impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
     }
 }
 
+impl<'t, 'e> From<&'e i32> for BorrowedResult<'t, 'e, i32, i32> {
+    fn from(e: &'e i32) -> Self {
+        BorrowedResult::Err(e)
+    }
+}
+
 fn validate_passthrough_lifetime<'t, 'e>(
     okval: &'t i32,
     errval: &'e i32,
@@ -51,6 +57,24 @@ where
         6.. => BorrowedResult::Err(errval)?,
     };
     Ok(rtn)
+}
+
+fn result_to_borrowed_passthrough<'t, 'e>(
+    errmond: Result<&'t i32, &'e i32>,
+) -> BorrowedResult<'t, 'e, i32, i32> {
+    let val = errmond?;
+    BorrowedResult::Ok(val)
+}
+
+fn result_to_borrowed_restricted<'input, 't, 'e>(
+    errmond: Result<&'input i32, &'input i32>,
+) -> BorrowedResult<'t, 'e, i32, i32>
+where
+    'input: 't,
+    'input: 'e,
+{
+    let val = errmond?;
+    BorrowedResult::Ok(val)
 }
 
 fn main() {

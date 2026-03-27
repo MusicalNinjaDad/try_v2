@@ -23,6 +23,12 @@ impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
     }
 }
 
+impl<'t, 'e> From<&'e i32> for BorrowedResult<'t, 'e, i32, i32> {
+    fn from(e: &'e i32) -> Self {
+        BorrowedResult::Err(e)
+    }
+}
+
 fn _unrestricted_t<'input, 't, 'e>(
     okval: &'input i32,
     errval: &'input i32,
@@ -49,6 +55,26 @@ where
         _ => BorrowedResult::Err(errval)?,
     };
     Ok(rtn)
+}
+
+fn _unrestricted_t_from_result<'input, 't, 'e>(
+    errmond: Result<&'input i32, &'input i32>,
+) -> BorrowedResult<'t, 'e, i32, i32>
+where
+    'input: 'e,
+{
+    let val = errmond?;
+    BorrowedResult::Ok(val)
+}
+
+fn _unrestricted_e_from_result<'input, 't, 'e>(
+    errmond: Result<&'input i32, &'input i32>,
+) -> BorrowedResult<'t, 'e, i32, i32>
+where
+    'input: 't,
+{
+    let val = errmond?;
+    BorrowedResult::Ok(val)
 }
 
 fn main() {}
