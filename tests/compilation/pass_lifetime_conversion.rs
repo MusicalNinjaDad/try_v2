@@ -13,16 +13,18 @@ enum BorrowedResult<'t, 'e, T, E> {
     Err(&'e E),
 }
 
+type BorrowedResultResidual = BorrowedResult<'a, 'e, !, i32>;
+
 type Result<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Failure<'f>(&'f i32);
 
-impl<'a, 'e, 'f> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'f>
+impl<'a, 'e, 'f> From<BorrowedResultResidual> for Failure<'f>
 where
     'e: 'f,
 {
-    fn from(res: BorrowedResult<'a, 'e, !, i32>) -> Self {
+    fn from(res: BorrowedResultResidual) -> Self {
         match res {
             BorrowedResult::Err(e) => Failure(e),
             BorrowedResult::Ok(&never) => match never {},
