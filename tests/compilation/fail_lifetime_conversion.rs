@@ -11,28 +11,37 @@ enum BorrowedResult<'t, 'e, T, E> {
     Err(&'e E),
 }
 
-#[derive(Debug)]
-struct Failure<'e>(&'e i32);
+type StdResult<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
 
-impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
-    fn from(res: BorrowedResult<'a, 'e, !, i32>) -> Self {
+#[derive(Debug)]
+struct Failure<'f>(&'f i32);
+
+impl<'a, 'e, 'f, E> From<BorrowedResult<'a, 'e, !, E>> for Failure<'f>
+where
+    'e: 'f,
+    &'e E: Into<&'f i32>,
+{
+    fn from(res: BorrowedResult<'a, 'e, !, E>) -> Self {
         match res {
-            BorrowedResult::Err(e) => Failure(e),
+            BorrowedResult::Err(e) => Failure(e.into()),
             BorrowedResult::Ok(&never) => match never {},
         }
     }
 }
 
-impl<'t, 'e, T> From<&'e i32> for BorrowedResult<'t, 'e, T, i32> {
-    fn from(e: &'e i32) -> Self {
-        BorrowedResult::Err(e)
+impl<'t, 'e, 'f, T> From<Failure<'f>> for BorrowedResult<'t, 'e, T, i32>
+where
+    'f: 'e,
+{
+    fn from(f: Failure<'f>) -> Self {
+        BorrowedResult::Err(f.0)
     }
 }
 
 fn _unrestricted_t<'input, 't, 'e>(
     okval: &'input i32,
     errval: &'input i32,
-) -> Result<&'t i32, Failure<'e>>
+) -> StdResult<'t, 'e>
 where
     'input: 'e,
 {
@@ -46,7 +55,7 @@ where
 fn _unrestricted_e<'input, 't, 'e>(
     okval: &'input i32,
     errval: &'input i32,
-) -> Result<&'t i32, Failure<'e>>
+) -> StdResult<'t, 'e>
 where
     'input: 't,
 {
@@ -58,7 +67,7 @@ where
 }
 
 fn _unrestricted_t_from_result<'input, 't, 'e>(
-    errmond: Result<&'input i32, &'input i32>,
+    errmond: StdResult<'input, 'input>,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
     'input: 'e,
@@ -68,7 +77,7 @@ where
 }
 
 fn _unrestricted_e_from_result<'input, 't, 'e>(
-    errmond: Result<&'input i32, &'input i32>,
+    errmond: StdResult<'input, 'input>,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
     'input: 't,

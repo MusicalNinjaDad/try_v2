@@ -1,51 +1,51 @@
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:43:5
+  --> tests/compilation/fail_lifetime_conversion.rs:52:5
    |
-32 | fn _unrestricted_t<'input, 't, 'e>(
+41 | fn _unrestricted_t<'input, 't, 'e>(
    |                    ------  -- lifetime `'t` defined here
    |                    |
    |                    lifetime `'input` defined here
 ...
-43 |     Ok(rtn)
+52 |     Ok(rtn)
    |     ^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:55:14
+  --> tests/compilation/fail_lifetime_conversion.rs:64:14
    |
-46 | fn _unrestricted_e<'input, 't, 'e>(
+55 | fn _unrestricted_e<'input, 't, 'e>(
    |                    ------      -- lifetime `'e` defined here
    |                    |
    |                    lifetime `'input` defined here
 ...
-55 |         _ => BorrowedResult::Err(errval)?,
+64 |         _ => BorrowedResult::Err(errval)?,
    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 'e`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:67:5
+  --> tests/compilation/fail_lifetime_conversion.rs:76:5
    |
-60 | fn _unrestricted_t_from_result<'input, 't, 'e>(
+69 | fn _unrestricted_t_from_result<'input, 't, 'e>(
    |                                ------  -- lifetime `'t` defined here
    |                                |
    |                                lifetime `'input` defined here
 ...
-67 |     BorrowedResult::Ok(val)
+76 |     BorrowedResult::Ok(val)
    |     ^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:76:15
+  --> tests/compilation/fail_lifetime_conversion.rs:85:15
    |
-70 | fn _unrestricted_e_from_result<'input, 't, 'e>(
+79 | fn _unrestricted_e_from_result<'input, 't, 'e>(
    |                                ------      -- lifetime `'e` defined here
    |                                |
    |                                lifetime `'input` defined here
 ...
-76 |     let val = errmond?;
+85 |     let val = errmond?;
    |               ^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 'e`
