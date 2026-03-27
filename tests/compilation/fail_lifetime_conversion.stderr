@@ -1,51 +1,51 @@
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:52:5
+  --> tests/compilation/fail_lifetime_conversion.rs:53:5
    |
-41 | fn _unrestricted_t<'input, 't, 'e>(
-   |                    ------  -- lifetime `'t` defined here
-   |                    |
-   |                    lifetime `'input` defined here
+41 | fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
+   |                                       --      -- lifetime `'o` defined here
+   |                                       |
+   |                                       lifetime `'t` defined here
 ...
-52 |     Ok(rtn)
-   |     ^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
+53 |     Ok(rtn)
+   |     ^^^^^^^ function was supposed to return data with lifetime `'o` but it is returning data with lifetime `'t`
    |
-   = help: consider adding the following bound: `'input: 't`
+   = help: consider adding the following bound: `'t: 'o`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:64:14
+  --> tests/compilation/fail_lifetime_conversion.rs:66:16
    |
-55 | fn _unrestricted_e<'input, 't, 'e>(
-   |                    ------      -- lifetime `'e` defined here
-   |                    |
-   |                    lifetime `'input` defined here
+56 | fn _unrestricted_e_borrowed_to_result<'t, 'e, 'o, 'f>(
+   |                                           --      -- lifetime `'f` defined here
+   |                                           |
+   |                                           lifetime `'e` defined here
 ...
-64 |         _ => BorrowedResult::Err(errval)?,
-   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
+66 |         6.. => BorrowedResult::Err(errval)?,
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'f` but it is returning data with lifetime `'e`
    |
-   = help: consider adding the following bound: `'input: 'e`
+   = help: consider adding the following bound: `'e: 'f`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:80:5
+  --> tests/compilation/fail_lifetime_conversion.rs:83:5
    |
-69 | fn _unrestricted_t_from_result<'input, 't, 'e>(
-   |                                ------  -- lifetime `'t` defined here
-   |                                |
-   |                                lifetime `'input` defined here
+71 | fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(
+   |                                       --      -- lifetime `'t` defined here
+   |                                       |
+   |                                       lifetime `'o` defined here
 ...
-80 |     BorrowedResult::Ok(rtn)
-   |     ^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
+83 |     BorrowedResult::Ok(rtn)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'o`
    |
-   = help: consider adding the following bound: `'input: 't`
+   = help: consider adding the following bound: `'o: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:91:17
+  --> tests/compilation/fail_lifetime_conversion.rs:94:17
    |
-83 | fn _unrestricted_e_from_result<'input, 't, 'e>(
-   |                                ------      -- lifetime `'e` defined here
-   |                                |
-   |                                lifetime `'input` defined here
+86 | fn _unrestricted_e_result_to_borrowed<'o, 'f, 't, 'e>(
+   |                                           --      -- lifetime `'e` defined here
+   |                                           |
+   |                                           lifetime `'f` defined here
 ...
-91 |         ..=4 => Ok::<_, Failure<'input>>(okval)?,
-   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
+94 |         ..=4 => Ok::<_, Failure<'f>>(okval)?,
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'f`
    |
-   = help: consider adding the following bound: `'input: 'e`
+   = help: consider adding the following bound: `'f: 'e`

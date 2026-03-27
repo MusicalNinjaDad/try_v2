@@ -38,58 +38,62 @@ where
     }
 }
 
-fn _unrestricted_t<'input, 't, 'e>(
-    okval: &'input i32,
-    errval: &'input i32,
-) -> StdResult<'t, 'e>
+fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
+    okval: &'t i32,
+    errval: &'e i32,
+) -> StdResult<'o, 'f>
 where
-    'input: 'e,
+    'e: 'f,
 {
     let rtn = match errval {
         ..=4 => BorrowedResult::Ok(okval)?,
-        _ => BorrowedResult::Err(errval)?,
+        5 => BorrowedResult::Err(errval)?,
+        6.. => BorrowedResult::Err(errval)?,
     };
     Ok(rtn)
 }
 
-fn _unrestricted_e<'input, 't, 'e>(
-    okval: &'input i32,
-    errval: &'input i32,
-) -> StdResult<'t, 'e>
+fn _unrestricted_e_borrowed_to_result<'t, 'e, 'o, 'f>(
+    okval: &'t i32,
+    errval: &'e i32,
+) -> StdResult<'o, 'f>
 where
-    'input: 't,
+    't: 'o,
 {
     let rtn = match errval {
         ..=4 => BorrowedResult::Ok(okval)?,
-        _ => BorrowedResult::Err(errval)?,
+        5 => BorrowedResult::Err(errval)?,
+        6.. => BorrowedResult::Err(errval)?,
     };
     Ok(rtn)
 }
 
-fn _unrestricted_t_from_result<'input, 't, 'e>(
-    okval: &'input i32,
-    errval: &'input i32,
+fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(
+    okval: &'o i32,
+    errval: &'f i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
-    'input: 'e,
+    'f: 'e,
 {
     let rtn = match errval {
-        ..=4 => Ok::<_, Failure<'input>>(okval)?,
-        _ => Err(Failure(errval))?,
+        ..=4 => Ok::<_, Failure<'f>>(okval)?,
+        5 => Err(Failure(errval))?,
+        6.. => Err(Failure(errval))?,
     };
     BorrowedResult::Ok(rtn)
 }
 
-fn _unrestricted_e_from_result<'input, 't, 'e>(
-    okval: &'input i32,
-    errval: &'input i32,
+fn _unrestricted_e_result_to_borrowed<'o, 'f, 't, 'e>(
+    okval: &'o i32,
+    errval: &'f i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
-    'input: 't,
+    'o: 't,
 {
     let rtn = match errval {
-        ..=4 => Ok::<_, Failure<'input>>(okval)?,
-        _ => Err(Failure(errval))?,
+        ..=4 => Ok::<_, Failure<'f>>(okval)?,
+        5 => Err(Failure(errval))?,
+        6.. => Err(Failure(errval))?,
     };
     BorrowedResult::Ok(rtn)
 }
