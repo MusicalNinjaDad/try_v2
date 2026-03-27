@@ -1,0 +1,40 @@
+error[E0004]: non-exhaustive patterns: type `&!` is non-empty
+  --> tests/compilation/fail_lifetime_conversion.rs:21:48
+   |
+21 |             BorrowedResult::Ok(never) => match never {},
+   |                                                ^^^^^
+   |
+   = note: the matched value is of type `&!`
+   = note: references are always considered inhabited
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern as shown
+   |
+21 ~             BorrowedResult::Ok(never) => match never {
+22 +                 _ => todo!(),
+23 ~             },
+   |
+
+error: lifetime may not live long enough
+  --> tests/compilation/fail_lifetime_conversion.rs:37:5
+   |
+26 | fn _unrestricted_t<'input, 't, 'e>(
+   |                    ------  -- lifetime `'t` defined here
+   |                    |
+   |                    lifetime `'input` defined here
+...
+37 |     Ok(rtn)
+   |     ^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
+   |
+   = help: consider adding the following bound: `'input: 't`
+
+error: lifetime may not live long enough
+  --> tests/compilation/fail_lifetime_conversion.rs:49:14
+   |
+40 | fn _unrestricted_e<'input, 't, 'e>(
+   |                    ------      -- lifetime `'e` defined here
+   |                    |
+   |                    lifetime `'input` defined here
+...
+49 |         _ => BorrowedResult::Err(errval)?,
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
+   |
+   = help: consider adding the following bound: `'input: 'e`
