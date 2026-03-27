@@ -20,7 +20,7 @@ impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
     fn from(res: BorrowedResult<'a, 'e, !, i32>) -> Self {
         match res {
             BorrowedResult::Err(e) => Failure(e),
-            BorrowedResult::Ok(never) => *never,
+            BorrowedResult::Ok(&never) => match never {},
         }
     }
 }
