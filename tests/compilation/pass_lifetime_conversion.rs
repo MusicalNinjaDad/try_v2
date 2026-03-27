@@ -25,7 +25,7 @@ impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
     }
 }
 
-impl<'t, 'e> From<&'e i32> for BorrowedResult<'t, 'e, i32, i32> {
+impl<'t, 'e, T> From<&'e i32> for BorrowedResult<'t, 'e, T, i32> {
     fn from(e: &'e i32) -> Self {
         BorrowedResult::Err(e)
     }
