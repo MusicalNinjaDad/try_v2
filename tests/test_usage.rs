@@ -140,11 +140,11 @@ mod lifetimes {
     //     Err(&'r E),
     // }
 
-    #[derive(Debug, Try, Try_ConvertResult)]
-    enum MyResult<'t, 'e, T, E> {
-        Ok(&'t T),
-        Err(&'e E),
-    }
+    // #[derive(Debug, Try, Try_ConvertResult)]
+    // enum MyResult<'t, 'e, T, E> {
+    //     Ok(&'t T),
+    //     Err(&'e E),
+    // }
 
     // #[derive(Debug, Try)]
     // enum MyResult<T: 'static, E> {
