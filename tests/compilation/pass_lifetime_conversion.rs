@@ -13,10 +13,15 @@ enum BorrowedResult<'t, 'e, T, E> {
     Err(&'e E),
 }
 
-#[derive(Debug, PartialEq, Eq)]
-struct Failure<'e>(&'e i32);
+type Result<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
 
-impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
+#[derive(Debug, PartialEq, Eq)]
+struct Failure<'f>(&'f i32);
+
+impl<'a, 'e, 'f> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'f>
+where
+    'e: 'f,
+{
     fn from(res: BorrowedResult<'a, 'e, !, i32>) -> Self {
         match res {
             BorrowedResult::Err(e) => Failure(e),
@@ -25,16 +30,16 @@ impl<'a, 'e> From<BorrowedResult<'a, 'e, !, i32>> for Failure<'e> {
     }
 }
 
-impl<'t, 'e, T> From<&'e i32> for BorrowedResult<'t, 'e, T, i32> {
-    fn from(e: &'e i32) -> Self {
-        BorrowedResult::Err(e)
+impl<'t, 'e, 'f, T> From<Failure<'f>> for BorrowedResult<'t, 'e, T, i32>
+where
+    'f: 'e,
+{
+    fn from(f: Failure<'f>) -> Self {
+        BorrowedResult::Err(f.0)
     }
 }
 
-fn validate_passthrough_lifetime<'t, 'e>(
-    okval: &'t i32,
-    errval: &'e i32,
-) -> Result<&'t i32, Failure<'e>> {
+fn borrowed_to_result_passthrough<'t, 'e>(okval: &'t i32, errval: &'e i32) -> Result<'t, 'e> {
     let rtn = match errval {
         ..=4 => BorrowedResult::Ok(okval)?,
         5 => BorrowedResult::Err(errval)?,
@@ -43,13 +48,10 @@ fn validate_passthrough_lifetime<'t, 'e>(
     Ok(rtn)
 }
 
-fn restricted_lifetimes<'input, 't, 'e>(
-    okval: &'input i32,
-    errval: &'input i32,
-) -> Result<&'t i32, Failure<'e>>
+fn borrowed_to_result_restricted<'t, 'e, 'o, 'f>(okval: &'t i32, errval: &'e i32) -> Result<'o, 'f>
 where
-    'input: 't,
-    'input: 'e,
+    'o: 't,
+    'f: 'e,
 {
     let rtn = match errval {
         ..=4 => BorrowedResult::Ok(okval)?,
@@ -59,29 +61,71 @@ where
     Ok(rtn)
 }
 
-fn result_to_borrowed_passthrough<'t, 'e>(
-    errmond: Result<&'t i32, &'e i32>,
-) -> BorrowedResult<'t, 'e, i32, i32> {
-    let val = errmond?;
-    BorrowedResult::Ok(val)
+fn result_to_borrowed_passthrough<'o, 'f>(
+    okval: &'o i32,
+    errval: &'f i32,
+) -> BorrowedResult<'o, 'f, i32, i32> {
+    let rtn = match errval {
+        ..=4 => Ok(okval)?,
+        5 => Err(Failure(errval))?,
+        6.. => Err(Failure(errval))?,
+    };
+    BorrowedResult::Ok(rtn)
 }
 
-fn result_to_borrowed_restricted<'input, 't, 'e>(
-    errmond: Result<&'input i32, &'input i32>,
+fn result_to_borrowed_restricted<'o, 'f, 't, 'e>(
+    okval: &'o i32,
+    errval: &'f i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
-    'input: 't,
-    'input: 'e,
+    't: 'o,
+    'e: 'e,
 {
-    let val = errmond?;
-    BorrowedResult::Ok(val)
+    let rtn = match errval {
+        ..=4 => Ok(okval)?,
+        5 => Err(Failure(errval))?,
+        6.. => Err(Failure(errval))?,
+    };
+    BorrowedResult::Ok(rtn)
 }
 
 fn main() {
-    assert_matches!(validate_passthrough_lifetime(&0, &1), Result::Ok(&0));
-    assert_matches!(validate_passthrough_lifetime(&0, &5), Result::Err(Failure(&5)));
-    assert_matches!(validate_passthrough_lifetime(&0, &7), Result::Err(Failure(&7)));
-    assert_matches!(restricted_lifetimes(&0, &1), Result::Ok(&0));
-    assert_matches!(restricted_lifetimes(&0, &5), Result::Err(Failure(&5)));
-    assert_matches!(restricted_lifetimes(&0, &7), Result::Err(Failure(&7)));
+    assert_matches!(borrowed_to_result_passthrough(&0, &1), Result::Ok(&0));
+    assert_matches!(
+        borrowed_to_result_passthrough(&0, &5),
+        Result::Err(Failure(&5))
+    );
+    assert_matches!(
+        borrowed_to_result_passthrough(&0, &7),
+        Result::Err(Failure(&7))
+    );
+
+    assert_matches!(borrowed_to_result_restricted(&0, &1), Result::Ok(&0));
+    assert_matches!(
+        borrowed_to_result_restricted(&0, &5),
+        Result::Err(Failure(&5))
+    );
+    assert_matches!(
+        borrowed_to_result_restricted(&0, &7),
+        Result::Err(Failure(&7))
+    );
+    
+    assert_matches!(result_to_borrowed_passthrough(&0, &1), BorrowedResult::Ok(&0));
+    assert_matches!(
+        result_to_borrowed_passthrough(&0, &5),
+        BorrowedResult::Err(&5)
+    );
+    assert_matches!(
+        result_to_borrowed_passthrough(&0, &7),
+        BorrowedResult::Err(&7)
+    );
+    assert_matches!(result_to_borrowed_restricted(&0, &1), BorrowedResult::Ok(&0));
+    assert_matches!(
+        result_to_borrowed_restricted(&0, &5),
+        BorrowedResult::Err(&5)
+    );
+    assert_matches!(
+        result_to_borrowed_restricted(&0, &7),
+        BorrowedResult::Err(&7)
+    );
 }
