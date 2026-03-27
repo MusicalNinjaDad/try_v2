@@ -25,27 +25,27 @@ error: lifetime may not live long enough
    = help: consider adding the following bound: `'input: 'e`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:76:5
+  --> tests/compilation/fail_lifetime_conversion.rs:80:5
    |
 69 | fn _unrestricted_t_from_result<'input, 't, 'e>(
    |                                ------  -- lifetime `'t` defined here
    |                                |
    |                                lifetime `'input` defined here
 ...
-76 |     BorrowedResult::Ok(val)
+80 |     BorrowedResult::Ok(rtn)
    |     ^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:85:15
+  --> tests/compilation/fail_lifetime_conversion.rs:91:17
    |
-79 | fn _unrestricted_e_from_result<'input, 't, 'e>(
+83 | fn _unrestricted_e_from_result<'input, 't, 'e>(
    |                                ------      -- lifetime `'e` defined here
    |                                |
    |                                lifetime `'input` defined here
 ...
-85 |     let val = errmond?;
-   |               ^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
+91 |         ..=4 => Ok::<_, Failure<'input>>(okval)?,
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 'e`

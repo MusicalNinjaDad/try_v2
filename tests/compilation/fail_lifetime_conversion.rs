@@ -67,23 +67,31 @@ where
 }
 
 fn _unrestricted_t_from_result<'input, 't, 'e>(
-    errmond: StdResult<'input, 'input>,
+    okval: &'input i32,
+    errval: &'input i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
     'input: 'e,
 {
-    let val = errmond?;
-    BorrowedResult::Ok(val)
+    let rtn = match errval {
+        ..=4 => Ok::<_, Failure<'input>>(okval)?,
+        _ => Err(Failure(errval))?,
+    };
+    BorrowedResult::Ok(rtn)
 }
 
 fn _unrestricted_e_from_result<'input, 't, 'e>(
-    errmond: StdResult<'input, 'input>,
+    okval: &'input i32,
+    errval: &'input i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
 where
     'input: 't,
 {
-    let val = errmond?;
-    BorrowedResult::Ok(val)
+    let rtn = match errval {
+        ..=4 => Ok::<_, Failure<'input>>(okval)?,
+        _ => Err(Failure(errval))?,
+    };
+    BorrowedResult::Ok(rtn)
 }
 
 fn main() {}
