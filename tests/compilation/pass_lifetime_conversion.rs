@@ -111,8 +111,11 @@ fn main() {
         borrowed_to_result_restricted(&0, &7),
         Result::Err(Failure(&7))
     );
-    
-    assert_matches!(result_to_borrowed_passthrough(&0, &1), BorrowedResult::Ok(&0));
+
+    assert_matches!(
+        result_to_borrowed_passthrough(&0, &1),
+        BorrowedResult::Ok(&0)
+    );
     assert_matches!(
         result_to_borrowed_passthrough(&0, &5),
         BorrowedResult::Err(&5)
@@ -121,7 +124,10 @@ fn main() {
         result_to_borrowed_passthrough(&0, &7),
         BorrowedResult::Err(&7)
     );
-    assert_matches!(result_to_borrowed_restricted(&0, &1), BorrowedResult::Ok(&0));
+    assert_matches!(
+        result_to_borrowed_restricted(&0, &1),
+        BorrowedResult::Ok(&0)
+    );
     assert_matches!(
         result_to_borrowed_restricted(&0, &5),
         BorrowedResult::Err(&5)
