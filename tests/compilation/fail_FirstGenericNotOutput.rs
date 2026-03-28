@@ -4,7 +4,7 @@
 use try_v2::Try;
 
 #[derive(Try)]
-enum GenericNotOutput<T, E> {
+enum FirstGenericNotOutput<T, E> {
     Ok(E),
     Err(T),
 }
