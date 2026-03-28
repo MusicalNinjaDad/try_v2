@@ -225,16 +225,17 @@ impl<'ast> TryEnum<'ast> {
                 _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
             }
         };
+        //change FIRST generic type to `!`
         path_args
             .args
             .iter_mut()
-            // using find_map relies on invariant: first generic type is output type
-            .find_map(|a| {
-                let &mut GenericArgument::Type(ref mut t) = a else {
-                    return None;
-                };
-                *t = parse_quote!(!);
-                Some(a)
+            .find_map(|arg| {
+                if let &mut GenericArgument::Type(ref mut typ) = arg {
+                    *typ = parse_quote!(!);
+                    Some(arg) //break out of find_map
+                } else {
+                    None
+                }
             })
             .expect("must have at least one generic output type");
         residual_type
