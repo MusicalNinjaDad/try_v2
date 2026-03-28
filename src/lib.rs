@@ -495,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn mutliple_lifetimes_ref_residual() {
+    fn multiple_lifetimes_ref_residual() {
         let original: DeriveInput = parse_quote! {
             #[derive(Try)]
             enum MyResult<'t, 'e, T, E> {
