@@ -9,4 +9,10 @@ enum TooManyOutputs<T, E> {
     Err,
 }
 
+#[derive(Try)]
+enum TooManyOutputsBorrowed<'t, 'e, T, E> {
+    Ok(&'t T, &'e E),
+    Err,
+}
+
 fn main() {}

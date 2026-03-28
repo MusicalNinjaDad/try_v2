@@ -10,3 +10,16 @@ help: change this to (T)
 8 |     Ok(T, E),
   |       ^^^^^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires a single generic type for `Output`
+  --> tests/compilation/fail_TooManyOutputs.rs:12:10
+   |
+12 | #[derive(Try)]
+   |          ^^^
+   |
+help: change this to (&'t T)
+  --> tests/compilation/fail_TooManyOutputs.rs:14:7
+   |
+14 |     Ok(&'t T, &'e E),
+   |       ^^^^^^^^^^^^^^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

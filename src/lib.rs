@@ -135,11 +135,23 @@ impl<'ast> TryEnum<'ast> {
             let field = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
                 Fields::Unnamed(fields) => {
-                    DiagnosticResult::error("Try requires a single generic type for `Output`")
+                    match &fields.unnamed.first().expect("at least on field").ty {
+                        Type::Path(_) => DiagnosticResult::error(
+                            "Try requires a single generic type for `Output`",
+                        )
                         .add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
+                        ),
+                        Type::Reference(r) => DiagnosticResult::error(
+                            "Try requires a single generic type for `Output`",
                         )
+                        .add_help(
+                            fields.span(),
+                            format_args!("change this to (&{} {first_generic_type})", r.lifetime.as_ref().expect("generic ref must have lifetime")),
+                        ),
+                        _ => todo!("too many fields AND THEN wrong type")
+                    }
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
