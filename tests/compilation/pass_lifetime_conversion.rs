@@ -62,9 +62,9 @@ where
 
 fn borrowed_to_result_passthrough<'t, 'e>(okval: &'t i32, errval: &'e i32) -> StdResult<'t, 'e> {
     let rtn = match errval {
-        ..=4 => BorrowedResult::Ok(okval)?,
-        5 => BorrowedResult::Err(errval)?,
-        6.. => BorrowedResult::Err(errval)?,
+        ..=4 => BorrowedResult::pass(okval)?,
+        5 => BorrowedResult::fail(errval)?,
+        6.. => BorrowedResult::fail_directly(errval)?,
     };
     Ok(rtn)
 }
@@ -78,9 +78,9 @@ where
     'e: 'f,
 {
     let rtn = match errval {
-        ..=4 => BorrowedResult::Ok(okval)?,
-        5 => BorrowedResult::Err(errval)?,
-        6.. => BorrowedResult::Err(errval)?,
+        ..=4 => BorrowedResult::pass(okval)?,
+        5 => BorrowedResult::fail(errval)?,
+        6.. => BorrowedResult::fail_directly(errval)?,
     };
     Ok(rtn)
 }
