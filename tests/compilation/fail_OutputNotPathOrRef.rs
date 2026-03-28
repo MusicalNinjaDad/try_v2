@@ -4,7 +4,7 @@
 use try_v2::Try;
 
 #[derive(Try)]
-enum OutputNotPath<T> {
+enum OutputNotPathOrRef<T> {
     Ok(!),
     Err(T),
 }
