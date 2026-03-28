@@ -10,3 +10,16 @@ help: change this to (T)
 8 |     Ok{foo: T},
   |       ^^^^^^^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires an unnamed field for the `Output` variant
+  --> tests/compilation/fail_OutputNamedFields.rs:13:10
+   |
+13 | #[derive(Try)]
+   |          ^^^
+   |
+help: change this to (T)
+  --> tests/compilation/fail_OutputNamedFields.rs:15:7
+   |
+15 |     Ok{foo: &'t T},
+   |       ^^^^^^^^^^^^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
