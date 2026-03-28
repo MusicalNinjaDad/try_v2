@@ -38,6 +38,28 @@ type StdResult<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
 #[derive(Debug, PartialEq, Eq)]
 struct Failure<'f>(&'f i32);
 
+fn fail<'fail, 'o, 'f>(err: Failure<'fail>) -> StdResult<'o, 'f>
+where
+    'fail: 'f,
+{
+    let r = Err(err)?;
+    Ok(r)
+}
+
+fn fail_directly<'fail, 'o, 'f>(err: Failure<'fail>) -> StdResult<'o, 'f>
+where
+    'fail: 'f,
+{
+    Err(err)
+}
+
+fn pass<'pass, 'o, 'f>(val: &'pass i32) -> StdResult<'o, 'f>
+where
+    'pass: 'o,
+{
+    Ok(val)
+}
+
 impl<'t, 'e, 'f, E> From<BorrowedResult<'t, 'e, !, E>> for Failure<'f>
 where
     'e: 'f,
@@ -90,9 +112,9 @@ fn result_to_borrowed_passthrough<'o, 'f>(
     errval: &'f i32,
 ) -> BorrowedResult<'o, 'f, i32, i32> {
     let rtn = match errval {
-        ..=4 => Ok::<_, Failure<'f>>(okval)?,
-        5 => Err(Failure(errval))?,
-        6.. => Err(Failure(errval))?,
+        ..=4 => pass(okval)?,
+        5 => fail(Failure(errval))?,
+        6.. => fail_directly(Failure(errval))?,
     };
     BorrowedResult::Ok(rtn)
 }
@@ -106,9 +128,9 @@ where
     'f: 'e,
 {
     let rtn = match errval {
-        ..=4 => Ok::<_, Failure<'f>>(okval)?,
-        5 => Err(Failure(errval))?,
-        6.. => Err(Failure(errval))?,
+        ..=4 => pass(okval)?,
+        5 => fail(Failure(errval))?,
+        6.. => fail_directly(Failure(errval))?,
     };
     BorrowedResult::Ok(rtn)
 }
