@@ -1,5 +1,4 @@
 #![feature(assert_matches)]
-#![feature(associated_type_defaults)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 
