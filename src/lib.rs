@@ -181,6 +181,7 @@ impl<'ast> TryEnum<'ast> {
                     Type::Path(tp) => is_first_generic_type(tp),
                     _ => todo!("{:?}", tr.elem.as_ref()),
                 },
+                // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
                 _ => DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
                     field.span(),
                     format_args!("change this to ({first_generic_type})"),
