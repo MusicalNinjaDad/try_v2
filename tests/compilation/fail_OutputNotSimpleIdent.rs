@@ -9,4 +9,10 @@ enum OutputNotSimpleIdent<T> {
     Err(T),
 }
 
+#[derive(Try)]
+enum OutputNotSimpleIdentBorrowed<'t, T> {
+    Ok(&'t proc_macro2::TokenStream),
+    Err(T),
+}
+
 fn main() {}
