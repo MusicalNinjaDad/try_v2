@@ -1,4 +1,5 @@
 #![feature(assert_matches)]
+#![feature(associated_type_defaults)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 
@@ -11,6 +12,25 @@ use try_v2::{Try, Try_ConvertResult};
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),
     Err(&'e E),
+}
+
+impl<'pass, 'fail, 't, 'e, T, E> BorrowedResult<'t, 'e, T, E>
+where
+    'pass: 't,
+    'fail: 'e,
+{
+    fn fail(err: &'fail E) -> Self {
+        let r = Self::Err(err)?;
+        Self::Ok(r)
+    }
+
+    fn fail_directly(err: &'fail E) -> Self {
+        Self::Err(err)
+    }
+
+    fn pass(val: &'pass T) -> Self {
+        Self::Ok(val)
+    }
 }
 
 type StdResult<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
