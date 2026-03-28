@@ -94,7 +94,7 @@ where
     Ok(rtn)
 }
 
-fn _unrestricted_e_borrowed_to_result<'t, 'e, 'o, 'f>(
+fn _unrestricted_e_borrowed_to_result_direct<'t, 'e, 'o, 'f>(
     okval: &'t i32,
     errval: &'e i32,
 ) -> StdResult<'o, 'f>
@@ -103,8 +103,21 @@ where
 {
     let rtn = match errval {
         ..=4 => BorrowedResult::pass(okval)?,
-        5 => BorrowedResult::fail(errval)?,
-        6.. => BorrowedResult::fail_directly(errval)?,
+        5.. => BorrowedResult::fail_directly(errval)?,
+    };
+    Ok(rtn)
+}
+
+fn _unrestricted_e_borrowed_to_result_indirect<'t, 'e, 'o, 'f>(
+    okval: &'t i32,
+    errval: &'e i32,
+) -> StdResult<'o, 'f>
+where
+    't: 'o,
+{
+    let rtn = match errval {
+        ..=4 => BorrowedResult::pass(okval)?,
+        5.. => BorrowedResult::fail(errval)?,
     };
     Ok(rtn)
 }
@@ -124,7 +137,7 @@ where
     BorrowedResult::Ok(rtn)
 }
 
-fn _unrestricted_e_result_to_borrowed<'o, 'f, 't, 'e>(
+fn _unrestricted_e_result_to_borrowed_direct<'o, 'f, 't, 'e>(
     okval: &'o i32,
     errval: &'f i32,
 ) -> BorrowedResult<'t, 'e, i32, i32>
@@ -133,8 +146,21 @@ where
 {
     let rtn = match errval {
         ..=4 => pass(okval)?,
-        5 => fail(Failure(errval))?,
-        6.. => fail_directly(Failure(errval))?,
+        5.. => fail_directly(Failure(errval))?,
+    };
+    BorrowedResult::Ok(rtn)
+}
+
+fn _unrestricted_e_result_to_borrowed_indirect<'o, 'f, 't, 'e>(
+    okval: &'o i32,
+    errval: &'f i32,
+) -> BorrowedResult<'t, 'e, i32, i32>
+where
+    'o: 't,
+{
+    let rtn = match errval {
+        ..=4 => pass(okval)?,
+        5.. => fail(Failure(errval))?,
     };
     BorrowedResult::Ok(rtn)
 }
