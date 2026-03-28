@@ -1,3 +1,4 @@
+#![feature(if_let_guard)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
@@ -135,7 +136,21 @@ impl<'ast> TryEnum<'ast> {
             let field = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
                 Fields::Unnamed(fields) => {
-                    match &fields.unnamed.first().expect("at least on field").ty {
+                    match &fields
+                        .unnamed
+                        .iter()
+                        .find(|field| match &field.ty {
+                            Type::Path(f) => {
+                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
+                            }
+                            Type::Reference(r) if let Type::Path(f) = r.elem.as_ref() => {
+                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
+                            }
+                            _ => todo!("other types 142"),
+                        })
+                        .expect("at least on field matches the first generic type")
+                        .ty
+                    {
                         Type::Path(_) => DiagnosticResult::error(
                             "Try requires a single generic type for `Output`",
                         )
@@ -148,9 +163,12 @@ impl<'ast> TryEnum<'ast> {
                         )
                         .add_help(
                             fields.span(),
-                            format_args!("change this to (&{} {first_generic_type})", r.lifetime.as_ref().expect("generic ref must have lifetime")),
+                            format_args!(
+                                "change this to (&{} {first_generic_type})",
+                                r.lifetime.as_ref().expect("generic ref must have lifetime")
+                            ),
                         ),
-                        _ => todo!("too many fields AND THEN wrong type")
+                        _ => todo!("too many fields AND THEN wrong type"),
                     }
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")

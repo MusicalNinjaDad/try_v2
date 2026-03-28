@@ -15,4 +15,10 @@ enum TooManyOutputsBorrowed<'t, 'e, T, E> {
     Err,
 }
 
+#[derive(Try)]
+enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
+    Ok(&'e E, &'t T),
+    Err,
+}
+
 fn main() {}
