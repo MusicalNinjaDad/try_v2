@@ -9,4 +9,10 @@ enum FirstGenericNotOutput<T, E> {
     Err(T),
 }
 
+#[derive(Try)]
+enum FirstGenericNotOutputBorrowed<'t, 'e, T, E> {
+    Ok(&'e E),
+    Err(&'t T),
+}
+
 fn main() {}
