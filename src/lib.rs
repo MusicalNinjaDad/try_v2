@@ -1,4 +1,3 @@
-#![feature(closure_lifetime_binder)]
 #![feature(if_let_guard)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
