@@ -1,3 +1,4 @@
+#![feature(closure_lifetime_binder)]
 #![feature(if_let_guard)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
@@ -139,12 +140,23 @@ impl<'ast> TryEnum<'ast> {
                 DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(name.span(), "Add <T> after this..."),
             )?;
-        let is_first_generic_type = |ty: &Type| match ty {
-            Type::Path(tp) => tp.path.get_ident().is_some_and(|t| t == first_generic_type),
-            Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => {
-                tp.path.get_ident().is_some_and(|t| t == first_generic_type)
+
+        // Returns Some(ty) if ty has same ident as first generic type
+        //  designed to be used in .find_map() or with .ok_or_else()?
+        let is_first_generic_type = for<'ty> |ty: &'ty Type| -> Option<&'ty Type> {
+            match ty {
+                Type::Path(tp) => tp
+                    .path
+                    .get_ident()
+                    .is_some_and(|t| t == first_generic_type)
+                    .then_some(ty),
+                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
+                    .path
+                    .get_ident()
+                    .is_some_and(|t| t == first_generic_type)
+                    .then_some(ty),
+                _ => None,
             }
-            _ => false,
         };
 
         // TODO: Check that multiline enum defs show whole def in help
@@ -165,8 +177,7 @@ impl<'ast> TryEnum<'ast> {
                     let first_output_usage = &fields
                         .unnamed
                         .iter()
-                        .map(|field| &field.ty)
-                        .find(|ty| is_first_generic_type(ty))
+                        .find_map(|field| is_first_generic_type(&field.ty))
                         .ok_or_else(|| {
                             DiagnosticResult::error(
                                 "Try requires a single generic type for `Output`",
@@ -208,27 +219,27 @@ impl<'ast> TryEnum<'ast> {
             }
         };
 
-        let output_type_name = if is_first_generic_type(output_type) {
-            first_generic_type
-        } else {
-            let base_error = DiagnosticResult::error(
-                "Try requires the first generic type to be used as the `Output` type",
-            )
-            .add_help(first_generic_type.span(), "Output type defined here");
-            match output_type {
-                Type::Reference(r) => base_error.add_help(
-                    output_type.span(),
-                    format_args!(
-                        "change this to &{} {first_generic_type}",
-                        r.lifetime.as_ref().expect("generic ref must have lifetime")
+        let output_type_name = is_first_generic_type(output_type)
+            .map(|_| first_generic_type) // easier than drilling through to the ident
+            .ok_or_else(|| {
+                let base_error = DiagnosticResult::error(
+                    "Try requires the first generic type to be used as the `Output` type",
+                )
+                .add_help(first_generic_type.span(), "Output type defined here");
+                match output_type {
+                    Type::Reference(r) => base_error.add_help(
+                        output_type.span(),
+                        format_args!(
+                            "change this to &{} {first_generic_type}",
+                            r.lifetime.as_ref().expect("generic ref must have lifetime")
+                        ),
                     ),
-                )?,
-                _ => base_error.add_help(
-                    output_type.span(),
-                    format_args!("change this to {first_generic_type}"),
-                )?,
-            }
-        };
+                    _ => base_error.add_help(
+                        output_type.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    ),
+                }
+            })?;
 
         // Must be done late, after validating suitable generics
         let residual_type: Type = Self::generate_residual(ast);
