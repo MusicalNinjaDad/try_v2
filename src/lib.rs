@@ -63,7 +63,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed,
-    GenericArgument, GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote,
+    GenericArgument, GenericParam, Ident, PathArguments, Type, Variant, parse_quote,
     spanned::Spanned,
 };
 
@@ -121,7 +121,7 @@ impl<'ast> TryEnum<'ast> {
         }?;
 
         let name: &Ident = &ast.ident;
-        
+
         let output_variant = enum_data.variants.first().ok_or(
             DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
                 enum_data.brace_token.span.span(),
@@ -146,9 +146,71 @@ impl<'ast> TryEnum<'ast> {
             }
             _ => false,
         };
+        let output_type = match &output_variant.fields {
+            Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+                &fields
+                    .unnamed
+                    .first()
+                    .expect("at least one unnamed field")
+                    .ty
+            }
+            Fields::Unnamed(fields) => {
+                let base_error: DiagnosticResult<&FieldsUnnamed> =
+                    DiagnosticResult::error("Try requires a single generic type for `Output`")
+                        .add_help(first_generic_type.span(), "Output type defined here");
+                let first_output_usage = &fields
+                    .unnamed
+                    .iter()
+                    .find(|field| match &field.ty {
+                        Type::Path(f) => {
+                            f.path.get_ident().is_some_and(|t| t == first_generic_type)
+                        }
+                        Type::Reference(r) if let Type::Path(f) = r.elem.as_ref() => {
+                            f.path.get_ident().is_some_and(|t| t == first_generic_type)
+                        }
+                        _ => todo!("other types 142"),
+                    })
+                    .ok_or_else(|| {
+                        DiagnosticResult::error("Try requires a single generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                fields.span(),
+                                format_args!("change this to ({first_generic_type})"),
+                            )
+                    })?
+                    .ty;
+                match first_output_usage {
+                    Type::Path(_) => base_error.add_help(
+                        fields.span(),
+                        format_args!("change this to ({first_generic_type})"),
+                    )?,
+                    Type::Reference(r) => base_error.add_help(
+                        fields.span(),
+                        format_args!(
+                            "change this to (&{} {first_generic_type})",
+                            r.lifetime.as_ref().expect("generic ref must have lifetime")
+                        ),
+                    )?,
+                    _ => todo!("too many fields AND THEN wrong type"),
+                };
+                unreachable!("all paths above diverge via ?")
+            }
+            Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
+                .add_help(
+                    output_variant.span(),
+                    format_args!("add ({first_generic_type}) after this..."),
+                )?,
+            Fields::Named(fields) => {
+                DiagnosticResult::error("Try requires an unnamed field for the `Output` variant")
+                    .add_help(
+                        fields.span(),
+                        format_args!("change this to ({first_generic_type})"),
+                    )?
+            }
+        };
 
         // TODO: Check that multiline enum defs show whole def in help
-        let (_, output_type, output_type_name): (&Ident, &Type, &Ident) = {
+        let (_, _, output_type_name): (&Ident, &Type, &Ident) = {
             let output_type = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                     let output_type: &Type = &fields
