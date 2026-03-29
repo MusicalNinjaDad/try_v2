@@ -124,11 +124,15 @@ impl<'ast> TryEnum<'ast> {
 
         // TODO: Check that multiline enum defs show whole def in help
         let (output_variant, output_type, output_type_name): (&Ident, &Type, &Ident) = {
-            let first_generic_type: &Ident = match ast.generics.type_params().next() {
-                Some(output_ty) => Ok(&output_ty.ident),
-                None => DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(name.span(), "Add <T> after this..."),
-            }?;
+            let first_generic_type: &Ident = ast
+                .generics
+                .type_params()
+                .map(|ty| &ty.ident)
+                .next()
+                .ok_or(
+                    DiagnosticResult::error("Try requires a generic type for `Output`")
+                        .add_help(name.span(), "Add <T> after this..."),
+                )?;
             let output_variant = enum_data.variants.first().ok_or(
                 DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
                     enum_data.brace_token.span.span(),
