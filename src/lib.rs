@@ -438,7 +438,6 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
 
-// TODO: #17 Add diagnostics to impl_convert_result
 fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
