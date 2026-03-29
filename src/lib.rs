@@ -135,7 +135,7 @@ impl<'ast> TryEnum<'ast> {
                 ),
             )?;
             let field = match &output_variant.fields {
-                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
+                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => fields,
                 Fields::Unnamed(fields) => {
                     let base_error =
                         DiagnosticResult::error("Try requires a single generic type for `Output`")
@@ -168,21 +168,21 @@ impl<'ast> TryEnum<'ast> {
                             ),
                         ),
                         _ => todo!("too many fields AND THEN wrong type"),
-                    }
+                    }?
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
                         output_variant.span(),
                         format_args!("add ({first_generic_type}) after this..."),
-                    ),
+                    )?,
                 Fields::Named(fields) => DiagnosticResult::error(
                     "Try requires an unnamed field for the `Output` variant",
                 )
                 .add_help(
                     fields.span(),
                     format_args!("change this to ({first_generic_type})"),
-                ),
-            }?;
+                )?,
+            };
             let output_type = &field
                 .unnamed
                 .first()
