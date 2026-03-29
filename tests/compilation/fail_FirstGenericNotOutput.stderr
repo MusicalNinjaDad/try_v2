@@ -1,7 +1,7 @@
 error: Try requires the first generic type to be used as the `Output` type
  --> tests/compilation/fail_FirstGenericNotOutput.rs:6:10
   |
-6 | #[derive(Try)]
+6 | #[derive(Try, Try_ConvertResult)]
   |          ^^^
   |
 help: Output type defined here
@@ -17,9 +17,27 @@ help: change this to T
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires the first generic type to be used as the `Output` type
+ --> tests/compilation/fail_FirstGenericNotOutput.rs:6:15
+  |
+6 | #[derive(Try, Try_ConvertResult)]
+  |               ^^^^^^^^^^^^^^^^^
+  |
+help: Output type defined here
+ --> tests/compilation/fail_FirstGenericNotOutput.rs:7:12
+  |
+7 | enum Owned<T, E> {
+  |            ^
+help: change this to T
+ --> tests/compilation/fail_FirstGenericNotOutput.rs:8:8
+  |
+8 |     Ok(E),
+  |        ^
+  = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires the first generic type to be used as the `Output` type
   --> tests/compilation/fail_FirstGenericNotOutput.rs:12:10
    |
-12 | #[derive(Try)]
+12 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: Output type defined here
@@ -34,10 +52,28 @@ help: change this to &'e T
    |        ^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
+error: Try requires the first generic type to be used as the `Output` type
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:12:15
+   |
+12 | #[derive(Try, Try_ConvertResult)]
+   |               ^^^^^^^^^^^^^^^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:13:23
+   |
+13 | enum Borrowed<'t, 'e, T, E> {
+   |                       ^
+help: change this to &'e T
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:14:8
+   |
+14 |     Ok(&'e E),
+   |        ^^^^^
+   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
+
 error: Try requires a single generic type for `Output`
   --> tests/compilation/fail_FirstGenericNotOutput.rs:18:10
    |
-18 | #[derive(Try)]
+18 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: Output type defined here
@@ -51,3 +87,21 @@ help: change this to (T)
 20 |     Ok(&'e E, &'f F),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires a single generic type for `Output`
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:18:15
+   |
+18 | #[derive(Try, Try_ConvertResult)]
+   |               ^^^^^^^^^^^^^^^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:19:35
+   |
+19 | enum MultipleBorrowed<'t, 'e, 'f, T, E, F> {
+   |                                   ^
+help: change this to (T)
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:20:7
+   |
+20 |     Ok(&'e E, &'f F),
+   |       ^^^^^^^^^^^^^^
+   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
