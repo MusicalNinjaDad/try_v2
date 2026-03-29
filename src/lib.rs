@@ -120,7 +120,10 @@ impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
 
 impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
     fn from(tr: &'ast TypeReference) -> Self {
-        let lifetime = tr.lifetime.as_ref().unwrap();
+        let lifetime = tr
+            .lifetime
+            .as_ref()
+            .expect("References in enum definitions require a specified lifetime");
         Self::Ref { lifetime }
     }
 }
