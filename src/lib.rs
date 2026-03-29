@@ -438,8 +438,7 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
 
-// TODO: #17 Add diagnostics to impl_convert_result
-fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
+fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     #[allow(unused_variables)]
@@ -450,7 +449,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         output_type,
         output_type_name,
         residual_type,
-    } = TryEnum::try_parse(&ast).unwrap();
+    } = TryEnum::try_parse(&ast)?;
 
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
@@ -480,7 +479,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
         .collect();
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
-    quote! {
+    let impl_convert = quote! {
         impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
         {
             #[inline]
@@ -500,7 +499,8 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
                 std::result::Result::Err(residual.into())
             }
         }
-    }
+    };
+    DiagnosticResult::Ok(impl_convert)
 }
 
 #[cfg(test)]
@@ -663,7 +663,7 @@ mod tests {
 
         assert_eq!(
             expected_impl.to_string(),
-            impl_convert_result(original).to_string()
+            impl_convert_result(original).unwrap().to_string()
         )
     }
 }
