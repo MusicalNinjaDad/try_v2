@@ -133,6 +133,14 @@ impl<'ast> TryEnum<'ast> {
                     DiagnosticResult::error("Try requires a generic type for `Output`")
                         .add_help(name.span(), "Add <T> after this..."),
                 )?;
+            let is_first_generic_type = |ty: &Type| match ty {
+                Type::Path(tp) => tp.path.get_ident().is_some_and(|t| t == first_generic_type),
+                //TODO simplify by calling recursively
+                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => {
+                    tp.path.get_ident().is_some_and(|t| t == first_generic_type)
+                }
+                _ => false,
+            };
             let output_variant = enum_data.variants.first().ok_or(
                 DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
                     enum_data.brace_token.span.span(),
@@ -141,12 +149,12 @@ impl<'ast> TryEnum<'ast> {
             )?;
             let output_type = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                    let output_type = &fields
+                    let output_type: &Type = &fields
                         .unnamed
                         .first()
                         .expect("at least one unnamed field")
                         .ty;
-                    let is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
+                    let _is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
                         Some(var_ty) if var_ty == first_generic_type => Ok(()),
                         Some(var_ty) => DiagnosticResult::error(
                             "Try requires the first generic type to match the `Output` type",
@@ -168,24 +176,28 @@ impl<'ast> TryEnum<'ast> {
                                 format_args!("change this to {first_generic_type}"),
                             ),
                     };
-                    match output_type {
-                        Type::Path(tp) => is_first_generic_type(tp)?,
-                        Type::Reference(tr) => match tr.elem.as_ref() {
-                            Type::Path(tp) => is_first_generic_type(tp)?,
-                            _ => todo!("{:?}", tr.elem.as_ref()),
-                        },
-                        // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
-                        _ => DiagnosticResult::error("Try requires a generic type for `Output`")
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                                fields
-                                    .unnamed
-                                    .first()
-                                    .expect("at least one unnamed field")
-                                    .span(),
-                                format_args!("change this to {first_generic_type}"),
-                            )?,
-                    };
+                    if !is_first_generic_type(output_type) {
+                        match output_type {
+                            Type::Path(tp) => _is_first_generic_type(tp)?,
+                            Type::Reference(tr) => match tr.elem.as_ref() {
+                                Type::Path(tp) => _is_first_generic_type(tp)?,
+                                _ => todo!("{:?}", tr.elem.as_ref()),
+                            },
+                            // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
+                            _ => {
+                                DiagnosticResult::error("Try requires a generic type for `Output`")
+                                    .add_help(first_generic_type.span(), "Output type defined here")
+                                    .add_help(
+                                        fields
+                                            .unnamed
+                                            .first()
+                                            .expect("at least one unnamed field")
+                                            .span(),
+                                        format_args!("change this to {first_generic_type}"),
+                                    )?
+                            }
+                        };
+                    }
                     output_type
                 }
                 Fields::Unnamed(fields) => {
