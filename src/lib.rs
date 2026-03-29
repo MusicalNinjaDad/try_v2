@@ -63,7 +63,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed,
+    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields,
     GenericArgument, GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference,
     Variant, parse_quote, spanned::Spanned,
 };
@@ -190,7 +190,7 @@ impl<'ast> TryEnum<'ast> {
         } else {
             match &output_variant.fields {
                 Fields::Unnamed(fields) => {
-                    let base_error: DiagnosticResult<&FieldsUnnamed> =
+                    let base_error =
                         DiagnosticResult::error("Try requires a single generic type for `Output`")
                             .add_help(first_generic_type.span(), "Output type defined here");
                     let first_output_usage = &fields
@@ -207,19 +207,16 @@ impl<'ast> TryEnum<'ast> {
                                 format_args!("change this to ({first_generic_type})"),
                             )
                         })?;
-                    match first_output_usage {
+                    return match first_output_usage {
                         OutputType::Ident => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
-                        )?,
+                        ),
                         OutputType::Ref { lifetime } => base_error.add_help(
                             fields.span(),
                             format_args!("change this to (&{lifetime} {first_generic_type})"),
-                        )?,
+                        ),
                     };
-                    unreachable!(
-                        "all paths above have defined an error message and then diverged via ?"
-                    )
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
