@@ -160,7 +160,7 @@ impl<'ast> TryEnum<'ast> {
                     .add_help(name.span(), "Add <T> after this..."),
             )?;
 
-        // Returns Some(ty) if ty has same ident as first generic type
+        // Returns Some(OutputType::...) if ty has same ident as first generic type
         //  designed to be used in .find_map() or with .ok_or_else()?
         let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
             match ty {
