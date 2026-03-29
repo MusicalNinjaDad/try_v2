@@ -4,6 +4,11 @@ error: Try requires a single generic type for `Output`
 6 | #[derive(Try)]
   |          ^^^
   |
+help: Output type defined here
+ --> tests/compilation/fail_TooManyOutputs.rs:7:21
+  |
+7 | enum TooManyOutputs<T, E> {
+  |                     ^
 help: change this to (T)
  --> tests/compilation/fail_TooManyOutputs.rs:8:7
   |
@@ -17,6 +22,11 @@ error: Try requires a single generic type for `Output`
 12 | #[derive(Try)]
    |          ^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_TooManyOutputs.rs:13:37
+   |
+13 | enum TooManyOutputsBorrowed<'t, 'e, T, E> {
+   |                                     ^
 help: change this to (&'t T)
   --> tests/compilation/fail_TooManyOutputs.rs:14:7
    |
@@ -30,6 +40,11 @@ error: Try requires a single generic type for `Output`
 18 | #[derive(Try)]
    |          ^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_TooManyOutputs.rs:19:45
+   |
+19 | enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
+   |                                             ^
 help: change this to (&'t T)
   --> tests/compilation/fail_TooManyOutputs.rs:20:7
    |

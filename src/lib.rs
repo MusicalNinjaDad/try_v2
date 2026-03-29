@@ -154,6 +154,7 @@ impl<'ast> TryEnum<'ast> {
                         Type::Path(_) => DiagnosticResult::error(
                             "Try requires a single generic type for `Output`",
                         )
+                        .add_help(first_generic_type.span(), "Output type defined here")
                         .add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
@@ -161,6 +162,7 @@ impl<'ast> TryEnum<'ast> {
                         Type::Reference(r) => DiagnosticResult::error(
                             "Try requires a single generic type for `Output`",
                         )
+                        .add_help(first_generic_type.span(), "Output type defined here")
                         .add_help(
                             fields.span(),
                             format_args!(
