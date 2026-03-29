@@ -63,9 +63,9 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields,
-    GenericArgument, GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference,
-    Variant, parse_quote, spanned::Spanned,
+    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
+    GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference, Variant,
+    parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
