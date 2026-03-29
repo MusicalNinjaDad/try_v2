@@ -200,9 +200,13 @@ impl<'ast> TryEnum<'ast> {
                                 r.lifetime.as_ref().expect("generic ref must have lifetime")
                             ),
                         )?,
-                        _ => todo!("too many fields AND THEN wrong type"),
+                        _ => unreachable!(
+                            "is_first_generic_type, called in first_output_usage filters everything except Path or Ref"
+                        ),
                     };
-                    unreachable!("all paths above diverge via ?")
+                    unreachable!(
+                        "all paths above have defined an error message and then diverged via ?"
+                    )
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
