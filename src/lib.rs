@@ -165,15 +165,8 @@ impl<'ast> TryEnum<'ast> {
                     let first_output_usage = &fields
                         .unnamed
                         .iter()
-                        .find(|field| match &field.ty {
-                            Type::Path(f) => {
-                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
-                            }
-                            Type::Reference(r) if let Type::Path(f) = r.elem.as_ref() => {
-                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
-                            }
-                            _ => todo!("other types 142"),
-                        })
+                        .map(|field| &field.ty)
+                        .find(|ty| is_first_generic_type(ty))
                         .ok_or_else(|| {
                             DiagnosticResult::error(
                                 "Try requires a single generic type for `Output`",
@@ -183,8 +176,7 @@ impl<'ast> TryEnum<'ast> {
                                 fields.span(),
                                 format_args!("change this to ({first_generic_type})"),
                             )
-                        })?
-                        .ty;
+                        })?;
                     match first_output_usage {
                         Type::Path(_) => base_error.add_help(
                             fields.span(),
