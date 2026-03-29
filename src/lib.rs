@@ -137,7 +137,10 @@ impl<'ast> TryEnum<'ast> {
             let field = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
                 Fields::Unnamed(fields) => {
-                    match &fields
+                    let base_error =
+                        DiagnosticResult::error("Try requires a single generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here");
+                    let first_output_usage = &fields
                         .unnamed
                         .iter()
                         .find(|field| match &field.ty {
@@ -150,21 +153,14 @@ impl<'ast> TryEnum<'ast> {
                             _ => todo!("other types 142"),
                         })
                         .expect("at least on field matches the first generic type")
-                        .ty
+                        .ty;
+                    match first_output_usage
                     {
-                        Type::Path(_) => DiagnosticResult::error(
-                            "Try requires a single generic type for `Output`",
-                        )
-                        .add_help(first_generic_type.span(), "Output type defined here")
-                        .add_help(
+                        Type::Path(_) => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
                         ),
-                        Type::Reference(r) => DiagnosticResult::error(
-                            "Try requires a single generic type for `Output`",
-                        )
-                        .add_help(first_generic_type.span(), "Output type defined here")
-                        .add_help(
+                        Type::Reference(r) => base_error.add_help(
                             fields.span(),
                             format_args!(
                                 "change this to (&{} {first_generic_type})",
