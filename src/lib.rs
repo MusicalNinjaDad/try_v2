@@ -96,7 +96,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 struct TryEnum<'ast> {
     name: &'ast Ident,
     enum_data: &'ast DataEnum,
-    output_variant: &'ast Ident,
+    output_variant_name: &'ast Ident,
     output_type: &'ast Type,
     output_type_name: &'ast Ident,
     residual_type: Type,
@@ -121,9 +121,15 @@ impl<'ast> TryEnum<'ast> {
         }?;
 
         let name: &Ident = &ast.ident;
+        let output_variant = enum_data.variants.first().ok_or(
+            DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+                enum_data.brace_token.span.span(),
+                "add at least two variants here...",
+            ),
+        )?;
 
         // TODO: Check that multiline enum defs show whole def in help
-        let (output_variant, output_type, output_type_name): (&Ident, &Type, &Ident) = {
+        let (output_variant_name, output_type, output_type_name): (&Ident, &Type, &Ident) = {
             let first_generic_type: &Ident = ast
                 .generics
                 .type_params()
@@ -140,12 +146,6 @@ impl<'ast> TryEnum<'ast> {
                 }
                 _ => false,
             };
-            let output_variant = enum_data.variants.first().ok_or(
-                DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
-                    enum_data.brace_token.span.span(),
-                    "add at least two variants here...",
-                ),
-            )?;
             let output_type = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                     let output_type: &Type = &fields
@@ -153,7 +153,7 @@ impl<'ast> TryEnum<'ast> {
                         .first()
                         .expect("at least one unnamed field")
                         .ty;
-                    
+
                     if is_first_generic_type(output_type) {
                         output_type
                     } else {
@@ -241,7 +241,7 @@ impl<'ast> TryEnum<'ast> {
         Ok(Self {
             name,
             enum_data,
-            output_variant,
+            output_variant_name,
             output_type,
             output_type_name,
             residual_type,
@@ -364,7 +364,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let TryEnum {
         name,
         enum_data,
-        output_variant,
+        output_variant_name,
         output_type,
         output_type_name,
         residual_type,
@@ -381,7 +381,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
             #[inline]
             fn from_output(output: Self::Output) -> Self {
-                Self::#output_variant(output)
+                Self::#output_variant_name(output)
             }
 
             #[inline]
@@ -424,7 +424,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let TryEnum {
         name,
         enum_data,
-        output_variant,
+        output_variant_name,
         output_type,
         output_type_name,
         residual_type,
