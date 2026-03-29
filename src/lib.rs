@@ -64,8 +64,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed,
-    GenericArgument, GenericParam, Ident, PathArguments, Type, Variant, parse_quote,
-    spanned::Spanned,
+    GenericArgument, GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference,
+    Variant, parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
@@ -106,6 +106,25 @@ struct TryEnum<'ast> {
 type BranchArm = Arm;
 type ResidualArm = Arm;
 
+/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident
+enum OutputType<'ast> {
+    Ident,
+    Ref { lifetime: &'ast Lifetime },
+}
+
+impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
+    fn from(_: &TypePath) -> Self {
+        Self::Ident
+    }
+}
+
+impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
+    fn from(tr: &'ast TypeReference) -> Self {
+        let lifetime = tr.lifetime.as_ref().unwrap();
+        Self::Ref { lifetime }
+    }
+}
+
 impl<'ast> TryEnum<'ast> {
     fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
         // Fail fast
@@ -143,18 +162,18 @@ impl<'ast> TryEnum<'ast> {
 
         // Returns Some(ty) if ty has same ident as first generic type
         //  designed to be used in .find_map() or with .ok_or_else()?
-        let is_first_generic_type = for<'ty> |ty: &'ty Type| -> Option<&'ty Type> {
+        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
             match ty {
                 Type::Path(tp) => tp
                     .path
                     .get_ident()
                     .filter(|t| *t == first_generic_type)
-                    .map(|_| ty),
+                    .map(|_| tp.into()),
                 Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
                     .path
                     .get_ident()
                     .filter(|t| *t == first_generic_type)
-                    .map(|_| ty),
+                    .map(|_| tr.into()),
                 _ => None,
             }
         };
@@ -189,20 +208,14 @@ impl<'ast> TryEnum<'ast> {
                             )
                         })?;
                     match first_output_usage {
-                        Type::Path(_) => base_error.add_help(
+                        OutputType::Ident => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
                         )?,
-                        Type::Reference(r) => base_error.add_help(
+                        OutputType::Ref { lifetime } => base_error.add_help(
                             fields.span(),
-                            format_args!(
-                                "change this to (&{} {first_generic_type})",
-                                r.lifetime.as_ref().expect("generic ref must have lifetime")
-                            ),
+                            format_args!("change this to (&{lifetime} {first_generic_type})"),
                         )?,
-                        _ => unreachable!(
-                            "is_first_generic_type, called in first_output_usage filters everything except Path or Ref"
-                        ),
                     };
                     unreachable!(
                         "all paths above have defined an error message and then diverged via ?"
