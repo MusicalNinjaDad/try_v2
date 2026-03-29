@@ -121,6 +121,7 @@ impl<'ast> TryEnum<'ast> {
         }?;
 
         let name: &Ident = &ast.ident;
+        
         let output_variant = enum_data.variants.first().ok_or(
             DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
                 enum_data.brace_token.span.span(),
@@ -129,24 +130,25 @@ impl<'ast> TryEnum<'ast> {
         )?;
         let output_variant_name: &Ident = &output_variant.ident;
 
+        let first_generic_type: &Ident = ast
+            .generics
+            .type_params()
+            .map(|ty| &ty.ident)
+            .next()
+            .ok_or(
+                DiagnosticResult::error("Try requires a generic type for `Output`")
+                    .add_help(name.span(), "Add <T> after this..."),
+            )?;
+        let is_first_generic_type = |ty: &Type| match ty {
+            Type::Path(tp) => tp.path.get_ident().is_some_and(|t| t == first_generic_type),
+            Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => {
+                tp.path.get_ident().is_some_and(|t| t == first_generic_type)
+            }
+            _ => false,
+        };
+
         // TODO: Check that multiline enum defs show whole def in help
         let (_, output_type, output_type_name): (&Ident, &Type, &Ident) = {
-            let first_generic_type: &Ident = ast
-                .generics
-                .type_params()
-                .map(|ty| &ty.ident)
-                .next()
-                .ok_or(
-                    DiagnosticResult::error("Try requires a generic type for `Output`")
-                        .add_help(name.span(), "Add <T> after this..."),
-                )?;
-            let is_first_generic_type = |ty: &Type| match ty {
-                Type::Path(tp) => tp.path.get_ident().is_some_and(|t| t == first_generic_type),
-                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => {
-                    tp.path.get_ident().is_some_and(|t| t == first_generic_type)
-                }
-                _ => false,
-            };
             let output_type = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                     let output_type: &Type = &fields
