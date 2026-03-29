@@ -221,18 +221,22 @@ impl<'ast> TryEnum<'ast> {
                         ),
                     };
                 }
-                Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
+                Fields::Unit => {
+                    return DiagnosticResult::error("Try requires a generic type for `Output`")
+                        .add_help(
+                            output_variant.span(),
+                            format_args!("add ({first_generic_type}) after this..."),
+                        );
+                }
+                Fields::Named(fields) => {
+                    return DiagnosticResult::error(
+                        "Try requires an unnamed field for the `Output` variant",
+                    )
                     .add_help(
-                        output_variant.span(),
-                        format_args!("add ({first_generic_type}) after this..."),
-                    )?,
-                Fields::Named(fields) => DiagnosticResult::error(
-                    "Try requires an unnamed field for the `Output` variant",
-                )
-                .add_help(
-                    fields.span(),
-                    format_args!("change this to ({first_generic_type})"),
-                )?,
+                        fields.span(),
+                        format_args!("change this to ({first_generic_type})"),
+                    );
+                }
             }
         };
 
