@@ -1,3 +1,4 @@
+#![feature(if_let_guard)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
@@ -62,7 +63,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned,
+    GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference, Variant,
+    parse_quote, spanned::Spanned,
 };
 
 mod diagnostic;
@@ -94,7 +96,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 struct TryEnum<'ast> {
     name: &'ast Ident,
     enum_data: &'ast DataEnum,
-    output_variant: &'ast Ident,
+    output_variant_name: &'ast Ident,
     output_type: &'ast Type,
     output_type_name: &'ast Ident,
     residual_type: Type,
@@ -102,6 +104,28 @@ struct TryEnum<'ast> {
 
 type BranchArm = Arm;
 type ResidualArm = Arm;
+
+/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident
+enum OutputType<'ast> {
+    Ident,
+    Ref { lifetime: &'ast Lifetime },
+}
+
+impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
+    fn from(_: &TypePath) -> Self {
+        Self::Ident
+    }
+}
+
+impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
+    fn from(tr: &'ast TypeReference) -> Self {
+        let lifetime = tr
+            .lifetime
+            .as_ref()
+            .expect("References in enum definitions require a specified lifetime");
+        Self::Ref { lifetime }
+    }
+}
 
 impl<'ast> TryEnum<'ast> {
     fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
@@ -120,26 +144,81 @@ impl<'ast> TryEnum<'ast> {
 
         let name: &Ident = &ast.ident;
 
-        let (output_variant, output_type, output_type_name): (&Ident, &Type, &Ident) = {
-            let first_generic_type: &Ident = match ast.generics.type_params().next() {
-                Some(output_ty) => Ok(&output_ty.ident),
-                None => DiagnosticResult::error("Try requires a generic type for `Output`")
+        let output_variant = enum_data.variants.first().ok_or(
+            DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+                enum_data.brace_token.span.span(),
+                "add at least two variants here...",
+            ),
+        )?;
+        let output_variant_name: &Ident = &output_variant.ident;
+
+        let first_generic_type: &Ident = ast
+            .generics
+            .type_params()
+            .map(|ty| &ty.ident)
+            .next()
+            .ok_or(
+                DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(name.span(), "Add <T> after this..."),
-            }?;
-            let output_variant = enum_data.variants.first().ok_or(
-                DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
-                    enum_data.brace_token.span.span(),
-                    "add at least two variants here...",
-                ),
             )?;
-            let field = match &output_variant.fields {
-                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(fields),
+
+        // Returns Some(OutputType::...) if ty has same ident as first generic type
+        //  designed to be used in .find_map() or with .ok_or_else()?
+        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
+            match ty {
+                Type::Path(tp) => tp
+                    .path
+                    .get_ident()
+                    .filter(|t| *t == first_generic_type)
+                    .map(|_| tp.into()),
+                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
+                    .path
+                    .get_ident()
+                    .filter(|t| *t == first_generic_type)
+                    .map(|_| tr.into()),
+                _ => None,
+            }
+        };
+
+        // TODO: Check that multiline enum defs show whole def in help
+        let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
+            && fields.unnamed.len() == 1
+        {
+            &fields
+                .unnamed
+                .first()
+                .expect("fields.unnamed.len() == 1")
+                .ty
+        } else {
+            return match &output_variant.fields {
                 Fields::Unnamed(fields) => {
-                    DiagnosticResult::error("Try requires a single generic type for `Output`")
-                        .add_help(
+                    let base_error =
+                        DiagnosticResult::error("Try requires a single generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here");
+                    let first_output_usage = &fields
+                        .unnamed
+                        .iter()
+                        .find_map(|field| is_first_generic_type(&field.ty))
+                        .ok_or_else(|| {
+                            DiagnosticResult::error(
+                                "Try requires a single generic type for `Output`",
+                            )
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                fields.span(),
+                                format_args!("change this to ({first_generic_type})"),
+                            )
+                        })?;
+                    match first_output_usage {
+                        OutputType::Ident => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
-                        )
+                        ),
+                        OutputType::Ref { lifetime } => base_error.add_help(
+                            fields.span(),
+                            format_args!("change this to (&{lifetime} {first_generic_type})"),
+                        ),
+                    }
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
@@ -153,42 +232,30 @@ impl<'ast> TryEnum<'ast> {
                     fields.span(),
                     format_args!("change this to ({first_generic_type})"),
                 ),
-            }?;
-            let output_type = &field
-                .unnamed
-                .first()
-                .expect("at least one unnamed field")
-                .ty;
-            let is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
-                Some(var_ty) if var_ty == first_generic_type => Ok(()),
-                Some(var_ty) => DiagnosticResult::error(
-                    "Try requires the first generic type to match the `Output` type",
-                )
-                .add_help(first_generic_type.span(), "Output type defined here")
-                .add_help(
-                    var_ty.span(),
-                    format_args!("change this to {first_generic_type}"),
-                ),
-                None => DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(
-                        field.span(),
-                        format_args!("change this to ({first_generic_type})"),
-                    ),
             };
-            match output_type {
-                Type::Path(tp) => is_first_generic_type(tp),
-                Type::Reference(tr) => match tr.elem.as_ref() {
-                    Type::Path(tp) => is_first_generic_type(tp),
-                    _ => todo!("{:?}", tr.elem.as_ref()),
-                },
-                // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
-                _ => DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
-                    field.span(),
-                    format_args!("change this to ({first_generic_type})"),
-                ),
-            }?;
-            Ok((&output_variant.ident, output_type, first_generic_type))
-        }?;
+        };
+
+        let output_type_name = is_first_generic_type(output_type)
+            .map(|_| first_generic_type) // easier than drilling through to the ident
+            .ok_or_else(|| {
+                let base_error = DiagnosticResult::error(
+                    "Try requires the first generic type to be used as the `Output` type",
+                )
+                .add_help(first_generic_type.span(), "Output type defined here");
+                match output_type {
+                    Type::Reference(r) => base_error.add_help(
+                        output_type.span(),
+                        format_args!(
+                            "change this to &{} {first_generic_type}",
+                            r.lifetime.as_ref().expect("generic ref must have lifetime")
+                        ),
+                    ),
+                    _ => base_error.add_help(
+                        output_type.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    ),
+                }
+            })?;
 
         // Must be done late, after validating suitable generics
         let residual_type: Type = Self::generate_residual(ast);
@@ -196,7 +263,7 @@ impl<'ast> TryEnum<'ast> {
         Ok(Self {
             name,
             enum_data,
-            output_variant,
+            output_variant_name,
             output_type,
             output_type_name,
             residual_type,
@@ -319,7 +386,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let TryEnum {
         name,
         enum_data,
-        output_variant,
+        output_variant_name,
         output_type,
         output_type_name,
         residual_type,
@@ -336,7 +403,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
             #[inline]
             fn from_output(output: Self::Output) -> Self {
-                Self::#output_variant(output)
+                Self::#output_variant_name(output)
             }
 
             #[inline]
@@ -379,7 +446,7 @@ fn impl_convert_result(input: TokenStream2) -> TokenStream2 {
     let TryEnum {
         name,
         enum_data,
-        output_variant,
+        output_variant_name,
         output_type,
         output_type_name,
         residual_type,

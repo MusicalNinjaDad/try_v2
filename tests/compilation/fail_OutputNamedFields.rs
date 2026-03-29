@@ -10,4 +10,11 @@ enum OutputNamedField<T> {
     OtherError(String),
 }
 
+#[derive(Try)]
+enum OutputNamedFieldBorrowed<'t, T> {
+    Ok{foo: &'t T},
+    TestsFailed(T),
+    OtherError(String),
+}
+
 fn main() {}

@@ -1,0 +1,24 @@
+#![feature(never_type)]
+#![feature(try_trait_v2)]
+
+use try_v2::Try;
+
+#[derive(Try)]
+enum NotSimpleIdent<T> {
+    Ok(proc_macro2::TokenStream),
+    Err(T),
+}
+
+#[derive(Try)]
+enum NotSimpleIdentBorrowed<'t, T> {
+    Ok(&'t proc_macro2::TokenStream),
+    Err(T),
+}
+
+#[derive(Try)]
+enum NotPathOrRef<T> {
+    Ok(!),
+    Err(T),
+}
+
+fn main() {}
