@@ -127,9 +127,10 @@ impl<'ast> TryEnum<'ast> {
                 "add at least two variants here...",
             ),
         )?;
+        let output_variant_name: &Ident = &output_variant.ident;
 
         // TODO: Check that multiline enum defs show whole def in help
-        let (output_variant_name, output_type, output_type_name): (&Ident, &Type, &Ident) = {
+        let (_, output_type, output_type_name): (&Ident, &Type, &Ident) = {
             let first_generic_type: &Ident = ast
                 .generics
                 .type_params()
