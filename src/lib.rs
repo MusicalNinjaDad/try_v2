@@ -121,6 +121,7 @@ impl<'ast> TryEnum<'ast> {
 
         let name: &Ident = &ast.ident;
 
+        // TODO: Check that multiline enum defs show whole def in help
         let (output_variant, output_type, output_type_name): (&Ident, &Type, &Ident) = {
             let first_generic_type: &Ident = match ast.generics.type_params().next() {
                 Some(output_ty) => Ok(&output_ty.ident),
