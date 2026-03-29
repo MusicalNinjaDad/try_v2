@@ -146,6 +146,8 @@ impl<'ast> TryEnum<'ast> {
             }
             _ => false,
         };
+        
+        // TODO: Check that multiline enum defs show whole def in help
         let output_type = match &output_variant.fields {
             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                 &fields
@@ -208,8 +210,28 @@ impl<'ast> TryEnum<'ast> {
                     )?
             }
         };
+        let output_type_name = if is_first_generic_type(output_type) {
+            first_generic_type
+        } else {
+            let base_error = DiagnosticResult::error(
+                            "Try requires the first generic type to be used as the `Output` type",
+                        )
+                        .add_help(first_generic_type.span(), "Output type defined here");
+                        match output_type {
+                            Type::Reference(r) => base_error.add_help(
+                                output_type.span(),
+                                format_args!(
+                                    "change this to &{} {first_generic_type}",
+                                    r.lifetime.as_ref().expect("generic ref must have lifetime")
+                                ),
+                            )?,
+                            _ => base_error.add_help(
+                                output_type.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )?,
+                        }
+        };
 
-        // TODO: Check that multiline enum defs show whole def in help
         let (_, _, output_type_name): (&Ident, &Type, &Ident) = {
             let output_type = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
