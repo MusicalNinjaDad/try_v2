@@ -166,7 +166,7 @@ impl<'ast> TryEnum<'ast> {
             &fields
                 .unnamed
                 .first()
-                .expect("at least one unnamed field")
+                .expect("fields.unnamed.len() == 1")
                 .ty
         } else {
             match &output_variant.fields {
