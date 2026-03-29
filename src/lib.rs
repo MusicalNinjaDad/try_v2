@@ -148,13 +148,13 @@ impl<'ast> TryEnum<'ast> {
                 Type::Path(tp) => tp
                     .path
                     .get_ident()
-                    .is_some_and(|t| t == first_generic_type)
-                    .then_some(ty),
+                    .filter(|t| *t == first_generic_type)
+                    .map(|_| ty),
                 Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
                     .path
                     .get_ident()
-                    .is_some_and(|t| t == first_generic_type)
-                    .then_some(ty),
+                    .filter(|t| *t == first_generic_type)
+                    .map(|_| ty),
                 _ => None,
             }
         };
