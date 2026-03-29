@@ -146,7 +146,7 @@ impl<'ast> TryEnum<'ast> {
             }
             _ => false,
         };
-        
+
         // TODO: Check that multiline enum defs show whole def in help
         let output_type = match &output_variant.fields {
             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
@@ -210,117 +210,28 @@ impl<'ast> TryEnum<'ast> {
                     )?
             }
         };
+        
         let output_type_name = if is_first_generic_type(output_type) {
             first_generic_type
         } else {
             let base_error = DiagnosticResult::error(
-                            "Try requires the first generic type to be used as the `Output` type",
-                        )
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                        match output_type {
-                            Type::Reference(r) => base_error.add_help(
-                                output_type.span(),
-                                format_args!(
-                                    "change this to &{} {first_generic_type}",
-                                    r.lifetime.as_ref().expect("generic ref must have lifetime")
-                                ),
-                            )?,
-                            _ => base_error.add_help(
-                                output_type.span(),
-                                format_args!("change this to {first_generic_type}"),
-                            )?,
-                        }
-        };
-
-        let (_, _, output_type_name): (&Ident, &Type, &Ident) = {
-            let output_type = match &output_variant.fields {
-                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                    let output_type: &Type = &fields
-                        .unnamed
-                        .first()
-                        .expect("at least one unnamed field")
-                        .ty;
-
-                    if is_first_generic_type(output_type) {
-                        output_type
-                    } else {
-                        let base_error = DiagnosticResult::error(
-                            "Try requires the first generic type to be used as the `Output` type",
-                        )
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                        match output_type {
-                            Type::Reference(r) => base_error.add_help(
-                                output_type.span(),
-                                format_args!(
-                                    "change this to &{} {first_generic_type}",
-                                    r.lifetime.as_ref().expect("generic ref must have lifetime")
-                                ),
-                            )?,
-                            _ => base_error.add_help(
-                                output_type.span(),
-                                format_args!("change this to {first_generic_type}"),
-                            )?,
-                        }
-                    }
-                }
-                Fields::Unnamed(fields) => {
-                    let base_error: DiagnosticResult<&FieldsUnnamed> =
-                        DiagnosticResult::error("Try requires a single generic type for `Output`")
-                            .add_help(first_generic_type.span(), "Output type defined here");
-                    let first_output_usage = &fields
-                        .unnamed
-                        .iter()
-                        .find(|field| match &field.ty {
-                            Type::Path(f) => {
-                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
-                            }
-                            Type::Reference(r) if let Type::Path(f) = r.elem.as_ref() => {
-                                f.path.get_ident().is_some_and(|t| t == first_generic_type)
-                            }
-                            _ => todo!("other types 142"),
-                        })
-                        .ok_or_else(|| {
-                            DiagnosticResult::error(
-                                "Try requires a single generic type for `Output`",
-                            )
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                                fields.span(),
-                                format_args!("change this to ({first_generic_type})"),
-                            )
-                        })?
-                        .ty;
-                    match first_output_usage {
-                        Type::Path(_) => base_error.add_help(
-                            fields.span(),
-                            format_args!("change this to ({first_generic_type})"),
-                        )?,
-                        Type::Reference(r) => base_error.add_help(
-                            fields.span(),
-                            format_args!(
-                                "change this to (&{} {first_generic_type})",
-                                r.lifetime.as_ref().expect("generic ref must have lifetime")
-                            ),
-                        )?,
-                        _ => todo!("too many fields AND THEN wrong type"),
-                    };
-                    unreachable!("all paths above diverge via ?")
-                }
-                Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(
-                        output_variant.span(),
-                        format_args!("add ({first_generic_type}) after this..."),
-                    )?,
-                Fields::Named(fields) => DiagnosticResult::error(
-                    "Try requires an unnamed field for the `Output` variant",
-                )
-                .add_help(
-                    fields.span(),
-                    format_args!("change this to ({first_generic_type})"),
+                "Try requires the first generic type to be used as the `Output` type",
+            )
+            .add_help(first_generic_type.span(), "Output type defined here");
+            match output_type {
+                Type::Reference(r) => base_error.add_help(
+                    output_type.span(),
+                    format_args!(
+                        "change this to &{} {first_generic_type}",
+                        r.lifetime.as_ref().expect("generic ref must have lifetime")
+                    ),
                 )?,
-            };
-            Ok((&output_variant.ident, output_type, first_generic_type))
-        }?;
+                _ => base_error.add_help(
+                    output_type.span(),
+                    format_args!("change this to {first_generic_type}"),
+                )?,
+            }
+        };
 
         // Must be done late, after validating suitable generics
         let residual_type: Type = Self::generate_residual(ast);
