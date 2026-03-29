@@ -154,36 +154,28 @@ impl<'ast> TryEnum<'ast> {
                         .first()
                         .expect("at least one unnamed field")
                         .ty;
-                    let _is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
-                        Some(var_ty) if var_ty == first_generic_type => Ok(()),
-                        Some(var_ty) => DiagnosticResult::error(
+                    
+                    if is_first_generic_type(output_type) {
+                        output_type
+                    } else {
+                        let base_error = DiagnosticResult::error(
                             "Try requires the first generic type to match the `Output` type",
                         )
-                        .add_help(first_generic_type.span(), "Output type defined here")
-                        .add_help(
-                            var_ty.span(),
-                            format_args!("change this to {first_generic_type}"),
-                        ),
-                        //TODO: handle borrowed. Combine NotPathOrRef & NotSimpleIdent.
-                        None => DiagnosticResult::error("Try requires a generic type for `Output`")
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                                fields
-                                    .unnamed
-                                    .first()
-                                    .expect("at least one unnamed field")
-                                    .span(),
-                                format_args!("change this to {first_generic_type}"),
-                            ),
-                    };
-                    if !is_first_generic_type(output_type) {
+                        .add_help(first_generic_type.span(), "Output type defined here");
                         match output_type {
-                            Type::Path(tp) => _is_first_generic_type(tp)?,
-                            Type::Reference(tr) => match tr.elem.as_ref() {
-                                Type::Path(tp) => _is_first_generic_type(tp)?,
-                                _ => todo!("{:?}", tr.elem.as_ref()),
-                            },
+                            Type::Path(p) => base_error.add_help(
+                                output_type.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )?,
+                            Type::Reference(r) => base_error.add_help(
+                                output_type.span(),
+                                format_args!(
+                                    "change this to &{} {first_generic_type}",
+                                    r.lifetime.as_ref().expect("generic ref must have lifetime")
+                                ),
+                            )?,
                             // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
+                            // TODO: handle borrowed. Combine NotPathOrRef & NotSimpleIdent.
                             _ => {
                                 DiagnosticResult::error("Try requires a generic type for `Output`")
                                     .add_help(first_generic_type.span(), "Output type defined here")
@@ -196,9 +188,8 @@ impl<'ast> TryEnum<'ast> {
                                         format_args!("change this to {first_generic_type}"),
                                     )?
                             }
-                        };
+                        }
                     }
-                    output_type
                 }
                 Fields::Unnamed(fields) => {
                     let base_error: DiagnosticResult<&FieldsUnnamed> =
