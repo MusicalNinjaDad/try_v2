@@ -1,4 +1,4 @@
-error: Try requires the first generic type to match the `Output` type
+error: Try requires the first generic type to be used as the `Output` type
  --> tests/compilation/fail_OutputTypeKind.rs:6:10
   |
 6 | #[derive(Try)]
@@ -16,7 +16,7 @@ help: change this to T
   |        ^^^^^^^^^^^^^^^^^^^^^^^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: Try requires the first generic type to match the `Output` type
+error: Try requires the first generic type to be used as the `Output` type
   --> tests/compilation/fail_OutputTypeKind.rs:12:10
    |
 12 | #[derive(Try)]
@@ -34,7 +34,7 @@ help: change this to &'t T
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: Try requires a generic type for `Output`
+error: Try requires the first generic type to be used as the `Output` type
   --> tests/compilation/fail_OutputTypeKind.rs:18:10
    |
 18 | #[derive(Try)]

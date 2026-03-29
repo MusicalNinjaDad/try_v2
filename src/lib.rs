@@ -159,14 +159,10 @@ impl<'ast> TryEnum<'ast> {
                         output_type
                     } else {
                         let base_error = DiagnosticResult::error(
-                            "Try requires the first generic type to match the `Output` type",
+                            "Try requires the first generic type to be used as the `Output` type",
                         )
                         .add_help(first_generic_type.span(), "Output type defined here");
                         match output_type {
-                            Type::Path(p) => base_error.add_help(
-                                output_type.span(),
-                                format_args!("change this to {first_generic_type}"),
-                            )?,
                             Type::Reference(r) => base_error.add_help(
                                 output_type.span(),
                                 format_args!(
@@ -174,20 +170,10 @@ impl<'ast> TryEnum<'ast> {
                                     r.lifetime.as_ref().expect("generic ref must have lifetime")
                                 ),
                             )?,
-                            // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
-                            // TODO: handle borrowed. Combine NotPathOrRef & NotSimpleIdent.
-                            _ => {
-                                DiagnosticResult::error("Try requires a generic type for `Output`")
-                                    .add_help(first_generic_type.span(), "Output type defined here")
-                                    .add_help(
-                                        fields
-                                            .unnamed
-                                            .first()
-                                            .expect("at least one unnamed field")
-                                            .span(),
-                                        format_args!("change this to {first_generic_type}"),
-                                    )?
-                            }
+                            _ => base_error.add_help(
+                                output_type.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )?,
                         }
                     }
                 }
