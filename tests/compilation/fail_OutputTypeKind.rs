@@ -4,14 +4,20 @@
 use try_v2::Try;
 
 #[derive(Try)]
-enum OutputNotSimpleIdent<T> {
+enum NotSimpleIdent<T> {
     Ok(proc_macro2::TokenStream),
     Err(T),
 }
 
 #[derive(Try)]
-enum OutputNotSimpleIdentBorrowed<'t, T> {
+enum NotSimpleIdentBorrowed<'t, T> {
     Ok(&'t proc_macro2::TokenStream),
+    Err(T),
+}
+
+#[derive(Try)]
+enum NotPathOrRef<T> {
+    Ok(!),
     Err(T),
 }
 

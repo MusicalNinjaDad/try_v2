@@ -1,0 +1,53 @@
+error: Try requires a generic type for `Output`
+ --> tests/compilation/fail_OutputTypeKind.rs:6:10
+  |
+6 | #[derive(Try)]
+  |          ^^^
+  |
+help: Output type defined here
+ --> tests/compilation/fail_OutputTypeKind.rs:7:21
+  |
+7 | enum NotSimpleIdent<T> {
+  |                     ^
+help: change this to T
+ --> tests/compilation/fail_OutputTypeKind.rs:8:8
+  |
+8 |     Ok(proc_macro2::TokenStream),
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires a generic type for `Output`
+  --> tests/compilation/fail_OutputTypeKind.rs:12:10
+   |
+12 | #[derive(Try)]
+   |          ^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_OutputTypeKind.rs:13:33
+   |
+13 | enum NotSimpleIdentBorrowed<'t, T> {
+   |                                 ^
+help: change this to T
+  --> tests/compilation/fail_OutputTypeKind.rs:14:8
+   |
+14 |     Ok(&'t proc_macro2::TokenStream),
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires a generic type for `Output`
+  --> tests/compilation/fail_OutputTypeKind.rs:18:10
+   |
+18 | #[derive(Try)]
+   |          ^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_OutputTypeKind.rs:19:19
+   |
+19 | enum NotPathOrRef<T> {
+   |                   ^
+help: change this to T
+  --> tests/compilation/fail_OutputTypeKind.rs:20:8
+   |
+20 |     Ok(!),
+   |        ^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
