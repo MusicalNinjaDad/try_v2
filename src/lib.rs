@@ -62,8 +62,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned,
+    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed, GenericArgument, GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned
 };
 
 mod diagnostic;
@@ -137,7 +136,7 @@ impl<'ast> TryEnum<'ast> {
             let field = match &output_variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => fields,
                 Fields::Unnamed(fields) => {
-                    let base_error =
+                    let base_error: DiagnosticResult<&FieldsUnnamed> =
                         DiagnosticResult::error("Try requires a single generic type for `Output`")
                             .add_help(first_generic_type.span(), "Output type defined here");
                     let first_output_usage = &fields
@@ -152,7 +151,11 @@ impl<'ast> TryEnum<'ast> {
                             }
                             _ => todo!("other types 142"),
                         })
-                        .expect("at least on field matches the first generic type")
+                        .ok_or_else(|| 
+                            DiagnosticResult::error("Try requires a single generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(fields.span(),format_args!("change this to ({first_generic_type})"))
+                        )?
                         .ty;
                     match first_output_usage
                     {
@@ -168,7 +171,8 @@ impl<'ast> TryEnum<'ast> {
                             ),
                         ),
                         _ => todo!("too many fields AND THEN wrong type"),
-                    }?
+                    };
+                    fields
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
