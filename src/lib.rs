@@ -135,7 +135,6 @@ impl<'ast> TryEnum<'ast> {
                 )?;
             let is_first_generic_type = |ty: &Type| match ty {
                 Type::Path(tp) => tp.path.get_ident().is_some_and(|t| t == first_generic_type),
-                //TODO simplify by calling recursively
                 Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => {
                     tp.path.get_ident().is_some_and(|t| t == first_generic_type)
                 }
