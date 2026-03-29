@@ -62,7 +62,9 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed, GenericArgument, GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote, spanned::Spanned
+    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, FieldsUnnamed,
+    GenericArgument, GenericParam, Ident, PathArguments, Type, TypePath, Variant, parse_quote,
+    spanned::Spanned,
 };
 
 mod diagnostic;
@@ -133,8 +135,55 @@ impl<'ast> TryEnum<'ast> {
                     "add at least two variants here...",
                 ),
             )?;
-            let field = match &output_variant.fields {
-                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => fields,
+            let output_type = match &output_variant.fields {
+                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+                    let output_type = &fields
+                        .unnamed
+                        .first()
+                        .expect("at least one unnamed field")
+                        .ty;
+                    let is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
+                        Some(var_ty) if var_ty == first_generic_type => Ok(()),
+                        Some(var_ty) => DiagnosticResult::error(
+                            "Try requires the first generic type to match the `Output` type",
+                        )
+                        .add_help(first_generic_type.span(), "Output type defined here")
+                        .add_help(
+                            var_ty.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        ),
+                        //TODO: handle borrowed. Combine NotPathOrRef & NotSimpleIdent.
+                        None => DiagnosticResult::error("Try requires a generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                fields
+                                    .unnamed
+                                    .first()
+                                    .expect("at least one unnamed field")
+                                    .span(),
+                                format_args!("change this to {first_generic_type}"),
+                            ),
+                    };
+                    match output_type {
+                        Type::Path(tp) => is_first_generic_type(tp)?,
+                        Type::Reference(tr) => match tr.elem.as_ref() {
+                            Type::Path(tp) => is_first_generic_type(tp)?,
+                            _ => todo!("{:?}", tr.elem.as_ref()),
+                        },
+                        // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
+                        _ => DiagnosticResult::error("Try requires a generic type for `Output`")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                fields
+                                    .unnamed
+                                    .first()
+                                    .expect("at least one unnamed field")
+                                    .span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )?,
+                    };
+                    output_type
+                }
                 Fields::Unnamed(fields) => {
                     let base_error: DiagnosticResult<&FieldsUnnamed> =
                         DiagnosticResult::error("Try requires a single generic type for `Output`")
@@ -151,28 +200,32 @@ impl<'ast> TryEnum<'ast> {
                             }
                             _ => todo!("other types 142"),
                         })
-                        .ok_or_else(|| 
-                            DiagnosticResult::error("Try requires a single generic type for `Output`")
+                        .ok_or_else(|| {
+                            DiagnosticResult::error(
+                                "Try requires a single generic type for `Output`",
+                            )
                             .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(fields.span(),format_args!("change this to ({first_generic_type})"))
-                        )?
+                            .add_help(
+                                fields.span(),
+                                format_args!("change this to ({first_generic_type})"),
+                            )
+                        })?
                         .ty;
-                    match first_output_usage
-                    {
+                    match first_output_usage {
                         Type::Path(_) => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
-                        ),
+                        )?,
                         Type::Reference(r) => base_error.add_help(
                             fields.span(),
                             format_args!(
                                 "change this to (&{} {first_generic_type})",
                                 r.lifetime.as_ref().expect("generic ref must have lifetime")
                             ),
-                        ),
+                        )?,
                         _ => todo!("too many fields AND THEN wrong type"),
                     };
-                    fields
+                    unreachable!("all paths above diverge via ?")
                 }
                 Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
@@ -187,39 +240,6 @@ impl<'ast> TryEnum<'ast> {
                     format_args!("change this to ({first_generic_type})"),
                 )?,
             };
-            let output_type = &field
-                .unnamed
-                .first()
-                .expect("at least one unnamed field")
-                .ty;
-            let is_first_generic_type = |tp: &TypePath| match tp.path.get_ident() {
-                Some(var_ty) if var_ty == first_generic_type => Ok(()),
-                Some(var_ty) => DiagnosticResult::error(
-                    "Try requires the first generic type to match the `Output` type",
-                )
-                .add_help(first_generic_type.span(), "Output type defined here")
-                .add_help(
-                    var_ty.span(),
-                    format_args!("change this to {first_generic_type}"),
-                ),
-                None => DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(
-                        field.span(),
-                        format_args!("change this to ({first_generic_type})"),
-                    ),
-            };
-            match output_type {
-                Type::Path(tp) => is_first_generic_type(tp),
-                Type::Reference(tr) => match tr.elem.as_ref() {
-                    Type::Path(tp) => is_first_generic_type(tp),
-                    _ => todo!("{:?}", tr.elem.as_ref()),
-                },
-                // TODO: #18 Finalise and verify error messages (mainly spans) with borrows
-                _ => DiagnosticResult::error("Try requires a generic type for `Output`").add_help(
-                    field.span(),
-                    format_args!("change this to ({first_generic_type})"),
-                ),
-            }?;
             Ok((&output_variant.ident, output_type, first_generic_type))
         }?;
 
