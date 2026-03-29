@@ -191,7 +191,7 @@ impl<'ast> TryEnum<'ast> {
                 .expect("fields.unnamed.len() == 1")
                 .ty
         } else {
-            match &output_variant.fields {
+            return match &output_variant.fields {
                 Fields::Unnamed(fields) => {
                     let base_error =
                         DiagnosticResult::error("Try requires a single generic type for `Output`")
@@ -210,7 +210,7 @@ impl<'ast> TryEnum<'ast> {
                                 format_args!("change this to ({first_generic_type})"),
                             )
                         })?;
-                    return match first_output_usage {
+                    match first_output_usage {
                         OutputType::Ident => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
@@ -219,25 +219,21 @@ impl<'ast> TryEnum<'ast> {
                             fields.span(),
                             format_args!("change this to (&{lifetime} {first_generic_type})"),
                         ),
-                    };
+                    }
                 }
-                Fields::Unit => {
-                    return DiagnosticResult::error("Try requires a generic type for `Output`")
-                        .add_help(
-                            output_variant.span(),
-                            format_args!("add ({first_generic_type}) after this..."),
-                        );
-                }
-                Fields::Named(fields) => {
-                    return DiagnosticResult::error(
-                        "Try requires an unnamed field for the `Output` variant",
-                    )
+                Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
                     .add_help(
-                        fields.span(),
-                        format_args!("change this to ({first_generic_type})"),
-                    );
-                }
-            }
+                        output_variant.span(),
+                        format_args!("add ({first_generic_type}) after this..."),
+                    ),
+                Fields::Named(fields) => DiagnosticResult::error(
+                    "Try requires an unnamed field for the `Output` variant",
+                )
+                .add_help(
+                    fields.span(),
+                    format_args!("change this to ({first_generic_type})"),
+                ),
+            };
         };
 
         let output_type_name = is_first_generic_type(output_type)
