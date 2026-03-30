@@ -176,7 +176,7 @@ use diagnostic::{
 ///
 /// This is important to note if you are writing your own implementations of `FromResidual`.
 ///
-//// Hint for matching on the Residual: `&!` itself will not be recognised as uninhabited by the
+/// Hint for matching on the Residual: `&!` itself will not be recognised as uninhabited by the
 /// compiler but `&!` will dereference to `!` which will then coerce into any type or satisfy
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
