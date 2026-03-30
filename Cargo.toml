@@ -11,6 +11,7 @@ repository = "https://github.com/MusicalNinjaDad/try_v2"
 categories = ["development-tools"]
 license = "MIT"
 include = ["/src/", "/tests/"]
+rust-version = "1.85.1"
 
 [lib]
 proc-macro = true

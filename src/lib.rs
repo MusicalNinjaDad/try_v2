@@ -1,4 +1,7 @@
+#![allow(stable_features)]
+
 #![feature(if_let_guard)]
+#![feature(let_chains)]
 #![feature(never_type)]
 #![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
@@ -10,7 +13,7 @@
 //! and back `where E: From::from<Self<!>>`
 //!
 //! ## Requires:
-//!   - `RUSTC_BOOTSTRAP = 1` (or nightly)
+//!   - nightly or `RUSTC_BOOTSTRAP = 1` 
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
 //!
@@ -62,6 +65,13 @@
 //!
 //! assert!(matches!(run_more_tests(), TestResult::TestsFailed));
 //! ```
+//! 
+//! ## MSRV
+//! 1.85.1 if you are walking the grey-zone between stable and nightly via `RUSTC_BOOTSTRAP`
+//! 
+//! ## Currently untested (may work, may not ...):
+//!   - `where` clauses
+//!   - storing `Fn`s in variants
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
