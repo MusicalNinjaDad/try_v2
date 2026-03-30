@@ -175,7 +175,7 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
 
-/// A destructured Enum with validated invariants
+/// A destructured Enum with validated invariants and easy access to all the bits we need.
 struct TryEnum<'ast> {
     name: &'ast Ident,
     enum_data: &'ast DataEnum,
@@ -185,21 +185,29 @@ struct TryEnum<'ast> {
     residual_type: Type,
 }
 
+/// An Arm to be used when matching for `fn branch`.
+/// Own type for clarity when returning (BranchArm, ResidualArm) from a single function.
 type BranchArm = Arm;
+/// An Arm to be used when matching for `fn from_residual`.
+/// Own type for clarity of when returning (BranchArm, ResidualArm) from a single function.
 type ResidualArm = Arm;
 
-/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident
+/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
+/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
+/// an `OutputType`
 enum OutputType<'ast> {
     Ident,
     Ref { lifetime: &'ast Lifetime },
 }
 
+/// From, not TryFrom - check invariants (single ident) first
 impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
     fn from(_: &TypePath) -> Self {
         Self::Ident
     }
 }
 
+/// From, not TryFrom - check invariants (has a named lifetime) first, or you risk a panic!
 impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
     fn from(tr: &'ast TypeReference) -> Self {
         let lifetime = tr
@@ -211,6 +219,7 @@ impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
 }
 
 impl<'ast> TryEnum<'ast> {
+    /// Handles all the invariant validation and enum un-nesting.
     fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
         // Fail fast
         let enum_data: &DataEnum = match &ast.data {
@@ -354,10 +363,14 @@ impl<'ast> TryEnum<'ast> {
     }
 
     /// Generate the residual type with appropriate arguments (! + remaining generics).
+    /// 
+    /// Does not act on `self` as this is designed to be called during creation of a `TryEnum`
+    /// and is only a separate function to facilitate direct testing
     ///
-    /// Infallible as we already guarantee we are processing an enum with at least one generic type.
+    /// ### Panics
+    /// if called on unsuitable input, or where invariants (at least one generic type)
+    /// are not upheld.
     fn generate_residual(ast: &DeriveInput) -> Type {
-        // Separate function to allow direct tests
         let name = &ast.ident;
         let (_, tygenerics, _) = ast.generics.split_for_impl();
         let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
@@ -392,11 +405,15 @@ impl<'ast> TryEnum<'ast> {
         residual_type
     }
 
+    /// Create match arms for `fn branch` and `fn from_residual`.
+    /// 
+    /// Does not act on `self` as we expect a TryEnum to be immediately destructured and not stored.
     fn generate_arms(
         enum_name: &Ident,
         enum_data: &DataEnum,
         output_type: &Type,
     ) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
+        //TODO: Could this be lazy? Arms are only iterated on once ...
         let owned_output = matches!(output_type, Type::Path(_));
         let arms = |(i, variant): (usize, &Variant)| -> (BranchArm, Option<ResidualArm>) {
             let var_name: &Ident = &variant.ident;
@@ -462,6 +479,7 @@ impl<'ast> TryEnum<'ast> {
     }
 }
 
+/// Parses & validates the input then quote!s the impl.  
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
