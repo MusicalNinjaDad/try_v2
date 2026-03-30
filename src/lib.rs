@@ -6,8 +6,8 @@
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 //!
-//! Also enables auto-conversion from `Result<T, E> where E: Into::into(Self)`
-//! and back `where Self<!>: Into::into(E)`
+//! Also enables inter-conversion from `Result<T, E>` `where E: Into::into(Self)`
+//! and back `where E: From::from<Self<!>>`
 //!
 //! ## Requires:
 //!   - `RUSTC_BOOTSTRAP = 1` (or nightly)
