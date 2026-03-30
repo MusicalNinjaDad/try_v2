@@ -387,16 +387,16 @@ impl<'ast> TryEnum<'ast> {
             let Type::Path(ref mut residual_type) = residual_type else {
                 unreachable!("enum name must be Type::Path")
             };
-            match residual_type
+            let PathArguments::AngleBracketed(ref mut args) = residual_type
                 .path
                 .segments
                 .first_mut()
                 .expect("valid enum definition has exactly one segment")
                 .arguments
-            {
-                PathArguments::AngleBracketed(ref mut args) => args,
-                _ => unreachable!("TypeGenerics quotes to angle bracketed arguments"),
-            }
+            else {
+                unreachable!("TypeGenerics quotes to angle bracketed arguments")
+            };
+            args
         };
         //change FIRST generic type to `!`
         path_args
