@@ -14,7 +14,7 @@
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
 //!
-//! ## Current Limitations on the annotated type:
+//! ## Limitations on the annotated type:
 //!   - must be an `enum`
 //!   - must have _at least one_ generic type
 //!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
