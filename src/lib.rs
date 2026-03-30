@@ -538,12 +538,54 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
-/// Derives conversion from Result<T, E> where E: Into::into(Self) and back.
+/// Derives ?-conversion from Result<T, E> and back where suitable implementations of From/Into exist.
 ///
-/// Simply `impl<T> From<SpecificError> for MyTryEnum<T>` then use `?` on a
-/// `Result<_, SpecificError>` in any function which returns `MyTryEnum<_>`
+/// ## Conversion from Result
+/// For ?-conversion _from_ a `Result<T, SomeError>` `impl<T> From<SomeError> for MyTryEnum<T>`.
 ///
-/// For conversion to a `Result<_, ErrorType>` `impl From<MyTryEnum<!>> for ErrorType`
+/// This will allow `?` on a call which returns `Result<T, SomeError>` in any function which returns
+/// `MyTryEnum<T>`.
+///
+/// Type-hinting, type aliasing Result may be needed unless you have a
+/// blanket From<E: Error> implementation.
+///
+/// ## Conversion to Result
+/// For ?-conversion _to_ a `Result<_, SomeError>` `impl From<MyTryEnumResidual> for SomeError`.
+///
+/// Note that conversion must be defined between your _Residual_ and SomeError - this both avoids
+/// triggering the orphan rule when your enum stores third-party / std types and requires
+/// consideration and correct handling of each failure variant.
+///
+/// See the notes on [Try] for full details on identifying the correct Residual to use.
+///
+/// ## Derived Code
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # use try_v2::{Try, Try_ConvertResult};
+/// #[derive(Try, Try_ConvertResult)]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E)
+/// }
+/// ```
+/// will generate:
+/// ```ignore
+/// impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
+/// where
+///     RE: Into<E>
+///
+/// ... which calls Result::Err(e) => e.into(), ...
+/// ```
+/// and
+/// ```ignore
+/// impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
+/// where
+///     RE: From<TestResult<!,E>>
+///
+/// ... which calls Result::Err(residual.into()) ...
+/// ```
 pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
