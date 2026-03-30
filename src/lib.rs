@@ -91,7 +91,7 @@ use diagnostic::{
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
-/// See the [crate level documentation](crate) for restrictions and detailled examples
+/// See the [crate level documentation](crate) for restrictions and detailed examples
 ///
 /// ## Derived code
 /// ```
