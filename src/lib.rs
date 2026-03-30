@@ -271,12 +271,12 @@ impl<'ast> TryEnum<'ast> {
                     .path
                     .get_ident()
                     .filter(|t| *t == first_generic_type)
-                    .map(|_| tp.into()),
+                    .map(|_| OutputType::from(tp)),
                 Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
                     .path
                     .get_ident()
                     .filter(|t| *t == first_generic_type)
-                    .map(|_| tr.into()),
+                    .map(|_| OutputType::from(tr)),
                 _ => None,
             }
         };
