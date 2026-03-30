@@ -34,6 +34,7 @@
 //!     OtherError(String)
 //! }
 //!
+//! // Basic short circuiting thanks to `#[derive(Try)]`
 //! fn run_tests() -> TestResult<()> {
 //!     TestResult::OtherError("oops!".to_string())?; // <- Function short-circuits here ...
 //!     TestResult::TestsFailed?;
@@ -42,16 +43,18 @@
 //!
 //! assert!(matches!(run_tests(), TestResult::OtherError(msg) if msg == "oops!"));
 //!
-//! struct MyError {}
 //!
-//! impl<T> From<MyError> for TestResult<T> {
-//!     fn from(err: MyError) -> Self {
+//! // Conversion from std::result::Result thanks to `#[derive(Try_ConvertResult)]`
+//! struct TestFailure {}
+//!
+//! impl<T> From<TestFailure> for TestResult<T> {
+//!     fn from(err: TestFailure) -> Self {
 //!         TestResult::TestsFailed
 //!     }
 //! }
 //!
 //! fn run_more_tests() -> TestResult<()> {
-//!     Err(MyError{})?; // <- Function short-circuits here & converts to a TestResult...
+//!     std::result::Result::Err(TestFailure{})?; // <- Function short-circuits here & converts to a TestResult...
 //!     TestResult::Ok(())
 //! }
 //!
