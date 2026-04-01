@@ -12,7 +12,7 @@
 //! and back `where E: From::from<Self<!>>`
 //!
 //! ## Requires:
-//!   - nightly or `RUSTC_BOOTSTRAP = 1`
+//!   - nightly
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
 //!
@@ -66,7 +66,7 @@
 //! ```
 //!
 //! ## MSRV
-//! 1.85.1 if you are walking the grey-zone between stable and nightly via `RUSTC_BOOTSTRAP`
+//! 1.85.1, in case you are using a fixed version of nightly just to get access to specific unstable features.
 //!
 //! ## Currently untested (may work, may not ...):
 //!   - `where` clauses
