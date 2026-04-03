@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro for `Try` ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))"
@@ -19,6 +19,7 @@ proc-macro = true
 [dependencies]
 syn = {version = "2.0.117", features = ["full","extra-traits"]}
 proc-macro2 = "1.0.106"
+proc_macro2_diagnostic = "0.0.1"
 quote = "1.0.45"
 
 [dev-dependencies]

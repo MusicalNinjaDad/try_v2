@@ -2,7 +2,6 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(never_type)]
-#![feature(proc_macro_diagnostic)]
 #![feature(try_trait_v2)]
 
 //! Provides a derive macro for `Try`
@@ -74,18 +73,15 @@
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2_diagnostic::{
+    DiagnosticResult::{self, Ok},
+    DiagnosticStream,
+};
 use quote::{format_ident, quote};
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
     GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference, Variant,
     parse_quote, spanned::Spanned,
-};
-
-mod diagnostic;
-
-use diagnostic::{
-    DiagnosticResult::{self, Ok},
-    DiagnosticStream,
 };
 
 #[proc_macro_derive(Try)]
