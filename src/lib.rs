@@ -73,10 +73,7 @@
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro2_diagnostic::{
-    DiagnosticResult::{self, Ok},
-    DiagnosticStream,
-};
+use proc_macro2_diagnostic::prelude::*;
 use quote::{format_ident, quote};
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
@@ -229,20 +226,16 @@ impl<'ast> TryEnum<'ast> {
         // Fail fast
         let enum_data: &DataEnum = match &ast.data {
             Data::Enum(enum_data) => Ok(enum_data),
-            Data::Struct(struct_data) => {
-                DiagnosticResult::error("Try can only be derived for an enum")
-                    .add_help(struct_data.struct_token.span(), "not an enum")
-            }
-            Data::Union(union_data) => {
-                DiagnosticResult::error("Try can only be derived for an enum")
-                    .add_help(union_data.union_token.span(), "not an enum")
-            }
+            Data::Struct(struct_data) => error("Try can only be derived for an enum")
+                .add_help(struct_data.struct_token.span(), "not an enum"),
+            Data::Union(union_data) => error("Try can only be derived for an enum")
+                .add_help(union_data.union_token.span(), "not an enum"),
         }?;
 
         let name: &Ident = &ast.ident;
 
         let output_variant = enum_data.variants.first().ok_or(
-            DiagnosticResult::error("Try cannot be derived for a zero-field enum").add_help(
+            error("Try cannot be derived for a zero-field enum").add_help(
                 enum_data.brace_token.span.span(),
                 "add at least two variants here...",
             ),
@@ -255,7 +248,7 @@ impl<'ast> TryEnum<'ast> {
             .map(|ty| &ty.ident)
             .next()
             .ok_or(
-                DiagnosticResult::error("Try requires a generic type for `Output`")
+                error("Try requires a generic type for `Output`")
                     .add_help(name.span(), "Add <T> after this..."),
             )?;
 
@@ -289,22 +282,19 @@ impl<'ast> TryEnum<'ast> {
         } else {
             return match &output_variant.fields {
                 Fields::Unnamed(fields) => {
-                    let base_error =
-                        DiagnosticResult::error("Try requires a single generic type for `Output`")
-                            .add_help(first_generic_type.span(), "Output type defined here");
+                    let base_error = error("Try requires a single generic type for `Output`")
+                        .add_help(first_generic_type.span(), "Output type defined here");
                     let first_output_usage = &fields
                         .unnamed
                         .iter()
                         .find_map(|field| is_first_generic_type(&field.ty))
                         .ok_or_else(|| {
-                            DiagnosticResult::error(
-                                "Try requires a single generic type for `Output`",
-                            )
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                                fields.span(),
-                                format_args!("change this to ({first_generic_type})"),
-                            )
+                            error("Try requires a single generic type for `Output`")
+                                .add_help(first_generic_type.span(), "Output type defined here")
+                                .add_help(
+                                    fields.span(),
+                                    format_args!("change this to ({first_generic_type})"),
+                                )
                         })?;
                     match first_output_usage {
                         OutputType::Ident => base_error.add_help(
@@ -317,28 +307,25 @@ impl<'ast> TryEnum<'ast> {
                         ),
                     }
                 }
-                Fields::Unit => DiagnosticResult::error("Try requires a generic type for `Output`")
-                    .add_help(
-                        output_variant.span(),
-                        format_args!("add ({first_generic_type}) after this..."),
-                    ),
-                Fields::Named(fields) => DiagnosticResult::error(
-                    "Try requires an unnamed field for the `Output` variant",
-                )
-                .add_help(
-                    fields.span(),
-                    format_args!("change this to ({first_generic_type})"),
+                Fields::Unit => error("Try requires a generic type for `Output`").add_help(
+                    output_variant.span(),
+                    format_args!("add ({first_generic_type}) after this..."),
                 ),
+                Fields::Named(fields) => {
+                    error("Try requires an unnamed field for the `Output` variant").add_help(
+                        fields.span(),
+                        format_args!("change this to ({first_generic_type})"),
+                    )
+                }
             };
         };
 
         let output_type_name = is_first_generic_type(output_type)
             .map(|_| first_generic_type) // easier than drilling through to the ident
             .ok_or_else(|| {
-                let base_error = DiagnosticResult::error(
-                    "Try requires the first generic type to be used as the `Output` type",
-                )
-                .add_help(first_generic_type.span(), "Output type defined here");
+                let base_error =
+                    error("Try requires the first generic type to be used as the `Output` type")
+                        .add_help(first_generic_type.span(), "Output type defined here");
                 match output_type {
                     Type::Reference(r) => base_error.add_help(
                         output_type.span(),
@@ -530,7 +517,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         }
     };
-    DiagnosticResult::Ok(impl_try)
+    Ok(impl_try)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
@@ -648,7 +635,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
             }
         }
     };
-    DiagnosticResult::Ok(impl_convert)
+    Ok(impl_convert)
 }
 
 #[cfg(test)]
