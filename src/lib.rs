@@ -745,7 +745,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
             fn into_iter(self) -> Self::IntoIter {
                 let opt = match self {
-                    Ok(v) => Some(v),
+                    #output_variant_name(v) => Some(v),
                     _ => None,
                 };
                 opt.into_iter()
