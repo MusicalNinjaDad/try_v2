@@ -125,7 +125,7 @@ use syn::{
 ///         }
 ///     }
 /// }
-/// 
+///
 /// impl<T, E> Residual<T> for TestResult<!, E> {
 ///     type TryType = TestResult<T, E>;
 /// }
@@ -715,13 +715,19 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let vec_ish = format_ident!("V");
+    let (_, ty_generics, _) = &ast.generics.split_for_impl();
+    let defined_type = quote! {#name #ty_generics};
+
+    let vec_ish = format_ident!("Derive_TryIterator_V");
+
+    let mut full_generics = ast.generics.clone();
+    full_generics
+        .params
+        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
+    let (impl_generics, _, _) = full_generics.split_for_impl();
 
     let dumb_impl = quote! {
-        impl<T, E, V> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> 
-        where
-            V: FromIterator<T>
+        impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult<#vec_ish, E>
         {
             fn from_iter<I: IntoIterator<Item=TestResult<T,E>>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
