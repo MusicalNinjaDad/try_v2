@@ -626,13 +626,9 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     to_result_generics.params = to_result_generics
         .params
         .into_iter()
-        .filter(|p| {
-            if let GenericParam::Type(t) = p {
-                &t.ident != output_type_name
-            } else {
-                true
-            }
-        })
+        //remove output type
+        .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
+        // add result types
         .chain([
             parse_quote! {#result_t},
             parse_quote! {#result_e: From<#residual_type>},
