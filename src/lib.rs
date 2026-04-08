@@ -729,7 +729,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let dumb_impl = quote! {
         impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult<#vec_ish, E>
         {
-            fn from_iter<I: IntoIterator<Item=TestResult<T,E>>>(iter: I) -> Self {
+            fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
             }
         }
