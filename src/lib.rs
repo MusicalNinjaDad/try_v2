@@ -74,6 +74,8 @@
 //!   - `where` clauses
 //!   - storing `Fn`s in variants
 
+use std::vec;
+
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::prelude::*;
@@ -726,8 +728,22 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
     let (impl_generics, _, where_clause) = full_generics.split_for_impl();
 
+    let mut returned_generics = ast.generics.clone();
+    returned_generics.params = returned_generics
+        .params
+        .into_iter()
+        .map(|ref p| {
+            if let GenericParam::Type(t) = p && t.ident == *output_type_name {
+                parse_quote!{#vec_ish}
+            } else {
+                p.clone()
+            }
+        })
+        .collect();
+    let (ret_generics, _, _) = returned_generics.split_for_impl();
+
     let dumb_impl = quote! {
-        impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult<#vec_ish, E> #where_clause
+        impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult #ret_generics #where_clause
         {
             fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
