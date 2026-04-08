@@ -2,7 +2,9 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(never_type)]
+#![feature(iterator_try_collect)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
@@ -648,6 +650,74 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
         }
     };
     Ok(impl_convert)
+}
+
+#[proc_macro_derive(Try_Iterator)]
+/// Derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`.
+///
+/// - Vec<TryEnum>::collect() -> TryEnum<Vec>.
+/// - TryEnum.into_iter() -> yields _one_ value if Ok, else empty.
+///
+/// ## Example
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # #![feature(iterator_try_collect)]
+/// # use try_v2::{Try, Try_Iterator};
+/// # use TestResult::{Ok, TestsFailed, OtherError};
+/// #[derive(Try, Try_Iterator)]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E),
+/// }
+///
+/// # fn main() {
+/// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
+///
+/// let tests = tests.into_iter();
+///
+/// let first_results: TestResult<Vec<i32>, &'static str> = tests.collect();
+/// assert!(matches!(first_results, TestsFailed));
+/// // let more_results: TestResult<Vec<i32>, &'static str> = tests.collect();
+/// // assert!(matches!(more_results, OtherError(msg) if msg == "something wierd"));
+/// // let final_results: TestResult<Vec<i32>, &'static str> = tests.collect();
+/// // assert!(matches!(final_results, Ok(results) if results == vec![3,4]));
+/// # }
+/// ```
+pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
+    impl_iterator_traits(input.into()).into()
+}
+
+fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+
+    #[allow(unused_variables)]
+    let TryEnum {
+        name,
+        enum_data,
+        output_variant_name,
+        output_type,
+        output_type_name,
+        residual_type,
+    } = TryEnum::try_parse(&ast)?;
+
+    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+
+    let dumb_impl = quote! {
+        impl<T,E> std::ops::Residual<T> for TestResult<!,E> {
+            type TryType = TestResult<T,E>;
+        }
+
+        impl<T, E, V: FromIterator<T>> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> {
+            fn from_iter<I: IntoIterator<Item=TestResult<T,E>>>(iter: I) -> Self {
+                iter.into_iter().try_collect()
+            }
+        }
+    };
+
+    Ok(dumb_impl)
 }
 
 #[cfg(test)]
