@@ -710,35 +710,10 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    let (orig_impl_generics, ty_generics, _) = &ast.generics.split_for_impl();
-    let defined_type = quote! {#name #ty_generics};
+    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
-    let vec_ish = format_ident!("Derive_TryIterator_V");
-
-    let mut full_generics = ast.generics.clone();
-    full_generics
-        .params
-        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
-    let (impl_generics, _, where_clause) = full_generics.split_for_impl();
-
-    let mut returned_generics = ast.generics.clone();
-    for param in returned_generics.type_params_mut() {
-        if param.ident == *output_type_name {
-            *param = parse_quote! {#vec_ish};
-            break;
-        }
-    }
-    let (ret_generics, _, _) = returned_generics.split_for_impl();
-
-    let impl_from_iterator = quote! {
-        impl #impl_generics std::iter::FromIterator<#defined_type> for #name #ret_generics #where_clause
-        {
-            fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
-                iter.into_iter().try_collect()
-            }
-        }
-
-        impl #orig_impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
+    let mut impl_traits = quote! {
+        impl #impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
             type Item = #output_type;
             type IntoIter = std::option::IntoIter<#output_type>;
 
@@ -752,7 +727,35 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
             }
         }
     };
-    Ok(impl_from_iterator)
+
+    let defined_type = quote! {#name #ty_generics};
+    let vec_ish = format_ident!("Derive_TryIterator_V");
+
+    let mut full_generics = ast.generics.clone();
+    full_generics
+        .params
+        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
+    let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
+
+    let mut returned_generics = ast.generics.clone();
+    for param in returned_generics.type_params_mut() {
+        if param.ident == *output_type_name {
+            *param = parse_quote! {#vec_ish};
+            break;
+        }
+    }
+    let (_, ret_ty_generics, _) = returned_generics.split_for_impl();
+
+    impl_traits.extend(quote! {
+        impl #full_impl_generics std::iter::FromIterator<#defined_type> for #name #ret_ty_generics #full_where_clause
+        {
+            fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
+                iter.into_iter().try_collect()
+            }
+        }
+    });
+
+    Ok(impl_traits)
 }
 
 #[cfg(test)]
