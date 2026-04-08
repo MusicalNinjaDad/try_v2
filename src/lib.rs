@@ -732,8 +732,10 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         .params
         .into_iter()
         .map(|ref p| {
-            if let GenericParam::Type(t) = p && t.ident == *output_type_name {
-                parse_quote!{#vec_ish}
+            if let GenericParam::Type(t) = p
+                && t.ident == *output_type_name
+            {
+                parse_quote! {#vec_ish}
             } else {
                 p.clone()
             }
