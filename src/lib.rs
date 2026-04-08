@@ -732,7 +732,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     }
     let (ret_generics, _, _) = returned_generics.split_for_impl();
 
-    let dumb_impl = quote! {
+    let impl_from_iterator = quote! {
         impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult #ret_generics #where_clause
         {
             fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
@@ -741,7 +741,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         }
     };
 
-    Ok(dumb_impl)
+    Ok(impl_from_iterator)
 }
 
 #[cfg(test)]
