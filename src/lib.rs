@@ -74,8 +74,6 @@
 //!   - `where` clauses
 //!   - storing `Fn`s in variants
 
-use std::vec;
-
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::prelude::*;
@@ -681,6 +679,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 /// # use try_v2::{Try, Try_Iterator};
 /// # use TestResult::{Ok, TestsFailed, OtherError};
 /// #[derive(Try, Try_Iterator)]
+/// #[must_use]
 /// enum TestResult<T, E> {
 ///     Ok(T),
 ///     TestsFailed,
