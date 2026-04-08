@@ -707,7 +707,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+    let (_impl_generics, _ty_generics, _where_clause) = &ast.generics.split_for_impl();
 
     let dumb_impl = quote! {
         impl<T, E, V: FromIterator<T>> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> {
