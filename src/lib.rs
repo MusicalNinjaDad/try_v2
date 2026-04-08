@@ -485,6 +485,24 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
+    if ast
+        .attrs
+        .iter()
+        .find(|attr| {
+            attr.meta
+                .path()
+                .get_ident()
+                .is_some_and(|ident| ident == "must_use")
+        })
+        .is_none()
+    {
+        warn_spanned(
+            (),
+            ast.span(),
+            "it is recommended to annotate try-types as `#[must_use]`",
+        )?
+    };
+
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let (branch_arms, residual_arms) = TryEnum::generate_arms(name, enum_data, output_type);
 
@@ -716,6 +734,7 @@ mod tests {
     fn derive() {
         let original: TokenStream2 = quote! {
             #[derive(Try)]
+            #[must_use]
             enum Exit<T: Termination> {
                 Ok(T),
                 TestsFailed,
