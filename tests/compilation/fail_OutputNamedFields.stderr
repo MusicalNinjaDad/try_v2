@@ -1,51 +1,51 @@
 error: Try requires an unnamed field for the `Output` variant
- --> tests/compilation/fail_OutputNamedFields.rs:6:10
-  |
-6 | #[derive(Try, Try_ConvertResult)]
-  |          ^^^
-  |
-help: change this to (T)
- --> tests/compilation/fail_OutputNamedFields.rs:9:7
-  |
-9 |     Ok{foo: T},
-  |       ^^^^^^^^
-  = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error: Try requires an unnamed field for the `Output` variant
- --> tests/compilation/fail_OutputNamedFields.rs:6:15
-  |
-6 | #[derive(Try, Try_ConvertResult)]
-  |               ^^^^^^^^^^^^^^^^^
-  |
-help: change this to (T)
- --> tests/compilation/fail_OutputNamedFields.rs:9:7
-  |
-9 |     Ok{foo: T},
-  |       ^^^^^^^^
-  = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error: Try requires an unnamed field for the `Output` variant
-  --> tests/compilation/fail_OutputNamedFields.rs:14:10
+  --> tests/compilation/fail_OutputNamedFields.rs:7:10
    |
-14 | #[derive(Try, Try_ConvertResult)]
+ 7 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: change this to (T)
-  --> tests/compilation/fail_OutputNamedFields.rs:17:7
+  --> tests/compilation/fail_OutputNamedFields.rs:10:7
    |
-17 |     Ok{foo: &'t T},
+10 |     Ok{foo: T},
+   |       ^^^^^^^^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires an unnamed field for the `Output` variant
+  --> tests/compilation/fail_OutputNamedFields.rs:7:15
+   |
+ 7 | #[derive(Try, Try_ConvertResult)]
+   |               ^^^^^^^^^^^^^^^^^
+   |
+help: change this to (T)
+  --> tests/compilation/fail_OutputNamedFields.rs:10:7
+   |
+10 |     Ok{foo: T},
+   |       ^^^^^^^^
+   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires an unnamed field for the `Output` variant
+  --> tests/compilation/fail_OutputNamedFields.rs:15:10
+   |
+15 | #[derive(Try, Try_ConvertResult)]
+   |          ^^^
+   |
+help: change this to (T)
+  --> tests/compilation/fail_OutputNamedFields.rs:18:7
+   |
+18 |     Ok{foo: &'t T},
    |       ^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires an unnamed field for the `Output` variant
-  --> tests/compilation/fail_OutputNamedFields.rs:14:15
+  --> tests/compilation/fail_OutputNamedFields.rs:15:15
    |
-14 | #[derive(Try, Try_ConvertResult)]
+15 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
 help: change this to (T)
-  --> tests/compilation/fail_OutputNamedFields.rs:17:7
+  --> tests/compilation/fail_OutputNamedFields.rs:18:7
    |
-17 |     Ok{foo: &'t T},
+18 |     Ok{foo: &'t T},
    |       ^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -30,6 +30,7 @@
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
+//! #![feature(try_trait_v2_residual)]
 //! use try_v2::{Try, Try_ConvertResult};
 //!
 //! #[derive(Try, Try_ConvertResult)]
@@ -92,6 +93,7 @@ use syn::{
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::Try;
 /// #[derive(Try)]
 /// enum TestResult<T, E> {
@@ -122,6 +124,10 @@ use syn::{
 ///             ... each failing variant => itself ...              
 ///         }
 ///     }
+/// }
+/// 
+/// impl<T, E> Residual<T> for TestResult<!, E> {
+///     type TryType = TestResult<T, E>;
 /// }
 /// ```
 ///
@@ -154,6 +160,7 @@ use syn::{
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::Try;
 /// #[derive(Try)]
 /// enum TestResult<'t, 'e, T, E> {
@@ -563,6 +570,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::{Try, Try_ConvertResult};
 /// #[derive(Try, Try_ConvertResult)]
 /// enum TestResult<T, E> {
