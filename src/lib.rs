@@ -485,11 +485,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    if ast
+    if !ast
         .attrs
         .iter()
-        .find(|attr| attr.meta.path().is_ident("must_use"))
-        .is_none()
+        .any(|attr| attr.meta.path().is_ident("must_use"))
     {
         warn_spanned(
             (),
