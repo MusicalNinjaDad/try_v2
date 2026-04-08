@@ -688,9 +688,9 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 /// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
 /// assert!(matches!(first_results, TestsFailed));
 /// 
-/// let test = TestResult::Ok(4);
+/// let test: TestResult<i32, &'static str> = Ok(4);
 /// let result = test.into_iter().next();
-/// assert_eq!(result, 4);
+/// assert_eq!(result, Some(4));
 /// # }
 /// ```
 pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
@@ -710,7 +710,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    let (_, ty_generics, _) = &ast.generics.split_for_impl();
+    let (orig_impl_generics, ty_generics, _) = &ast.generics.split_for_impl();
     let defined_type = quote! {#name #ty_generics};
 
     let vec_ish = format_ident!("Derive_TryIterator_V");
@@ -737,8 +737,21 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
                 iter.into_iter().try_collect()
             }
         }
-    };
 
+        impl #orig_impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
+            type Item = #output_type;
+            type IntoIter = std::option::IntoIter<#output_type>;
+
+            
+            fn into_iter(self) -> Self::IntoIter {
+                let opt = match self {
+                    Ok(v) => Some(v),
+                    _ => None,
+                };
+                opt.into_iter()
+            }
+        }
+    };
     Ok(impl_from_iterator)
 }
 
