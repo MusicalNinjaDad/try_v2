@@ -488,12 +488,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     if ast
         .attrs
         .iter()
-        .find(|attr| {
-            attr.meta
-                .path()
-                .get_ident()
-                .is_some_and(|ident| ident == "must_use")
-        })
+        .find(|attr| attr.meta.path().is_ident("must_use"))
         .is_none()
     {
         warn_spanned(
