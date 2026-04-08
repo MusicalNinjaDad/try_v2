@@ -531,7 +531,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         }
 
-        impl #impl_generics std::ops::Residual #ty_generics for #residual_type {
+        impl #impl_generics std::ops::Residual<#output_type> for #residual_type {
             type TryType = #name #ty_generics;
         }
     };
@@ -710,10 +710,6 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
     let dumb_impl = quote! {
-        impl<T,E> std::ops::Residual<T> for TestResult<!,E> {
-            type TryType = TestResult<T,E>;
-        }
-
         impl<T, E, V: FromIterator<T>> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> {
             fn from_iter<I: IntoIterator<Item=TestResult<T,E>>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
