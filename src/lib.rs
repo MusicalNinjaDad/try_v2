@@ -538,7 +538,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         }
 
-        impl #impl_generics std::ops::Residual<#output_type> for #residual_type {
+        impl #impl_generics std::ops::Residual<#output_type> for #residual_type #where_clause {
             type TryType = #name #ty_generics;
         }
     };
