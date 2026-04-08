@@ -715,10 +715,14 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         residual_type,
     } = TryEnum::try_parse(&ast)?;
 
-    let (_impl_generics, _ty_generics, _where_clause) = &ast.generics.split_for_impl();
+    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
+    let vec_ish = format_ident!("V");
 
     let dumb_impl = quote! {
-        impl<T, E, V: FromIterator<T>> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> {
+        impl<T, E, V> std::iter::FromIterator<TestResult<T, E>> for TestResult<V, E> 
+        where
+            V: FromIterator<T>
+        {
             fn from_iter<I: IntoIterator<Item=TestResult<T,E>>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
             }
