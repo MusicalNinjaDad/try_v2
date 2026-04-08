@@ -4,6 +4,7 @@
 use try_v2::{Try, Try_ConvertResult};
 
 #[derive(Try, Try_ConvertResult)]
+#[must_use]
 union Union {
     foo: u8,
     bar: u8,

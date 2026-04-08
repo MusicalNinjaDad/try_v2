@@ -10,6 +10,7 @@ mod bound_ok_type {
     use std::process::Termination;
 
     #[derive(Debug, Try, Try_ConvertResult)]
+    #[must_use]
     enum Exit<T: Termination> {
         Ok(T),
         TestsFailed,
@@ -106,6 +107,7 @@ mod multiple_generics {
     use super::*;
 
     #[derive(Debug, Try, Try_ConvertResult)]
+    #[must_use]
     enum MyResult<T, E> {
         Ok(T),
         Err(E),
