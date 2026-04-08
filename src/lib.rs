@@ -2,7 +2,9 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(never_type)]
+#![feature(iterator_try_collect)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Provides a derive macro for `Try`
 //! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
@@ -28,6 +30,7 @@
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
+//! #![feature(try_trait_v2_residual)]
 //! use try_v2::{Try, Try_ConvertResult};
 //!
 //! #[derive(Try, Try_ConvertResult)]
@@ -90,6 +93,7 @@ use syn::{
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::Try;
 /// #[derive(Try)]
 /// enum TestResult<T, E> {
@@ -120,6 +124,10 @@ use syn::{
 ///             ... each failing variant => itself ...              
 ///         }
 ///     }
+/// }
+///
+/// impl<T, E> Residual<T> for TestResult<!, E> {
+///     type TryType = TestResult<T, E>;
 /// }
 /// ```
 ///
@@ -152,6 +160,7 @@ use syn::{
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::Try;
 /// #[derive(Try)]
 /// enum TestResult<'t, 'e, T, E> {
@@ -528,6 +537,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }
         }
+
+        impl #impl_generics std::ops::Residual<#output_type> for #residual_type #where_clause {
+            type TryType = #name #ty_generics;
+        }
     };
     Ok(impl_try)
 }
@@ -557,6 +570,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::{Try, Try_ConvertResult};
 /// #[derive(Try, Try_ConvertResult)]
 /// enum TestResult<T, E> {
@@ -612,13 +626,9 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     to_result_generics.params = to_result_generics
         .params
         .into_iter()
-        .filter(|p| {
-            if let GenericParam::Type(t) = p {
-                &t.ident != output_type_name
-            } else {
-                true
-            }
-        })
+        //remove output type
+        .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
+        // add result types
         .chain([
             parse_quote! {#result_t},
             parse_quote! {#result_e: From<#residual_type>},
@@ -648,6 +658,84 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
         }
     };
     Ok(impl_convert)
+}
+
+#[proc_macro_derive(Try_Iterator)]
+/// Derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`.
+///
+/// - Vec<TryEnum>::collect() -> TryEnum<Vec>.
+/// - TryEnum.into_iter() -> yields _one_ value if Ok, else empty.
+///
+/// ## Example
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # #![feature(iterator_try_collect)]
+/// # use try_v2::{Try, Try_Iterator};
+/// # use TestResult::{Ok, TestsFailed, OtherError};
+/// #[derive(Try, Try_Iterator)]
+/// #[must_use]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E),
+/// }
+///
+/// # fn main() {
+/// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
+///
+/// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
+/// assert!(matches!(first_results, TestsFailed));
+/// # }
+/// ```
+pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
+    impl_iterator_traits(input.into()).into()
+}
+
+fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+
+    #[allow(unused_variables)]
+    let TryEnum {
+        name,
+        enum_data,
+        output_variant_name,
+        output_type,
+        output_type_name,
+        residual_type,
+    } = TryEnum::try_parse(&ast)?;
+
+    let (_, ty_generics, _) = &ast.generics.split_for_impl();
+    let defined_type = quote! {#name #ty_generics};
+
+    let vec_ish = format_ident!("Derive_TryIterator_V");
+
+    let mut full_generics = ast.generics.clone();
+    full_generics
+        .params
+        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
+    let (impl_generics, _, where_clause) = full_generics.split_for_impl();
+
+    let mut returned_generics = ast.generics.clone();
+    for param in returned_generics.type_params_mut() {
+        if param.ident == *output_type_name {
+            *param = parse_quote! {#vec_ish};
+            break;
+        }
+    }
+    let (ret_generics, _, _) = returned_generics.split_for_impl();
+
+    let impl_from_iterator = quote! {
+        impl #impl_generics std::iter::FromIterator<#defined_type> for #name #ret_generics #where_clause
+        {
+            fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
+                iter.into_iter().try_collect()
+            }
+        }
+    };
+
+    Ok(impl_from_iterator)
 }
 
 #[cfg(test)]
@@ -769,6 +857,10 @@ mod tests {
                         Exit::NamedError{err, text} => Exit::NamedError{err, text},
                     }
                 }
+            }
+
+            impl<T: Termination> std::ops::Residual<T> for Exit<!> {
+                type TryType = Exit<T>;
             }
         };
         assert_eq!(

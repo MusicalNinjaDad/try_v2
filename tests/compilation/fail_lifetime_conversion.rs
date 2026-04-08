@@ -1,5 +1,6 @@
 #![feature(never_type)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Tests that conversion between custom enum and std::result::Result requires correct lifetime bounds.
 

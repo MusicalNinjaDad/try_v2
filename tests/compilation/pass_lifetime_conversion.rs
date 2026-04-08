@@ -1,6 +1,7 @@
 #![feature(assert_matches)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Tests conversion between custom enum and std::result::Result with lifetimes.
 

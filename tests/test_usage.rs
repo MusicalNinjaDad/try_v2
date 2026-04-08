@@ -1,6 +1,7 @@
 #![feature(assert_matches)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 use std::assert_matches::assert_matches;
 use try_v2::{Try, Try_ConvertResult};

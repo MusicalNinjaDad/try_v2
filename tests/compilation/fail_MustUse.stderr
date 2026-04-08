@@ -1,22 +1,22 @@
 warning: it is recommended to annotate try-types as `#[must_use]`
-  --> tests/compilation/fail_MustUse.rs:7:1
+  --> tests/compilation/fail_MustUse.rs:8:1
    |
- 7 | / enum ExitE<E> {
- 8 | |     Ok(E),
- 9 | |     TestsFailed,
-10 | |     OtherError(String),
-11 | | }
+ 8 | / enum ExitE<E> {
+ 9 | |     Ok(E),
+10 | |     TestsFailed,
+11 | |     OtherError(String),
+12 | | }
    | |_^
    |
 note: this warning originates from the macro invocation here
-  --> tests/compilation/fail_MustUse.rs:6:17
+  --> tests/compilation/fail_MustUse.rs:7:17
    |
- 6 | #[derive(Debug, Try, Try_ConvertResult)]
+ 7 | #[derive(Debug, Try, Try_ConvertResult)]
    |                 ^^^
    = note: this warning originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0425]: cannot find value `fail` in this scope
-  --> tests/compilation/fail_MustUse.rs:14:5
+  --> tests/compilation/fail_MustUse.rs:15:5
    |
-14 |     fail
+15 |     fail
    |     ^^^^ not found in this scope

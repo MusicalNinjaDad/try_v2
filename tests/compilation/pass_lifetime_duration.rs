@@ -1,6 +1,7 @@
 #![feature(assert_matches)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Tests to ensure that lifetimes are correctly passed through and live as long as expected.
 

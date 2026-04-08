@@ -1,25 +1,25 @@
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_duration.rs:39:17
+  --> tests/compilation/fail_lifetime_duration.rs:40:17
    |
-29 | fn _unrestricted_t<'input, 't, 'e>(
+30 | fn _unrestricted_t<'input, 't, 'e>(
    |                    ------  -- lifetime `'t` defined here
    |                    |
    |                    lifetime `'input` defined here
 ...
-39 |         ..=4 => pass(okval)?,
+40 |         ..=4 => pass(okval)?,
    |                 ^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_duration.rs:58:16
+  --> tests/compilation/fail_lifetime_duration.rs:59:16
    |
-46 | fn _unrestricted_e<'input, 't, 'e>(
+47 | fn _unrestricted_e<'input, 't, 'e>(
    |                    ------      -- lifetime `'e` defined here
    |                    |
    |                    lifetime `'input` defined here
 ...
-58 |         6.. => fail_directly(errval)?,
+59 |         6.. => fail_directly(errval)?,
    |                ^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'input`
    |
    = help: consider adding the following bound: `'input: 'e`
