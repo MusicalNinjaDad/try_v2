@@ -685,14 +685,8 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 /// # fn main() {
 /// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
 ///
-/// let tests = tests.into_iter();
-///
-/// let first_results: TestResult<Vec<i32>, &'static str> = tests.collect();
+/// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
 /// assert!(matches!(first_results, TestsFailed));
-/// // let more_results: TestResult<Vec<i32>, &'static str> = tests.collect();
-/// // assert!(matches!(more_results, OtherError(msg) if msg == "something wierd"));
-/// // let final_results: TestResult<Vec<i32>, &'static str> = tests.collect();
-/// // assert!(matches!(final_results, Ok(results) if results == vec![3,4]));
 /// # }
 /// ```
 pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
