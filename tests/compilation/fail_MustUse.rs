@@ -4,11 +4,12 @@
 use try_v2::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
-#[must_use]
 enum ExitE<E> {
     Ok(E),
     TestsFailed,
     OtherError(String),
 }
 
-fn main() {}
+fn main() {
+    fail
+}

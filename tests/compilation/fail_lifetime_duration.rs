@@ -6,6 +6,7 @@
 use try_v2::{Try, Try_ConvertResult};
 
 // Basic result with T & E borrowed
+#[must_use]
 #[derive(Debug, Try, Try_ConvertResult)]
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),

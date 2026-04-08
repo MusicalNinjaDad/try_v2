@@ -4,18 +4,21 @@
 use try_v2::{Try, Try_ConvertResult};
 
 #[derive(Try, Try_ConvertResult)]
+#[must_use]
 enum NotSimpleIdent<T> {
     Ok(proc_macro2::TokenStream),
     Err(T),
 }
 
 #[derive(Try, Try_ConvertResult)]
+#[must_use]
 enum NotSimpleIdentBorrowed<'t, T> {
     Ok(&'t proc_macro2::TokenStream),
     Err(T),
 }
 
 #[derive(Try, Try_ConvertResult)]
+#[must_use]
 enum NotPathOrRef<T> {
     Ok(!),
     Err(T),

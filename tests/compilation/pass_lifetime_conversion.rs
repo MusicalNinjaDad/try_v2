@@ -8,6 +8,7 @@ use std::assert_matches::assert_matches;
 use try_v2::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
+#[must_use]
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),
     Err(&'e E),
