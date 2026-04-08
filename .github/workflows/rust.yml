@@ -44,10 +44,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-    - name: fmt
-      run: cargo fmt --check
     - name: clippy
       run: cargo clippy -- --deny warnings
+
+  lint_tests:
+    needs: skip_check
+    if: needs.skip_check.outputs.should_skip != 'true'
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: clippy
+      run: cargo clippy --tests -- --deny warnings
+
+  fmt:
+    needs: skip_check
+    if: needs.skip_check.outputs.should_skip != 'true'
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: fmt
+      run: cargo fmt --check
 
   msrv:
     needs: skip_check
@@ -58,7 +78,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: install cargo-msrv
-      uses: taiki-e/install-action@v2.74.0
+      uses: taiki-e/install-action@v2.75.0
       with:
         tool: cargo-msrv
     - name: check MSRV
