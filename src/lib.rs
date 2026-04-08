@@ -530,6 +530,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }
         }
+
+        impl #impl_generics std::ops::Residual #ty_generics for #residual_type {
+            type TryType = #name #ty_generics;
+        }
     };
     Ok(impl_try)
 }
@@ -839,6 +843,10 @@ mod tests {
                         Exit::NamedError{err, text} => Exit::NamedError{err, text},
                     }
                 }
+            }
+
+            impl<T: Termination> std::ops::Residual<T> for Exit<!> {
+                type TryType = Exit<T>;
             }
         };
         assert_eq!(
