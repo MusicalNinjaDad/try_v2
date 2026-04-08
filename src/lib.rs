@@ -687,7 +687,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 ///
 /// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
 /// assert!(matches!(first_results, TestsFailed));
-/// 
+///
 /// let test: TestResult<i32, &'static str> = Ok(4);
 /// let result = test.into_iter().next();
 /// assert_eq!(result, Some(4));
@@ -742,7 +742,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
             type Item = #output_type;
             type IntoIter = std::option::IntoIter<#output_type>;
 
-            
+
             fn into_iter(self) -> Self::IntoIter {
                 let opt = match self {
                     Ok(v) => Some(v),
