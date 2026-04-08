@@ -728,19 +728,12 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let (impl_generics, _, where_clause) = full_generics.split_for_impl();
 
     let mut returned_generics = ast.generics.clone();
-    returned_generics.params = returned_generics
-        .params
-        .into_iter()
-        .map(|ref p| {
-            if let GenericParam::Type(t) = p
-                && t.ident == *output_type_name
-            {
-                parse_quote! {#vec_ish}
-            } else {
-                p.clone()
-            }
-        })
-        .collect();
+    for param in returned_generics.type_params_mut() {
+        if param.ident == *output_type_name {
+            *param = parse_quote! {#vec_ish};
+            break;
+        }
+    }
     let (ret_generics, _, _) = returned_generics.split_for_impl();
 
     let dumb_impl = quote! {
