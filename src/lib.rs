@@ -724,10 +724,10 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     full_generics
         .params
         .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
-    let (impl_generics, _, _) = full_generics.split_for_impl();
+    let (impl_generics, _, where_clause) = full_generics.split_for_impl();
 
     let dumb_impl = quote! {
-        impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult<#vec_ish, E>
+        impl #impl_generics std::iter::FromIterator<#defined_type> for TestResult<#vec_ish, E> #where_clause
         {
             fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
                 iter.into_iter().try_collect()
