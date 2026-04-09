@@ -4,6 +4,11 @@ error: Try requires an unnamed field for the `Output` variant
  7 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputNamedFields.rs:9:23
+   |
+ 9 | enum OutputNamedField<T> {
+   |                       ^
 help: change this to (T)
   --> tests/compilation/fail_OutputNamedFields.rs:10:7
    |
@@ -17,6 +22,11 @@ error: Try requires an unnamed field for the `Output` variant
  7 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputNamedFields.rs:9:23
+   |
+ 9 | enum OutputNamedField<T> {
+   |                       ^
 help: change this to (T)
   --> tests/compilation/fail_OutputNamedFields.rs:10:7
    |
@@ -30,6 +40,11 @@ error: Try requires an unnamed field for the `Output` variant
 15 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputNamedFields.rs:17:35
+   |
+17 | enum OutputNamedFieldBorrowed<'t, T> {
+   |                                   ^
 help: change this to (T)
   --> tests/compilation/fail_OutputNamedFields.rs:18:7
    |
@@ -43,6 +58,11 @@ error: Try requires an unnamed field for the `Output` variant
 15 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputNamedFields.rs:17:35
+   |
+17 | enum OutputNamedFieldBorrowed<'t, T> {
+   |                                   ^
 help: change this to (T)
   --> tests/compilation/fail_OutputNamedFields.rs:18:7
    |

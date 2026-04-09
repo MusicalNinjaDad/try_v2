@@ -78,11 +78,10 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::prelude::*;
 use quote::{format_ident, quote};
-use syn::{
-    AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    GenericParam, Ident, Lifetime, PathArguments, Type, TypePath, TypeReference, Variant,
-    parse_quote, spanned::Spanned,
-};
+use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
+
+mod parse;
+use parse::TryEnum;
 
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
@@ -186,313 +185,21 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).into()
 }
 
-/// A destructured Enum with validated invariants and easy access to all the bits we need.
-struct TryEnum<'ast> {
-    name: &'ast Ident,
-    enum_data: &'ast DataEnum,
-    output_variant_name: &'ast Ident,
-    output_type: &'ast Type,
-    output_type_name: &'ast Ident,
-    residual_type: Type,
-}
-
-/// An Arm to be used when matching for `fn branch`.
-/// Own type for clarity when returning (BranchArm, ResidualArm) from a single function.
-type BranchArm = Arm;
-/// An Arm to be used when matching for `fn from_residual`.
-/// Own type for clarity of when returning (BranchArm, ResidualArm) from a single function.
-type ResidualArm = Arm;
-
-/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
-/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
-/// an `OutputType`
-enum OutputType<'ast> {
-    Ident,
-    Ref { lifetime: &'ast Lifetime },
-}
-
-/// From, not TryFrom - check invariants (single ident) first
-impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
-    fn from(_: &TypePath) -> Self {
-        Self::Ident
-    }
-}
-
-/// From, not TryFrom - check invariants (has a named lifetime) first, or you risk a panic!
-impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
-    fn from(tr: &'ast TypeReference) -> Self {
-        let lifetime = tr
-            .lifetime
-            .as_ref()
-            .expect("References in enum definitions require a specified lifetime");
-        Self::Ref { lifetime }
-    }
-}
-
-impl<'ast> TryEnum<'ast> {
-    /// Handles all the invariant validation and enum un-nesting.
-    fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
-        // Fail fast
-        let enum_data: &DataEnum = match &ast.data {
-            Data::Enum(enum_data) => Ok(enum_data),
-            Data::Struct(struct_data) => error("Try can only be derived for an enum")
-                .add_help(struct_data.struct_token.span(), "not an enum"),
-            Data::Union(union_data) => error("Try can only be derived for an enum")
-                .add_help(union_data.union_token.span(), "not an enum"),
-        }?;
-
-        let name: &Ident = &ast.ident;
-
-        let output_variant = enum_data.variants.first().ok_or(
-            error("Try cannot be derived for a zero-field enum").add_help(
-                enum_data.brace_token.span.span(),
-                "add at least two variants here...",
-            ),
-        )?;
-        let output_variant_name: &Ident = &output_variant.ident;
-
-        let first_generic_type: &Ident = ast
-            .generics
-            .type_params()
-            .map(|ty| &ty.ident)
-            .next()
-            .ok_or(
-                error("Try requires a generic type for `Output`")
-                    .add_help(name.span(), "Add <T> after this..."),
-            )?;
-
-        // Returns Some(OutputType::...) if ty has same ident as first generic type
-        //  designed to be used in .find_map() or with .ok_or_else()?
-        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
-            match ty {
-                Type::Path(tp) => tp
-                    .path
-                    .get_ident()
-                    .filter(|t| *t == first_generic_type)
-                    .map(|_| OutputType::from(tp)),
-                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
-                    .path
-                    .get_ident()
-                    .filter(|t| *t == first_generic_type)
-                    .map(|_| OutputType::from(tr)),
-                _ => None,
-            }
-        };
-
-        // TODO: Check that multiline enum defs show whole def in help
-        let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
-            && fields.unnamed.len() == 1
-        {
-            &fields
-                .unnamed
-                .first()
-                .expect("fields.unnamed.len() == 1")
-                .ty
-        } else {
-            return match &output_variant.fields {
-                Fields::Unnamed(fields) => {
-                    let base_error = error("Try requires a single generic type for `Output`")
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                    let first_output_usage = &fields
-                        .unnamed
-                        .iter()
-                        .find_map(|field| is_first_generic_type(&field.ty))
-                        .ok_or_else(|| {
-                            error("Try requires a single generic type for `Output`")
-                                .add_help(first_generic_type.span(), "Output type defined here")
-                                .add_help(
-                                    fields.span(),
-                                    format_args!("change this to ({first_generic_type})"),
-                                )
-                        })?;
-                    match first_output_usage {
-                        OutputType::Ident => base_error.add_help(
-                            fields.span(),
-                            format_args!("change this to ({first_generic_type})"),
-                        ),
-                        OutputType::Ref { lifetime } => base_error.add_help(
-                            fields.span(),
-                            format_args!("change this to (&{lifetime} {first_generic_type})"),
-                        ),
-                    }
-                }
-                Fields::Unit => error("Try requires a generic type for `Output`").add_help(
-                    output_variant.span(),
-                    format_args!("add ({first_generic_type}) after this..."),
-                ),
-                Fields::Named(fields) => {
-                    error("Try requires an unnamed field for the `Output` variant").add_help(
-                        fields.span(),
-                        format_args!("change this to ({first_generic_type})"),
-                    )
-                }
-            };
-        };
-
-        let output_type_name = is_first_generic_type(output_type)
-            .map(|_| first_generic_type) // easier than drilling through to the ident
-            .ok_or_else(|| {
-                let base_error =
-                    error("Try requires the first generic type to be used as the `Output` type")
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                match output_type {
-                    Type::Reference(r) => base_error.add_help(
-                        output_type.span(),
-                        format_args!(
-                            "change this to &{} {first_generic_type}",
-                            r.lifetime.as_ref().expect("generic ref must have lifetime")
-                        ),
-                    ),
-                    _ => base_error.add_help(
-                        output_type.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    ),
-                }
-            })?;
-
-        // Must be done late, after validating suitable generics
-        let residual_type: Type = Self::generate_residual(ast);
-
-        Ok(Self {
-            name,
-            enum_data,
-            output_variant_name,
-            output_type,
-            output_type_name,
-            residual_type,
-        })
-    }
-
-    /// Generate the residual type with appropriate arguments (! + remaining generics).
-    ///
-    /// Does not act on `self` as this is designed to be called during creation of a `TryEnum`
-    /// and is only a separate function to facilitate direct testing
-    ///
-    /// ### Panics
-    /// if called on unsuitable input, or where invariants (at least one generic type)
-    /// are not upheld.
-    fn generate_residual(ast: &DeriveInput) -> Type {
-        let name = &ast.ident;
-        let (_, tygenerics, _) = ast.generics.split_for_impl();
-        let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
-        let path_args: &mut AngleBracketedGenericArguments = {
-            let Type::Path(ref mut residual_type) = residual_type else {
-                unreachable!("enum name must be Type::Path")
-            };
-            let PathArguments::AngleBracketed(ref mut args) = residual_type
-                .path
-                .segments
-                .first_mut()
-                .expect("valid enum definition has exactly one segment")
-                .arguments
-            else {
-                unreachable!("TypeGenerics quotes to angle bracketed arguments")
-            };
-            args
-        };
-        //change FIRST generic type to `!`
-        path_args
-            .args
-            .iter_mut()
-            .find_map(|arg| {
-                if let &mut GenericArgument::Type(ref mut typ) = arg {
-                    *typ = parse_quote!(!);
-                    Some(arg) //break out of find_map
-                } else {
-                    None
-                }
-            })
-            .expect("must have at least one generic output type");
-        residual_type
-    }
-
-    /// Create match arms for `fn branch` and `fn from_residual`.
-    ///
-    /// Does not act on `self` as we expect a TryEnum to be immediately destructured and not stored.
-    fn generate_arms(
-        enum_name: &Ident,
-        enum_data: &DataEnum,
-        output_type: &Type,
-    ) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
-        //TODO: Could this be lazy? Arms are only iterated on once ...
-        let owned_output = matches!(output_type, Type::Path(_));
-        let arms = |(i, variant): (usize, &Variant)| -> (BranchArm, Option<ResidualArm>) {
-            let var_name: &Ident = &variant.ident;
-            let is_output_variant = i == 0;
-            match &variant.fields {
-                _ if is_output_variant => {
-                    // Output variant always has a single field
-                    let branch_arm = parse_quote! {
-                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-                    };
-                    let residual_arm = if owned_output {
-                        None
-                    } else {
-                        // required for when Output stores a reference.
-                        // &! is not recognised as infallible, but ! will coerce to any other type.
-                        // - see https://github.com/rust-lang/unsafe-code-guidelines/issues/413
-                        // - and https://users.rust-lang.org/t/whats-the-right-syntax-for-an-infallible-reference/139188
-                        Some(parse_quote! {
-                            #enum_name::#var_name(never) => *never,
-                        })
-                    };
-                    (branch_arm, residual_arm)
-                }
-                Fields::Unit => {
-                    let branch_arm = parse_quote! {
-                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                    };
-                    let residual_arm = parse_quote! {
-                        #enum_name::#var_name => #enum_name::#var_name,
-                    };
-                    (branch_arm, Some(residual_arm))
-                }
-                Fields::Unnamed(_) => {
-                    let fields: Vec<Ident> = (0..variant.fields.len())
-                        .map(|n| format_ident!("v{n}"))
-                        .collect();
-                    let branch_arm = parse_quote! {
-                        Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
-                    };
-                    let residual_arm = parse_quote! {
-                        #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
-                    };
-                    (branch_arm, Some(residual_arm))
-                }
-                Fields::Named(_) => {
-                    let fields: Vec<Ident> = variant
-                        .fields
-                        .iter()
-                        .map(|f| f.ident.clone().expect("named field"))
-                        .collect();
-                    let branch_arm = parse_quote! {
-                        Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
-                    };
-                    let residual_arm = parse_quote! {
-                        #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
-                    };
-                    (branch_arm, Some(residual_arm))
-                }
-            }
-        };
-
-        enum_data.variants.iter().enumerate().map(arms).unzip()
-    }
-}
-
 /// Parses & validates the input then quote!s the impl.  
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    #[allow(unused_variables)]
-    let TryEnum {
+    let tryenum = TryEnum::parse(&ast)?;
+    let (
         name,
-        enum_data,
         output_variant_name,
         output_type,
-        output_type_name,
+        _,
         residual_type,
-    } = TryEnum::try_parse(&ast)?;
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
 
     if !ast
         .attrs
@@ -506,8 +213,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         )?
     };
 
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let (branch_arms, residual_arms) = TryEnum::generate_arms(name, enum_data, output_type);
+    let (branch_arms, residual_arms) = tryenum.generate_arms();
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
@@ -602,38 +308,30 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
 fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    #[allow(unused_variables)]
-    let TryEnum {
-        name,
-        enum_data,
-        output_variant_name,
-        output_type,
-        output_type_name,
-        residual_type,
-    } = TryEnum::try_parse(&ast)?;
+    let tryenum = TryEnum::parse(&ast)?;
+    let (name, _, _, output_type_name, residual_type, _, ty_generics, where_clause) =
+        tryenum.split_for_impl();
 
-    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
 
-    let mut from_result_generics = ast.generics.clone();
-    from_result_generics
-        .params
-        .push(parse_quote! {#result_e: Into<#name #ty_generics>});
+    let from_result_generics = tryenum.generics(|g| {
+        g.params
+            .push(parse_quote! {#result_e: Into<#name #ty_generics>})
+    });
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-    let mut to_result_generics = ast.generics.clone();
-    to_result_generics.params = to_result_generics
-        .params
-        .into_iter()
-        //remove output type
-        .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
-        // add result types
-        .chain([
-            parse_quote! {#result_t},
-            parse_quote! {#result_e: From<#residual_type>},
-        ])
-        .collect();
+    let to_result_generics = tryenum.generics_with_params(|p| {
+        p
+            //remove output type
+            .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
+            // add result types
+            .chain([
+                parse_quote! {#result_t},
+                parse_quote! {#result_e: From<#residual_type>},
+            ])
+    });
+
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
     let impl_convert = quote! {
@@ -700,17 +398,17 @@ pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
 fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
-    #[allow(unused_variables)]
-    let TryEnum {
+    let tryenum = TryEnum::parse(&ast)?;
+    let (
         name,
-        enum_data,
         output_variant_name,
         output_type,
         output_type_name,
-        residual_type,
-    } = TryEnum::try_parse(&ast)?;
-
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+        _,
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
 
     let mut impl_traits = quote! {
         impl #impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
@@ -731,19 +429,21 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let defined_type = quote! {#name #ty_generics};
     let vec_ish = format_ident!("Derive_TryIterator_V");
 
-    let mut full_generics = ast.generics.clone();
-    full_generics
-        .params
-        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
+    let full_generics = tryenum.generics(|g| {
+        g.params
+            .push(parse_quote! {#vec_ish: FromIterator<#output_type>})
+    });
+
     let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
 
-    let mut returned_generics = ast.generics.clone();
-    for param in returned_generics.type_params_mut() {
-        if param.ident == *output_type_name {
-            *param = parse_quote! {#vec_ish};
-            break;
+    let returned_generics = tryenum.generics(|g| {
+        for param in g.type_params_mut() {
+            if param.ident == *output_type_name {
+                *param = parse_quote! {#vec_ish};
+                break;
+            }
         }
-    }
+    });
     let (_, ret_ty_generics, _) = returned_generics.split_for_impl();
 
     impl_traits.extend(quote! {
@@ -761,76 +461,6 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn simple_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum Exit<T> {
-                Ok(T),
-                TestsFailed,
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {Exit<!>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn multiple_generics_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum Exit<T, E> {
-                Ok(T),
-                TestsFailed(E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {Exit<!, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn static_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<T: 'static, E> {
-                Ok(&'static T),
-                Err(E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<!, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn lifetime_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<'r, T, E> {
-                Ok(&'r T),
-                Err(&'r E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn multiple_lifetimes_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<'t, 'e, T, E> {
-                Ok(&'t T),
-                Err(&'e E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<'t, 'e, !, E>};
-        assert_eq!(expected_residual, residual);
-    }
 
     #[test]
     fn derive() {

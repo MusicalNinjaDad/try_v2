@@ -4,6 +4,11 @@ error: Try requires a generic type for `Output`
  7 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputUnitType.rs:9:21
+   |
+ 9 | enum OutputUnitType<T> {
+   |                     ^
 help: add (T) after this...
   --> tests/compilation/fail_OutputUnitType.rs:10:5
    |
@@ -17,6 +22,11 @@ error: Try requires a generic type for `Output`
  7 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
+help: Output type defined here
+  --> tests/compilation/fail_OutputUnitType.rs:9:21
+   |
+ 9 | enum OutputUnitType<T> {
+   |                     ^
 help: add (T) after this...
   --> tests/compilation/fail_OutputUnitType.rs:10:5
    |
