@@ -1,4 +1,5 @@
 #![feature(assert_matches)]
+#![feature(iterator_try_collect)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
@@ -130,6 +131,31 @@ mod multiple_generics {
             MyResult::Ok(foo)
         }
         assert_matches!(fail(), MyResult::Err(msg) if msg == "oops!");
+    }
+}
+
+mod iter {
+    use try_v2::Try_Iterator;
+
+    use super::*;
+
+    #[derive(Debug, Try, Try_Iterator)]
+    #[must_use]
+    enum MyResult<T> {
+        Ok(T),
+        Err,
+    }
+
+    #[test]
+    fn not_copy() {
+        let mut res: MyResult<String> = MyResult::Ok("String is not Copy".to_string());
+        let borrowed_text: &String = res.iter().next().unwrap();
+        assert_eq!(borrowed_text, "String is not Copy");
+        if let Some(text) = res.iter_mut().next() {
+            *text = "Another String".to_string();
+        };
+        let text: String = res.into_iter().next().unwrap();
+        assert_eq!(text, "Another String");
     }
 }
 
