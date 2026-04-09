@@ -92,7 +92,7 @@ impl<'ast> TryEnum<'ast> {
 
         let output_type = OutputType::try_from((output_type, first_generic_type))?;
 
-        // Must be done late, after validating suitable generics
+        // Must be done late, after validating other invariants
         let residual_type: Type = generate_residual(ast);
 
         Ok(Self {
