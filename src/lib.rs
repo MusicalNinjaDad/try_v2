@@ -387,6 +387,8 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 /// assert!(matches!(first_results, TestsFailed));
 ///
 /// let test: TestResult<i32, &'static str> = Ok(4);
+/// let borrowed_result: &i32 = test.iter().next().unwrap();
+/// assert_eq!(borrowed_result, &4);
 /// let result = test.into_iter().next();
 /// assert_eq!(result, Some(4));
 /// # }
@@ -417,6 +419,16 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
 
             fn into_iter(self) -> Self::IntoIter {
+                let opt = match self {
+                    #output_variant_name(v) => Some(v),
+                    _ => None,
+                };
+                opt.into_iter()
+            }
+        }
+
+        impl #impl_generics #name #ty_generics {
+            pub fn iter(&self) -> std::option::IntoIter<&#output_type> {
                 let opt = match self {
                     #output_variant_name(v) => Some(v),
                     _ => None,
