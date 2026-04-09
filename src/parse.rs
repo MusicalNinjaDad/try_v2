@@ -38,16 +38,20 @@ enum OutputType<'ast> {
     },
 }
 
-impl<'ast> TryFrom<&'ast Type> for OutputType<'ast> {
+impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
     type Error = DiagnosticResult<Self>;
 
-    fn try_from(ty: &'ast Type) -> Result<Self, Self::Error> {
+    fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
         match ty {
             Type::Path(type_path) => Result::Ok(Self::Owned {
-                name: type_path
-                    .path
-                    .get_ident()
-                    .expect("Invariant: must store generic type"),
+                name: type_path.path.get_ident().ok_or_else(|| {
+                    error("Try requires the first generic type to be used as the `Output` type")
+                        .add_help(first_generic_type.span(), "Output type defined here")
+                        .add_help(
+                            ty.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        )
+                })?,
                 ty,
             }),
             Type::Reference(tr) => {
@@ -55,16 +59,31 @@ impl<'ast> TryFrom<&'ast Type> for OutputType<'ast> {
                     .lifetime
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
-                let name = if let Type::Path(tp) = tr.elem.as_ref() {
-                    tp.path
-                        .get_ident()
-                        .expect("Invariant: must store generic type")
-                } else {
-                    todo!("ref to invalid type")
-                };
+                let name =
+                    if let Type::Path(tp) = tr.elem.as_ref() {
+                        tp.path.get_ident().ok_or_else(|| {
+                        error("Try requires the first generic type to be used as the `Output` type")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                        ty.span(),
+                        format_args!(
+                            "change this to &{} {first_generic_type}",
+                            tr.lifetime.as_ref().expect("generic ref must have lifetime")
+                        ))
+                    })?
+                    } else {
+                        todo!("ref to invalid type")
+                    };
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }
-            _ => todo!("invalid output type"),
+            _ => Result::Err(
+                error("Try requires the first generic type to be used as the `Output` type")
+                    .add_help(first_generic_type.span(), "Output type defined here")
+                    .add_help(
+                        ty.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    ),
+            ),
         }
     }
 }
@@ -194,7 +213,7 @@ impl<'ast> TryEnum<'ast> {
             };
         };
 
-        let _ = OutputType::try_from(output_type);
+        let _ = OutputType::try_from((output_type, first_generic_type));
 
         let output_type_name = is_first_generic_type(output_type)
             .map(|_| first_generic_type) // easier than drilling through to the ident
