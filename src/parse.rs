@@ -146,8 +146,7 @@ impl<'ast> TryEnum<'ast> {
                         OutputType::try_from((&field.ty, first_generic_type)).ok()
                     });
                     let msg = match first_output_usage {
-                        None => format!("change this to ({first_generic_type})"),
-                        Some(OutputType::Owned { .. }) => {
+                        None | Some(OutputType::Owned { .. }) => {
                             format!("change this to ({first_generic_type})")
                         }
                         Some(OutputType::Ref { lifetime, .. }) => {
