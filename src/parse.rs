@@ -97,7 +97,6 @@ impl<'ast> TryEnum<'ast> {
             }
         };
 
-        // TODO: Check that multiline enum defs show whole def in help
         let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
             && fields.unnamed.len() == 1
         {
@@ -110,6 +109,7 @@ impl<'ast> TryEnum<'ast> {
             return match &output_variant.fields {
                 Fields::Unnamed(fields) => {
                     let base_error = error("Try requires a single generic type for `Output`")
+                        // TODO: Check that multiline enum defs show whole def in help
                         .add_help(first_generic_type.span(), "Output type defined here");
                     let first_output_usage = &fields
                         .unnamed
