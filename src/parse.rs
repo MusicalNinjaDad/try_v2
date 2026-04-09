@@ -205,7 +205,6 @@ type ResidualArm = Arm;
 /// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
 /// Invariant validation is **NOT** managed here and should be ensured by any code which produces
 /// an `OutputType`
-#[allow(unused)]
 enum OutputType<'ast> {
     Owned {
         name: &'ast Ident,
