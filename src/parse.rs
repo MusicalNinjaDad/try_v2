@@ -10,8 +10,7 @@ pub(crate) struct TryEnum<'ast> {
     name: &'ast Ident,
     enum_data: &'ast DataEnum,
     output_variant_name: &'ast Ident,
-    output_type: &'ast Type,
-    output_type_name: &'ast Ident,
+    output_type: OutputType<'ast>,
     residual_type: Type,
 }
 
@@ -36,6 +35,20 @@ enum OutputType<'ast> {
         ty: &'ast Type,
         lifetime: &'ast Lifetime,
     },
+}
+
+impl<'ast> OutputType<'ast> {
+    fn name(&self) -> &'ast Ident {
+        match self {
+            Self::Owned { name, .. } | Self::Ref { name, .. } => name,
+        }
+    }
+
+    fn ty(&self) -> &'ast Type {
+        match self {
+            Self::Owned { ty, .. } | Self::Ref { ty, .. } => ty,
+        }
+    }
 }
 
 impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
@@ -213,28 +226,7 @@ impl<'ast> TryEnum<'ast> {
             };
         };
 
-        let _ = OutputType::try_from((output_type, first_generic_type))?;
-
-        let output_type_name = is_first_generic_type(output_type)
-            .map(|_| first_generic_type) // easier than drilling through to the ident
-            .ok_or_else(|| {
-                let base_error =
-                    error("Try requires the first generic type to be used as the `Output` type")
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                match output_type {
-                    Type::Reference(r) => base_error.add_help(
-                        output_type.span(),
-                        format_args!(
-                            "change this to &{} {first_generic_type}",
-                            r.lifetime.as_ref().expect("generic ref must have lifetime")
-                        ),
-                    ),
-                    _ => base_error.add_help(
-                        output_type.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    ),
-                }
-            })?;
+        let output_type = OutputType::try_from((output_type, first_generic_type))?;
 
         // Must be done late, after validating suitable generics
         let residual_type: Type = generate_residual(ast);
@@ -244,7 +236,6 @@ impl<'ast> TryEnum<'ast> {
             enum_data,
             output_variant_name,
             output_type,
-            output_type_name,
             residual_type,
         })
     }
@@ -273,8 +264,8 @@ impl<'ast> TryEnum<'ast> {
             self.name,
             self.enum_data,
             self.output_variant_name,
-            self.output_type,
-            self.output_type_name,
+            self.output_type.ty(),
+            self.output_type.name(),
             &self.residual_type,
         )
     }
