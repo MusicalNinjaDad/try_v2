@@ -158,15 +158,19 @@ impl<'ast> TryEnum<'ast> {
                         .add_help(first_generic_type.span(), "Output type defined here")
                         .add_help(fields.span(), msg)
                 }
-                Fields::Unit => error("Try requires a generic type for `Output`").add_help(
-                    output_variant.span(),
-                    format_args!("add ({first_generic_type}) after this..."),
-                ),
+                Fields::Unit => error("Try requires a generic type for `Output`")
+                    .add_help(first_generic_type.span(), "Output type defined here")
+                    .add_help(
+                        output_variant.span(),
+                        format_args!("add ({first_generic_type}) after this..."),
+                    ),
                 Fields::Named(fields) => {
-                    error("Try requires an unnamed field for the `Output` variant").add_help(
-                        fields.span(),
-                        format_args!("change this to ({first_generic_type})"),
-                    )
+                    error("Try requires an unnamed field for the `Output` variant")
+                        .add_help(first_generic_type.span(), "Output type defined here")
+                        .add_help(
+                            fields.span(),
+                            format_args!("change this to ({first_generic_type})"),
+                        )
                 }
             };
         };
