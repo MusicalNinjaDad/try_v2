@@ -197,17 +197,17 @@ impl<'ast> TryEnum<'ast> {
     ///     output_type,
     ///     output_type_name,
     ///     residual_type,
-    /// ) = tryenum.split_for_impl();
+    /// ) = try_enum.split_for_impl();
     /// ```
     pub(crate) fn split_for_impl(
         &'ast self,
     ) -> (
-        &'ast Ident,
+        &'ast Name,
         &'ast DataEnum,
-        &'ast Ident,
-        &'ast Type,
-        &'ast Ident,
-        &'ast Type,
+        &'ast OutputVariantName,
+        &'ast OutputTypeTy,
+        &'ast OutputTypeName,
+        &'ast ResidualType,
     ) {
         (
             self.name,
@@ -219,6 +219,12 @@ impl<'ast> TryEnum<'ast> {
         )
     }
 }
+
+type Name = Ident;
+type OutputVariantName = Ident;
+type OutputTypeTy = Type;
+type OutputTypeName = Ident;
+type ResidualType = Type;
 
 /// Generate the residual type with appropriate arguments (! + remaining generics).
 ///
