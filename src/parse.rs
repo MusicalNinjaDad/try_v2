@@ -26,14 +26,14 @@ type ResidualArm = Arm;
 /// Invariant validation is **NOT** managed here and should be ensured by any code which produces
 /// an `OutputType`
 enum OutputType<'ast> {
-    Owned,
+    Path,
     Ref { lifetime: &'ast Lifetime },
 }
 
 /// From, not TryFrom - check invariants (single ident) first
 impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
     fn from(_: &TypePath) -> Self {
-        Self::Owned
+        Self::Path
     }
 }
 
@@ -124,7 +124,7 @@ impl<'ast> TryEnum<'ast> {
                                 )
                         })?;
                     match first_output_usage {
-                        OutputType::Owned => base_error.add_help(
+                        OutputType::Path => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
                         ),
@@ -179,6 +179,36 @@ impl<'ast> TryEnum<'ast> {
             output_type_name,
             residual_type,
         })
+    }
+
+    /// ```ignore
+    /// let (
+    ///     name,
+    ///     enum_data,
+    ///     output_variant_name,
+    ///     output_type,
+    ///     output_type_name,
+    ///     residual_type,
+    /// ) = tryenum.split_for_impl();
+    /// ```
+    pub(crate) fn split_for_impl(
+        &'ast self,
+    ) -> (
+        &'ast Ident,
+        &'ast DataEnum,
+        &'ast Ident,
+        &'ast Type,
+        &'ast Ident,
+        &'ast Type,
+    ) {
+        (
+            self.name,
+            self.enum_data,
+            self.output_variant_name,
+            self.output_type,
+            self.output_type_name,
+            &self.residual_type,
+        )
     }
 }
 
