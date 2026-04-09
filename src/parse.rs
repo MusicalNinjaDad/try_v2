@@ -2,7 +2,8 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    Ident, Lifetime, Type, Variant, parse_quote, spanned::Spanned,
+    Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant, WhereClause, parse_quote,
+    spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -12,6 +13,7 @@ pub(crate) struct TryEnum<'ast> {
     output_variant_name: &'ast Ident,
     output_type: OutputType<'ast>,
     residual_type: Type,
+    generics: &'ast Generics,
 }
 
 impl<'ast> TryEnum<'ast> {
@@ -101,6 +103,7 @@ impl<'ast> TryEnum<'ast> {
             output_variant_name,
             output_type,
             residual_type,
+            generics: &ast.generics,
         })
     }
 
@@ -180,13 +183,20 @@ impl<'ast> TryEnum<'ast> {
         &'ast OutputTypeTy,
         &'ast OutputTypeName,
         &'ast ResidualType,
+        ImplGenerics<'ast>,
+        TypeGenerics<'ast>,
+        Option<&'ast WhereClause>,
     ) {
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         (
             self.name,
             self.output_variant_name,
             self.output_type.ty(),
             self.output_type.name(),
             &self.residual_type,
+            impl_generics,
+            ty_generics,
+            where_clause,
         )
     }
 }

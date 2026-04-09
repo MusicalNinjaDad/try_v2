@@ -190,7 +190,16 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let tryenum = TryEnum::parse(&ast)?;
-    let (name, output_variant_name, output_type, _, residual_type) = tryenum.split_for_impl();
+    let (
+        name,
+        output_variant_name,
+        output_type,
+        _,
+        residual_type,
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
 
     if !ast
         .attrs
@@ -204,7 +213,6 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         )?
     };
 
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let (branch_arms, residual_arms) = tryenum.generate_arms();
 
     let impl_try = quote! {
@@ -301,9 +309,9 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let tryenum = TryEnum::parse(&ast)?;
-    let (name, _, _, output_type_name, residual_type) = tryenum.split_for_impl();
+    let (name, _, _, output_type_name, residual_type, _, ty_generics, where_clause) =
+        tryenum.split_for_impl();
 
-    let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
 
@@ -392,9 +400,16 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let tryenum = TryEnum::parse(&ast)?;
-    let (name, output_variant_name, output_type, output_type_name, _) = tryenum.split_for_impl();
-
-    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
+    let (
+        name,
+        output_variant_name,
+        output_type,
+        output_type_name,
+        _,
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
 
     let mut impl_traits = quote! {
         impl #impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
