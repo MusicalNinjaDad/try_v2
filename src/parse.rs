@@ -176,7 +176,6 @@ impl<'ast> TryEnum<'ast> {
         &'ast self,
     ) -> (
         &'ast Name,
-        &'ast DataEnum,
         &'ast OutputVariantName,
         &'ast OutputTypeTy,
         &'ast OutputTypeName,
@@ -184,7 +183,6 @@ impl<'ast> TryEnum<'ast> {
     ) {
         (
             self.name,
-            self.enum_data,
             self.output_variant_name,
             self.output_type.ty(),
             self.output_type.name(),
