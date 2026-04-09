@@ -7,12 +7,12 @@ use syn::{
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
 pub(crate) struct TryEnum<'ast> {
-    pub(crate) name: &'ast Ident,
-    pub(crate) enum_data: &'ast DataEnum,
-    pub(crate) output_variant_name: &'ast Ident,
-    pub(crate) output_type: &'ast Type,
-    pub(crate) output_type_name: &'ast Ident,
-    pub(crate) residual_type: Type,
+    name: &'ast Ident,
+    enum_data: &'ast DataEnum,
+    output_variant_name: &'ast Ident,
+    output_type: &'ast Type,
+    output_type_name: &'ast Ident,
+    residual_type: Type,
 }
 
 /// An Arm to be used when matching for `fn branch`.
