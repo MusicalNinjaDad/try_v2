@@ -307,7 +307,10 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                             )
                         })?
                 } else {
-                    todo!("ref to invalid type")
+                    return Result::Err(base_error().add_help(
+                        ty.span(),
+                        format_args!("change this to &{lifetime} {first_generic_type}"),
+                    ));
                 };
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }

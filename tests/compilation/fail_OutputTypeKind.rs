@@ -25,4 +25,11 @@ enum NotPathOrRef<T> {
     Err(T),
 }
 
+#[derive(Try, Try_ConvertResult)]
+#[must_use]
+enum RefToNotPath<'n, T> {
+    Ok(&'n !),
+    Err(T),
+}
+
 fn main() {}

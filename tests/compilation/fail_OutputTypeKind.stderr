@@ -105,3 +105,39 @@ help: change this to T
 24 |     Ok(!),
    |        ^
    = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires the first generic type to be used as the `Output` type
+  --> tests/compilation/fail_OutputTypeKind.rs:28:10
+   |
+28 | #[derive(Try, Try_ConvertResult)]
+   |          ^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_OutputTypeKind.rs:30:23
+   |
+30 | enum RefToNotPath<'n, T> {
+   |                       ^
+help: change this to &'n T
+  --> tests/compilation/fail_OutputTypeKind.rs:31:8
+   |
+31 |     Ok(&'n !),
+   |        ^^^^^
+   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Try requires the first generic type to be used as the `Output` type
+  --> tests/compilation/fail_OutputTypeKind.rs:28:15
+   |
+28 | #[derive(Try, Try_ConvertResult)]
+   |               ^^^^^^^^^^^^^^^^^
+   |
+help: Output type defined here
+  --> tests/compilation/fail_OutputTypeKind.rs:30:23
+   |
+30 | enum RefToNotPath<'n, T> {
+   |                       ^
+help: change this to &'n T
+  --> tests/compilation/fail_OutputTypeKind.rs:31:8
+   |
+31 |     Ok(&'n !),
+   |        ^^^^^
+   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
