@@ -142,33 +142,22 @@ impl<'ast> TryEnum<'ast> {
         } else {
             return match &output_variant.fields {
                 Fields::Unnamed(fields) => {
-                    let base_error = error("Try requires a single generic type for `Output`")
+                    let first_output_usage = fields.unnamed.iter().find_map(|field| {
+                        OutputType::try_from((&field.ty, first_generic_type)).ok()
+                    });
+                    let msg = match first_output_usage {
+                        None => format!("change this to ({first_generic_type})"),
+                        Some(OutputType::Owned { .. }) => {
+                            format!("change this to ({first_generic_type})")
+                        }
+                        Some(OutputType::Ref { lifetime, .. }) => {
+                            format!("change this to (&{lifetime} {first_generic_type})")
+                        }
+                    };
+                    error("Try requires a single generic type for `Output`")
                         // TODO: Check that multiline enum defs show whole def in help
-                        .add_help(first_generic_type.span(), "Output type defined here");
-                    let first_output_usage = &fields
-                        .unnamed
-                        .iter()
-                        .find_map(|field| {
-                            OutputType::try_from((&field.ty, first_generic_type)).ok()
-                        })
-                        .ok_or_else(|| {
-                            error("Try requires a single generic type for `Output`")
-                                .add_help(first_generic_type.span(), "Output type defined here")
-                                .add_help(
-                                    fields.span(),
-                                    format_args!("change this to ({first_generic_type})"),
-                                )
-                        })?;
-                    match first_output_usage {
-                        OutputType::Owned { .. } => base_error.add_help(
-                            fields.span(),
-                            format_args!("change this to ({first_generic_type})"),
-                        ),
-                        OutputType::Ref { lifetime, .. } => base_error.add_help(
-                            fields.span(),
-                            format_args!("change this to (&{lifetime} {first_generic_type})"),
-                        ),
-                    }
+                        .add_help(first_generic_type.span(), "Output type defined here")
+                        .add_help(fields.span(), msg)
                 }
                 Fields::Unit => error("Try requires a generic type for `Output`").add_help(
                     output_variant.span(),
