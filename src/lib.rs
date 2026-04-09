@@ -315,10 +315,10 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
 
-    let mut from_result_generics = tryenum.cloned_generics();
-    from_result_generics
-        .params
-        .push(parse_quote! {#result_e: Into<#name #ty_generics>});
+    let from_result_generics = tryenum.generics(|g| {
+        g.params
+            .push(parse_quote! {#result_e: Into<#name #ty_generics>})
+    });
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
     let mut to_result_generics = tryenum.cloned_generics();
@@ -437,13 +437,14 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
     let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
 
-    let mut returned_generics = tryenum.cloned_generics();
-    for param in returned_generics.type_params_mut() {
-        if param.ident == *output_type_name {
-            *param = parse_quote! {#vec_ish};
-            break;
+    let returned_generics = tryenum.generics(|g| {
+        for param in g.type_params_mut() {
+            if param.ident == *output_type_name {
+                *param = parse_quote! {#vec_ish};
+                break;
+            }
         }
-    }
+    });
     let (_, ret_ty_generics, _) = returned_generics.split_for_impl();
 
     impl_traits.extend(quote! {
