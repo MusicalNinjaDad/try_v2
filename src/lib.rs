@@ -197,7 +197,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         output_type,
         output_type_name,
         residual_type,
-    } = TryEnum::try_parse(&ast)?;
+    } = TryEnum::parse(&ast)?;
 
     if !ast
         .attrs
@@ -315,7 +315,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
         output_type,
         output_type_name,
         residual_type,
-    } = TryEnum::try_parse(&ast)?;
+    } = TryEnum::parse(&ast)?;
 
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
@@ -413,7 +413,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         output_type,
         output_type_name,
         residual_type,
-    } = TryEnum::try_parse(&ast)?;
+    } = TryEnum::parse(&ast)?;
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 

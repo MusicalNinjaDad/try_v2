@@ -51,7 +51,7 @@ impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
 
 impl<'ast> TryEnum<'ast> {
     /// Handles all the invariant validation and enum un-nesting.
-    pub(crate) fn try_parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
+    pub(crate) fn parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
         // Fail fast
         let enum_data: &DataEnum = match &ast.data {
             Data::Enum(enum_data) => Ok(enum_data),
