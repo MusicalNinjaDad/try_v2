@@ -189,15 +189,10 @@ pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
 fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
+    let tryenum = TryEnum::parse(&ast)?;
     #[allow(unused_variables)]
-    let TryEnum {
-        name,
-        enum_data,
-        output_variant_name,
-        output_type,
-        output_type_name,
-        residual_type,
-    } = TryEnum::parse(&ast)?;
+    let (name, enum_data, output_variant_name, output_type, output_type_name, residual_type) =
+        tryenum.split_for_impl();
 
     if !ast
         .attrs
@@ -307,15 +302,10 @@ pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
 fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
+    let tryenum = TryEnum::parse(&ast)?;
     #[allow(unused_variables)]
-    let TryEnum {
-        name,
-        enum_data,
-        output_variant_name,
-        output_type,
-        output_type_name,
-        residual_type,
-    } = TryEnum::parse(&ast)?;
+    let (name, enum_data, output_variant_name, output_type, output_type_name, residual_type) =
+        tryenum.split_for_impl();
 
     let (_, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let result_e = format_ident!("Derive_TryConvert_ResultE");
@@ -405,15 +395,10 @@ pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
 fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
+    let tryenum = TryEnum::parse(&ast)?;
     #[allow(unused_variables)]
-    let TryEnum {
-        name,
-        enum_data,
-        output_variant_name,
-        output_type,
-        output_type_name,
-        residual_type,
-    } = TryEnum::parse(&ast)?;
+    let (name, enum_data, output_variant_name, output_type, output_type_name, residual_type) =
+        tryenum.split_for_impl();
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
 
