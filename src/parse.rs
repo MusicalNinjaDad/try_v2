@@ -257,16 +257,6 @@ impl<'ast> TryEnum<'ast> {
         self.enum_data.variants.iter().map(arms).unzip()
     }
 
-    /// ```ignore
-    /// let (
-    ///     name,
-    ///     enum_data,
-    ///     output_variant_name,
-    ///     output_type,
-    ///     output_type_name,
-    ///     residual_type,
-    /// ) = try_enum.split_for_impl();
-    /// ```
     pub(crate) fn split_for_impl(
         &'ast self,
     ) -> (
