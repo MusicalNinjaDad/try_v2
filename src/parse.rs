@@ -85,16 +85,15 @@ impl<'ast> TryEnum<'ast> {
         //  designed to be used in .find_map() or with .ok_or_else()?
         let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
             match ty {
-                Type::Path(tp) => tp
-                    .path
-                    .get_ident()
-                    .filter(|t| *t == first_generic_type)
-                    .map(|_| OutputType::from(tp)),
-                Type::Reference(tr) if let Type::Path(tp) = tr.elem.as_ref() => tp
-                    .path
-                    .get_ident()
-                    .filter(|t| *t == first_generic_type)
-                    .map(|_| OutputType::from(tr)),
+                Type::Path(tp) if tp.path.is_ident(first_generic_type) => {
+                    Some(OutputType::from(tp))
+                }
+                Type::Reference(tr)
+                    if let Type::Path(tp) = tr.elem.as_ref()
+                        && tp.path.is_ident(first_generic_type) =>
+                {
+                    Some(OutputType::from(tr))
+                }
                 _ => None,
             }
         };
