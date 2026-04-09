@@ -25,20 +25,67 @@ type ResidualArm = Arm;
 /// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
 /// Invariant validation is **NOT** managed here and should be ensured by any code which produces
 /// an `OutputType`
+#[allow(unused)]
 enum OutputType<'ast> {
-    Path,
+    Owned {
+        name: &'ast Ident,
+        ty: &'ast Type,
+    },
+    Ref {
+        name: &'ast Ident,
+        ty: &'ast Type,
+        lifetime: &'ast Lifetime,
+    },
+}
+
+impl<'ast> TryFrom<&'ast Type> for OutputType<'ast> {
+    type Error = DiagnosticResult<Self>;
+
+    fn try_from(ty: &'ast Type) -> Result<Self, Self::Error> {
+        match ty {
+            Type::Path(type_path) => Result::Ok(Self::Owned {
+                name: type_path
+                    .path
+                    .get_ident()
+                    .expect("Invariant: must store generic type"),
+                ty,
+            }),
+            Type::Reference(tr) => {
+                let lifetime = tr
+                    .lifetime
+                    .as_ref()
+                    .expect("References in enum definitions require a specified lifetime");
+                let name = if let Type::Path(tp) = tr.elem.as_ref() {
+                    tp.path
+                        .get_ident()
+                        .expect("Invariant: must store generic type")
+                } else {
+                    todo!("ref to invalid type")
+                };
+                Result::Ok(Self::Ref { name, ty, lifetime })
+            }
+            _ => todo!("invalid output type"),
+        }
+    }
+}
+
+/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
+/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
+/// an `OutputType`
+enum OutputTypeOld<'ast> {
+    Owned,
     Ref { lifetime: &'ast Lifetime },
 }
 
 /// From, not TryFrom - check invariants (single ident) first
-impl<'ast> From<&'ast TypePath> for OutputType<'ast> {
+impl<'ast> From<&'ast TypePath> for OutputTypeOld<'ast> {
     fn from(_: &TypePath) -> Self {
-        Self::Path
+        Self::Owned
     }
 }
 
 /// From, not TryFrom - check invariants (has a named lifetime) first, or you risk a panic!
-impl<'ast> From<&'ast TypeReference> for OutputType<'ast> {
+impl<'ast> From<&'ast TypeReference> for OutputTypeOld<'ast> {
     fn from(tr: &'ast TypeReference) -> Self {
         let lifetime = tr
             .lifetime
@@ -82,16 +129,16 @@ impl<'ast> TryEnum<'ast> {
 
         // Returns Some(OutputType::...) if ty has same ident as first generic type
         //  designed to be used in .find_map() or with .ok_or_else()?
-        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputType<'ast>> {
+        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputTypeOld<'ast>> {
             match ty {
                 Type::Path(tp) if tp.path.is_ident(first_generic_type) => {
-                    Some(OutputType::from(tp))
+                    Some(OutputTypeOld::from(tp))
                 }
                 Type::Reference(tr)
                     if let Type::Path(tp) = tr.elem.as_ref()
                         && tp.path.is_ident(first_generic_type) =>
                 {
-                    Some(OutputType::from(tr))
+                    Some(OutputTypeOld::from(tr))
                 }
                 _ => None,
             }
@@ -124,11 +171,11 @@ impl<'ast> TryEnum<'ast> {
                                 )
                         })?;
                     match first_output_usage {
-                        OutputType::Path => base_error.add_help(
+                        OutputTypeOld::Owned => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
                         ),
-                        OutputType::Ref { lifetime } => base_error.add_help(
+                        OutputTypeOld::Ref { lifetime } => base_error.add_help(
                             fields.span(),
                             format_args!("change this to (&{lifetime} {first_generic_type})"),
                         ),
@@ -146,6 +193,8 @@ impl<'ast> TryEnum<'ast> {
                 }
             };
         };
+
+        let _ = OutputType::try_from(output_type);
 
         let output_type_name = is_first_generic_type(output_type)
             .map(|_| first_generic_type) // easier than drilling through to the ident
