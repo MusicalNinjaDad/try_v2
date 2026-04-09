@@ -277,6 +277,7 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                 .add_help(first_generic_type.span(), "Output type defined here")
         };
 
+        // TODO: #47 handle Vec<T>, &[T], Box<T> etc...
         match ty {
             Type::Path(type_path) => Result::Ok(Self::Owned {
                 name: type_path
