@@ -2,7 +2,7 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    Ident, Lifetime, Type, TypePath, TypeReference, Variant, parse_quote, spanned::Spanned,
+    Ident, Lifetime, Type, Variant, parse_quote, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -104,32 +104,6 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
     }
 }
 
-/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
-/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
-/// an `OutputType`
-enum OutputTypeOld<'ast> {
-    Owned,
-    Ref { lifetime: &'ast Lifetime },
-}
-
-/// From, not TryFrom - check invariants (single ident) first
-impl<'ast> From<&'ast TypePath> for OutputTypeOld<'ast> {
-    fn from(_: &TypePath) -> Self {
-        Self::Owned
-    }
-}
-
-/// From, not TryFrom - check invariants (has a named lifetime) first, or you risk a panic!
-impl<'ast> From<&'ast TypeReference> for OutputTypeOld<'ast> {
-    fn from(tr: &'ast TypeReference) -> Self {
-        let lifetime = tr
-            .lifetime
-            .as_ref()
-            .expect("References in enum definitions require a specified lifetime");
-        Self::Ref { lifetime }
-    }
-}
-
 impl<'ast> TryEnum<'ast> {
     /// Handles all the invariant validation and enum un-nesting.
     pub(crate) fn parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
@@ -162,23 +136,6 @@ impl<'ast> TryEnum<'ast> {
                     .add_help(name.span(), "Add <T> after this..."),
             )?;
 
-        // Returns Some(OutputType::...) if ty has same ident as first generic type
-        //  designed to be used in .find_map() or with .ok_or_else()?
-        let is_first_generic_type = |ty: &'ast Type| -> Option<OutputTypeOld<'ast>> {
-            match ty {
-                Type::Path(tp) if tp.path.is_ident(first_generic_type) => {
-                    Some(OutputTypeOld::from(tp))
-                }
-                Type::Reference(tr)
-                    if let Type::Path(tp) = tr.elem.as_ref()
-                        && tp.path.is_ident(first_generic_type) =>
-                {
-                    Some(OutputTypeOld::from(tr))
-                }
-                _ => None,
-            }
-        };
-
         let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
             && fields.unnamed.len() == 1
         {
@@ -196,7 +153,9 @@ impl<'ast> TryEnum<'ast> {
                     let first_output_usage = &fields
                         .unnamed
                         .iter()
-                        .find_map(|field| is_first_generic_type(&field.ty))
+                        .find_map(|field| {
+                            OutputType::try_from((&field.ty, first_generic_type)).ok()
+                        })
                         .ok_or_else(|| {
                             error("Try requires a single generic type for `Output`")
                                 .add_help(first_generic_type.span(), "Output type defined here")
@@ -206,11 +165,11 @@ impl<'ast> TryEnum<'ast> {
                                 )
                         })?;
                     match first_output_usage {
-                        OutputTypeOld::Owned => base_error.add_help(
+                        OutputType::Owned { .. } => base_error.add_help(
                             fields.span(),
                             format_args!("change this to ({first_generic_type})"),
                         ),
-                        OutputTypeOld::Ref { lifetime } => base_error.add_help(
+                        OutputType::Ref { lifetime, .. } => base_error.add_help(
                             fields.span(),
                             format_args!("change this to (&{lifetime} {first_generic_type})"),
                         ),
