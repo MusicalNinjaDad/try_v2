@@ -175,6 +175,10 @@ impl<'ast> TryEnum<'ast> {
         self.enum_data.variants.iter().map(arms).unzip()
     }
 
+    pub(crate) fn cloned_generics(&self) -> Generics {
+        self.generics.clone()
+    }
+
     pub(crate) fn split_for_impl(
         &'ast self,
     ) -> (

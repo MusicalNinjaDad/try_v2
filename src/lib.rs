@@ -315,13 +315,13 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     let result_e = format_ident!("Derive_TryConvert_ResultE");
     let result_t = format_ident!("Derive_TryConvert_ResultT");
 
-    let mut from_result_generics = ast.generics.clone();
+    let mut from_result_generics = tryenum.cloned_generics();
     from_result_generics
         .params
         .push(parse_quote! {#result_e: Into<#name #ty_generics>});
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-    let mut to_result_generics = ast.generics.clone();
+    let mut to_result_generics = tryenum.cloned_generics();
     to_result_generics.params = to_result_generics
         .params
         .into_iter()
@@ -430,13 +430,13 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let defined_type = quote! {#name #ty_generics};
     let vec_ish = format_ident!("Derive_TryIterator_V");
 
-    let mut full_generics = ast.generics.clone();
+    let mut full_generics = tryenum.cloned_generics();
     full_generics
         .params
         .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
     let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
 
-    let mut returned_generics = ast.generics.clone();
+    let mut returned_generics = tryenum.cloned_generics();
     for param in returned_generics.type_params_mut() {
         if param.ident == *output_type_name {
             *param = parse_quote! {#vec_ish};
