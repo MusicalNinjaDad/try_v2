@@ -176,6 +176,10 @@ impl<'ast> TryEnum<'ast> {
     }
 
     /// Provides a cloned set of generics after applying `change`
+    ///
+    /// `generics()` is designed for situations where you can modify the generics in place, use
+    /// `generics_with_params()` where the parameters need redefining in a way which can be better
+    /// achieved via `.into_iter()....collect()`
     pub(crate) fn generics<C>(&self, mut change: C) -> Generics
     where
         C: FnMut(&mut Generics),
@@ -185,7 +189,11 @@ impl<'ast> TryEnum<'ast> {
         generics
     }
 
-    /// Provides a cloned set of generics after applying the `adaptor` to the params
+    /// Provides a cloned set of generics after applying the `adaptor` to the params.
+    ///
+    /// `generics_with_params()` is designed for situations where the parameters need redefining
+    /// in a way which can be best achieved via `.into_iter()....collect()`, use `generics()`
+    /// for situations where you can modify the generics in place.
     pub(crate) fn generics_with_params<P, I>(&self, adaptor: P) -> Generics
     where
         P: FnOnce(IntoIter<GenericParam>) -> I,
