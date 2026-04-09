@@ -417,6 +417,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         where_clause,
     ) = tryenum.split_for_impl();
 
+    // Standing on the shoulders of giants & blatanty (ab)using `std::option`'s work
     let mut impl_traits = quote! {
         impl #impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
             type Item = #output_type;
