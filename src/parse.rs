@@ -39,7 +39,7 @@ enum OutputType<'ast> {
 }
 
 impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
-    type Error = DiagnosticResult<Self>;
+    type Error = DiagnosticResult<!>;
 
     fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
         match ty {
@@ -213,7 +213,7 @@ impl<'ast> TryEnum<'ast> {
             };
         };
 
-        let _ = OutputType::try_from((output_type, first_generic_type));
+        let _ = OutputType::try_from((output_type, first_generic_type))?;
 
         let output_type_name = is_first_generic_type(output_type)
             .map(|_| first_generic_type) // easier than drilling through to the ident
