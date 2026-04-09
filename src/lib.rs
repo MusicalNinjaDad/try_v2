@@ -465,79 +465,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
 #[cfg(test)]
 mod tests {
-    use syn::Type;
-
     use super::*;
-
-    #[test]
-    fn simple_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum Exit<T> {
-                Ok(T),
-                TestsFailed,
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {Exit<!>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn multiple_generics_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum Exit<T, E> {
-                Ok(T),
-                TestsFailed(E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {Exit<!, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn static_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<T: 'static, E> {
-                Ok(&'static T),
-                Err(E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<!, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn lifetime_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<'r, T, E> {
-                Ok(&'r T),
-                Err(&'r E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
-        assert_eq!(expected_residual, residual);
-    }
-
-    #[test]
-    fn multiple_lifetimes_ref_residual() {
-        let original: DeriveInput = parse_quote! {
-            #[derive(Try)]
-            enum MyResult<'t, 'e, T, E> {
-                Ok(&'t T),
-                Err(&'e E),
-            }
-        };
-        let residual = TryEnum::generate_residual(&original);
-        let expected_residual: Type = parse_quote! {MyResult<'t, 'e, !, E>};
-        assert_eq!(expected_residual, residual);
-    }
 
     #[test]
     fn derive() {

@@ -2,8 +2,7 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    Ident, Lifetime, Type, TypePath, TypeReference, Variant, parse_quote,
-    spanned::Spanned,
+    Ident, Lifetime, Type, TypePath, TypeReference, Variant, parse_quote, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -170,7 +169,7 @@ impl<'ast> TryEnum<'ast> {
             })?;
 
         // Must be done late, after validating suitable generics
-        let residual_type: Type = Self::generate_residual(ast);
+        let residual_type: Type = generate_residual(ast);
 
         Ok(Self {
             name,
@@ -180,33 +179,6 @@ impl<'ast> TryEnum<'ast> {
             output_type_name,
             residual_type,
         })
-    }
-
-    /// Generate the residual type with appropriate arguments (! + remaining generics).
-    ///
-    /// Does not act on `self` as this is designed to be called during creation of a `TryEnum`
-    /// and is only a separate function to facilitate direct testing
-    ///
-    /// ### Panics
-    /// if called on unsuitable input, or where invariants (at least one generic type)
-    /// are not upheld.
-    pub(crate) fn generate_residual(ast: &DeriveInput) -> Type {
-        let name = &ast.ident;
-        let (_, ty_generics, _) = ast.generics.split_for_impl();
-        let mut typeargs: AngleBracketedGenericArguments = parse_quote!(#ty_generics);
-        let first_type = typeargs
-            .args
-            .iter_mut()
-            .find_map(|arg| {
-                if let GenericArgument::Type(typ) = arg {
-                    Some(typ)
-                } else {
-                    None
-                }
-            })
-            .expect("must have at least one generic output type");
-        *first_type = parse_quote!(!);
-        parse_quote! {#name #typeargs} // e.g. `Foo<!,E,U>`
     }
 
     /// Create match arms for `fn branch` and `fn from_residual`.
@@ -280,5 +252,107 @@ impl<'ast> TryEnum<'ast> {
         };
 
         enum_data.variants.iter().enumerate().map(arms).unzip()
+    }
+}
+
+/// Generate the residual type with appropriate arguments (! + remaining generics).
+///
+/// Does not act on `self` as this is designed to be called during creation of a `TryEnum`
+/// and is only a separate function to facilitate direct testing
+///
+/// ### Panics
+/// if called on unsuitable input, or where invariants (at least one generic type)
+/// are not upheld.
+fn generate_residual(ast: &DeriveInput) -> Type {
+    let name = &ast.ident;
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
+    let mut typeargs: AngleBracketedGenericArguments = parse_quote!(#ty_generics);
+    let first_type = typeargs
+        .args
+        .iter_mut()
+        .find_map(|arg| {
+            if let GenericArgument::Type(typ) = arg {
+                Some(typ)
+            } else {
+                None
+            }
+        })
+        .expect("must have at least one generic output type");
+    *first_type = parse_quote!(!);
+    parse_quote! {#name #typeargs} // e.g. `Foo<!,E,U>`
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum Exit<T> {
+                Ok(T),
+                TestsFailed,
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {Exit<!>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn multiple_generics_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum Exit<T, E> {
+                Ok(T),
+                TestsFailed(E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {Exit<!, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn static_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<T: 'static, E> {
+                Ok(&'static T),
+                Err(E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<!, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn lifetime_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<'r, T, E> {
+                Ok(&'r T),
+                Err(&'r E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<'r, !, E>};
+        assert_eq!(expected_residual, residual);
+    }
+
+    #[test]
+    fn multiple_lifetimes_ref_residual() {
+        let original: DeriveInput = parse_quote! {
+            #[derive(Try)]
+            enum MyResult<'t, 'e, T, E> {
+                Ok(&'t T),
+                Err(&'e E),
+            }
+        };
+        let residual = generate_residual(&original);
+        let expected_residual: Type = parse_quote! {MyResult<'t, 'e, !, E>};
+        assert_eq!(expected_residual, residual);
     }
 }
