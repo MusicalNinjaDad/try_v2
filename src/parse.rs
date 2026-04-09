@@ -57,14 +57,18 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
     fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
         match ty {
             Type::Path(type_path) => Result::Ok(Self::Owned {
-                name: type_path.path.get_ident().ok_or_else(|| {
-                    error("Try requires the first generic type to be used as the `Output` type")
-                        .add_help(first_generic_type.span(), "Output type defined here")
-                        .add_help(
-                            ty.span(),
-                            format_args!("change this to {first_generic_type}"),
-                        )
-                })?,
+                name: type_path
+                    .path
+                    .get_ident()
+                    .filter(|ident| *ident == first_generic_type)
+                    .ok_or_else(|| {
+                        error("Try requires the first generic type to be used as the `Output` type")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                ty.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )
+                    })?,
                 ty,
             }),
             Type::Reference(tr) => {
@@ -72,9 +76,8 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .lifetime
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
-                let name =
-                    if let Type::Path(tp) = tr.elem.as_ref() {
-                        tp.path.get_ident().ok_or_else(|| {
+                let name = if let Type::Path(tp) = tr.elem.as_ref() {
+                    tp.path.get_ident().filter(|ident| *ident == first_generic_type).ok_or_else(|| {
                         error("Try requires the first generic type to be used as the `Output` type")
                             .add_help(first_generic_type.span(), "Output type defined here")
                             .add_help(
@@ -84,9 +87,9 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                             tr.lifetime.as_ref().expect("generic ref must have lifetime")
                         ))
                     })?
-                    } else {
-                        todo!("ref to invalid type")
-                    };
+                } else {
+                    todo!("ref to invalid type")
+                };
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }
             _ => Result::Err(
