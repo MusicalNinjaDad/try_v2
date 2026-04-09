@@ -80,12 +80,7 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     tp.path.get_ident().filter(|ident| *ident == first_generic_type).ok_or_else(|| {
                         error("Try requires the first generic type to be used as the `Output` type")
                             .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                        ty.span(),
-                        format_args!(
-                            "change this to &{} {first_generic_type}",
-                            tr.lifetime.as_ref().expect("generic ref must have lifetime")
-                        ))
+                            .add_help(ty.span(),format_args!("change this to &{lifetime} {first_generic_type}"))
                     })?
                 } else {
                     todo!("ref to invalid type")
