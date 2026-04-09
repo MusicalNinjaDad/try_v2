@@ -207,7 +207,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     };
 
     let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
-    let (branch_arms, residual_arms) = parse::generate_arms(name, enum_data, output_type);
+    let (branch_arms, residual_arms) = tryenum.generate_arms();
 
     let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {

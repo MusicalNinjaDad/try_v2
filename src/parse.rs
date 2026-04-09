@@ -189,6 +189,74 @@ impl<'ast> TryEnum<'ast> {
         })
     }
 
+    /// Create match arms for `fn branch` and `fn from_residual`.
+    pub(crate) fn generate_arms(&self) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
+        let enum_name: &Ident = self.name;
+
+        let arms = |variant: &Variant| -> (BranchArm, Option<ResidualArm>) {
+            let var_name: &Ident = &variant.ident;
+
+            match &variant.fields {
+                _ if variant.ident == *self.output_variant_name => {
+                    // Relies on invariant: Output variant always has a single field
+                    let branch_arm = parse_quote! {
+                        Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
+                    };
+
+                    let residual_arm = match self.output_type {
+                        OutputType::Owned { .. } => None,
+                        OutputType::Ref { .. } => {
+                            // &! is not recognised as infallible, but ! will coerce to any other type.
+                            // - see https://github.com/rust-lang/unsafe-code-guidelines/issues/413
+                            // - and https://users.rust-lang.org/t/whats-the-right-syntax-for-an-infallible-reference/139188
+                            Some(parse_quote! {
+                                #enum_name::#var_name(never) => *never,
+                            })
+                        }
+                    };
+                    (branch_arm, residual_arm)
+                }
+                Fields::Unit => {
+                    let branch_arm = parse_quote! {
+                        Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
+                    };
+                    let residual_arm = parse_quote! {
+                        #enum_name::#var_name => #enum_name::#var_name,
+                    };
+                    (branch_arm, Some(residual_arm))
+                }
+                Fields::Unnamed(_) => {
+                    let fields: Vec<Ident> = (0..variant.fields.len())
+                        .map(|n| format_ident!("v{n}"))
+                        .collect();
+                    let branch_arm = parse_quote! {
+                        Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
+                    };
+                    let residual_arm = parse_quote! {
+                        #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
+                    };
+                    (branch_arm, Some(residual_arm))
+                }
+                Fields::Named(_) => {
+                    let fields: Vec<Ident> = variant
+                        .fields
+                        .iter()
+                        .map(|f| f.ident.clone().expect("named field"))
+                        .collect();
+                    let branch_arm = parse_quote! {
+                        Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
+                    };
+                    let residual_arm = parse_quote! {
+                        #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
+                    };
+                    (branch_arm, Some(residual_arm))
+                }
+            }
+        };
+
+        self.enum_data.variants.iter().map(arms).unzip()
+    }
+
     /// ```ignore
     /// let (
     ///     name,
@@ -251,78 +319,6 @@ fn generate_residual(ast: &DeriveInput) -> Type {
         .expect("must have at least one generic output type");
     *first_type = parse_quote!(!);
     parse_quote! {#name #typeargs} // e.g. `Foo<!,E,U>`
-}
-
-/// Create match arms for `fn branch` and `fn from_residual`.
-///
-/// Does not act on `TryEnum` as we expect a TryEnum to be immediately destructured and not stored.
-pub(crate) fn generate_arms(
-    enum_name: &Ident,
-    enum_data: &DataEnum,
-    output_type: &Type,
-) -> (Vec<BranchArm>, Vec<Option<ResidualArm>>) {
-    let owned_output = matches!(output_type, Type::Path(_));
-    let arms = |(i, variant): (usize, &Variant)| -> (BranchArm, Option<ResidualArm>) {
-        let var_name: &Ident = &variant.ident;
-        let is_output_variant = i == 0;
-        match &variant.fields {
-            _ if is_output_variant => {
-                // Output variant always has a single field
-                let branch_arm = parse_quote! {
-                    Self::#var_name(v0) => std::ops::ControlFlow::Continue(v0),
-                };
-                let residual_arm = if owned_output {
-                    None
-                } else {
-                    // required for when Output stores a reference.
-                    // &! is not recognised as infallible, but ! will coerce to any other type.
-                    // - see https://github.com/rust-lang/unsafe-code-guidelines/issues/413
-                    // - and https://users.rust-lang.org/t/whats-the-right-syntax-for-an-infallible-reference/139188
-                    Some(parse_quote! {
-                        #enum_name::#var_name(never) => *never,
-                    })
-                };
-                (branch_arm, residual_arm)
-            }
-            Fields::Unit => {
-                let branch_arm = parse_quote! {
-                    Self::#var_name => std::ops::ControlFlow::Break(#enum_name::#var_name),
-                };
-                let residual_arm = parse_quote! {
-                    #enum_name::#var_name => #enum_name::#var_name,
-                };
-                (branch_arm, Some(residual_arm))
-            }
-            Fields::Unnamed(_) => {
-                let fields: Vec<Ident> = (0..variant.fields.len())
-                    .map(|n| format_ident!("v{n}"))
-                    .collect();
-                let branch_arm = parse_quote! {
-                    Self::#var_name(#(#fields),*) => std::ops::ControlFlow::Break(#enum_name::#var_name(#(#fields),*)),
-                };
-                let residual_arm = parse_quote! {
-                    #enum_name::#var_name(#(#fields),*) => #enum_name::#var_name(#(#fields),*),
-                };
-                (branch_arm, Some(residual_arm))
-            }
-            Fields::Named(_) => {
-                let fields: Vec<Ident> = variant
-                    .fields
-                    .iter()
-                    .map(|f| f.ident.clone().expect("named field"))
-                    .collect();
-                let branch_arm = parse_quote! {
-                    Self::#var_name{#(#fields),*} => std::ops::ControlFlow::Break(#enum_name::#var_name{#(#fields),*}),
-                };
-                let residual_arm = parse_quote! {
-                    #enum_name::#var_name{#(#fields),*} => #enum_name::#var_name{#(#fields),*},
-                };
-                (branch_arm, Some(residual_arm))
-            }
-        }
-    };
-
-    enum_data.variants.iter().enumerate().map(arms).unzip()
 }
 
 #[cfg(test)]
