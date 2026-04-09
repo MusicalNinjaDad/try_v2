@@ -2,7 +2,7 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    Ident, Lifetime, PathArguments, Type, TypePath, TypeReference, Variant, parse_quote,
+    Ident, Lifetime, Type, TypePath, TypeReference, Variant, parse_quote,
     spanned::Spanned,
 };
 
@@ -192,37 +192,21 @@ impl<'ast> TryEnum<'ast> {
     /// are not upheld.
     pub(crate) fn generate_residual(ast: &DeriveInput) -> Type {
         let name = &ast.ident;
-        let (_, tygenerics, _) = ast.generics.split_for_impl();
-        let mut residual_type: Type = parse_quote! {#name #tygenerics}; // e.g. `Foo<T,E,U>`
-        let path_args: &mut AngleBracketedGenericArguments = {
-            let Type::Path(ref mut residual_type) = residual_type else {
-                unreachable!("enum name must be Type::Path")
-            };
-            let PathArguments::AngleBracketed(ref mut args) = residual_type
-                .path
-                .segments
-                .first_mut()
-                .expect("valid enum definition has exactly one segment")
-                .arguments
-            else {
-                unreachable!("TypeGenerics quotes to angle bracketed arguments")
-            };
-            args
-        };
-        //change FIRST generic type to `!`
-        path_args
+        let (_, ty_generics, _) = ast.generics.split_for_impl();
+        let mut typeargs: AngleBracketedGenericArguments = parse_quote!(#ty_generics);
+        let first_type = typeargs
             .args
             .iter_mut()
             .find_map(|arg| {
-                if let &mut GenericArgument::Type(ref mut typ) = arg {
-                    *typ = parse_quote!(!);
-                    Some(arg) //break out of find_map
+                if let GenericArgument::Type(typ) = arg {
+                    Some(typ)
                 } else {
                     None
                 }
             })
             .expect("must have at least one generic output type");
-        residual_type
+        *first_type = parse_quote!(!);
+        parse_quote! {#name #typeargs} // e.g. `Foo<!,E,U>`
     }
 
     /// Create match arms for `fn branch` and `fn from_residual`.
