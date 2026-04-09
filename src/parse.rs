@@ -2,8 +2,8 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant, WhereClause, parse_quote,
-    spanned::Spanned,
+    GenericParam, Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant,
+    WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -175,16 +175,24 @@ impl<'ast> TryEnum<'ast> {
         self.enum_data.variants.iter().map(arms).unzip()
     }
 
-    pub(crate) fn cloned_generics(&self) -> Generics {
-        self.generics.clone()
-    }
-
+    /// Provides a cloned set of generics after applying `change`
     pub(crate) fn generics<C>(&self, mut change: C) -> Generics
     where
         C: FnMut(&mut Generics),
     {
         let mut generics = self.generics.clone();
         change(&mut generics);
+        generics
+    }
+
+    /// Provides a cloned set of generics after applying the `adaptor` to the params
+    pub(crate) fn generics_with_params<P, I>(&self, adaptor: P) -> Generics
+    where
+        P: FnOnce(IntoIter<GenericParam>) -> I,
+        I: Iterator<Item = GenericParam>,
+    {
+        let mut generics = self.generics.clone();
+        generics.params = adaptor(generics.params.into_iter()).collect();
         generics
     }
 

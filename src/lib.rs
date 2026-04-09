@@ -321,18 +321,17 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     });
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-    let mut to_result_generics = tryenum.cloned_generics();
-    to_result_generics.params = to_result_generics
-        .params
-        .into_iter()
-        //remove output type
-        .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
-        // add result types
-        .chain([
-            parse_quote! {#result_t},
-            parse_quote! {#result_e: From<#residual_type>},
-        ])
-        .collect();
+    let to_result_generics = tryenum.generics_with_params(|p| {
+        p
+            //remove output type
+            .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
+            // add result types
+            .chain([
+                parse_quote! {#result_t},
+                parse_quote! {#result_e: From<#residual_type>},
+            ])
+    });
+
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
     let impl_convert = quote! {
