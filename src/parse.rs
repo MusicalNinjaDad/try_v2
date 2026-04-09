@@ -179,6 +179,15 @@ impl<'ast> TryEnum<'ast> {
         self.generics.clone()
     }
 
+    pub(crate) fn generics<C>(&self, mut change: C) -> Generics
+    where
+        C: FnMut(&mut Generics),
+    {
+        let mut generics = self.generics.clone();
+        change(&mut generics);
+        generics
+    }
+
     pub(crate) fn split_for_impl(
         &'ast self,
     ) -> (

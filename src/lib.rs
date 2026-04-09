@@ -430,10 +430,11 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     let defined_type = quote! {#name #ty_generics};
     let vec_ish = format_ident!("Derive_TryIterator_V");
 
-    let mut full_generics = tryenum.cloned_generics();
-    full_generics
-        .params
-        .push(parse_quote! {#vec_ish: FromIterator<#output_type>});
+    let full_generics = tryenum.generics(|g| {
+        g.params
+            .push(parse_quote! {#vec_ish: FromIterator<#output_type>})
+    });
+
     let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
 
     let mut returned_generics = tryenum.cloned_generics();
