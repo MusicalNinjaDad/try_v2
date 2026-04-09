@@ -425,7 +425,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
             fn into_iter(self) -> Self::IntoIter {
                 let opt = match self {
-                    #output_variant_name(v) => Some(v),
+                    Self::#output_variant_name(v) => Some(v),
                     _ => None,
                 };
                 opt.into_iter()
@@ -435,7 +435,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
         impl #impl_generics #name #ty_generics {
             pub fn iter(&self) -> std::option::IntoIter<&#output_type> {
                 let opt = match self {
-                    #output_variant_name(v) => Some(v),
+                    Self::#output_variant_name(v) => Some(v),
                     _ => None,
                 };
                 opt.into_iter()
@@ -443,7 +443,7 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
             pub fn iter_mut(&mut self) -> std::option::IntoIter<&mut #output_type> {
                 let opt = match self {
-                    #output_variant_name(v) => Some(v),
+                    Self::#output_variant_name(v) => Some(v),
                     _ => None,
                 };
                 opt.into_iter()
