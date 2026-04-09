@@ -14,91 +14,6 @@ pub(crate) struct TryEnum<'ast> {
     residual_type: Type,
 }
 
-/// An Arm to be used when matching for `fn branch`.
-/// Own type for clarity when returning (BranchArm, ResidualArm) from a single function.
-type BranchArm = Arm;
-/// An Arm to be used when matching for `fn from_residual`.
-/// Own type for clarity of when returning (BranchArm, ResidualArm) from a single function.
-type ResidualArm = Arm;
-
-/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
-/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
-/// an `OutputType`
-#[allow(unused)]
-enum OutputType<'ast> {
-    Owned {
-        name: &'ast Ident,
-        ty: &'ast Type,
-    },
-    Ref {
-        name: &'ast Ident,
-        ty: &'ast Type,
-        lifetime: &'ast Lifetime,
-    },
-}
-
-impl<'ast> OutputType<'ast> {
-    fn name(&self) -> &'ast Ident {
-        match self {
-            Self::Owned { name, .. } | Self::Ref { name, .. } => name,
-        }
-    }
-
-    fn ty(&self) -> &'ast Type {
-        match self {
-            Self::Owned { ty, .. } | Self::Ref { ty, .. } => ty,
-        }
-    }
-}
-
-impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
-    type Error = DiagnosticResult<!>;
-
-    fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
-        match ty {
-            Type::Path(type_path) => Result::Ok(Self::Owned {
-                name: type_path
-                    .path
-                    .get_ident()
-                    .filter(|ident| *ident == first_generic_type)
-                    .ok_or_else(|| {
-                        error("Try requires the first generic type to be used as the `Output` type")
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(
-                                ty.span(),
-                                format_args!("change this to {first_generic_type}"),
-                            )
-                    })?,
-                ty,
-            }),
-            Type::Reference(tr) => {
-                let lifetime = tr
-                    .lifetime
-                    .as_ref()
-                    .expect("References in enum definitions require a specified lifetime");
-                let name = if let Type::Path(tp) = tr.elem.as_ref() {
-                    tp.path.get_ident().filter(|ident| *ident == first_generic_type).ok_or_else(|| {
-                        error("Try requires the first generic type to be used as the `Output` type")
-                            .add_help(first_generic_type.span(), "Output type defined here")
-                            .add_help(ty.span(),format_args!("change this to &{lifetime} {first_generic_type}"))
-                    })?
-                } else {
-                    todo!("ref to invalid type")
-                };
-                Result::Ok(Self::Ref { name, ty, lifetime })
-            }
-            _ => Result::Err(
-                error("Try requires the first generic type to be used as the `Output` type")
-                    .add_help(first_generic_type.span(), "Output type defined here")
-                    .add_help(
-                        ty.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    ),
-            ),
-        }
-    }
-}
-
 impl<'ast> TryEnum<'ast> {
     /// Handles all the invariant validation and enum un-nesting.
     pub(crate) fn parse(ast: &'ast DeriveInput) -> DiagnosticResult<Self> {
@@ -278,11 +193,92 @@ impl<'ast> TryEnum<'ast> {
     }
 }
 
+// Helper type aliases to improve function signatures (understandable return values)
 type Name = Ident;
 type OutputVariantName = Ident;
 type OutputTypeTy = Type;
 type OutputTypeName = Ident;
 type ResidualType = Type;
+type BranchArm = Arm;
+type ResidualArm = Arm;
+
+/// A Valid Type for an output variant is either a single Ident, or a reference to a single Ident.
+/// Invariant validation is **NOT** managed here and should be ensured by any code which produces
+/// an `OutputType`
+#[allow(unused)]
+enum OutputType<'ast> {
+    Owned {
+        name: &'ast Ident,
+        ty: &'ast Type,
+    },
+    Ref {
+        name: &'ast Ident,
+        ty: &'ast Type,
+        lifetime: &'ast Lifetime,
+    },
+}
+
+impl<'ast> OutputType<'ast> {
+    fn name(&self) -> &'ast Ident {
+        match self {
+            Self::Owned { name, .. } | Self::Ref { name, .. } => name,
+        }
+    }
+
+    fn ty(&self) -> &'ast Type {
+        match self {
+            Self::Owned { ty, .. } | Self::Ref { ty, .. } => ty,
+        }
+    }
+}
+
+impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
+    type Error = DiagnosticResult<!>;
+
+    fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
+        match ty {
+            Type::Path(type_path) => Result::Ok(Self::Owned {
+                name: type_path
+                    .path
+                    .get_ident()
+                    .filter(|ident| *ident == first_generic_type)
+                    .ok_or_else(|| {
+                        error("Try requires the first generic type to be used as the `Output` type")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(
+                                ty.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )
+                    })?,
+                ty,
+            }),
+            Type::Reference(tr) => {
+                let lifetime = tr
+                    .lifetime
+                    .as_ref()
+                    .expect("References in enum definitions require a specified lifetime");
+                let name = if let Type::Path(tp) = tr.elem.as_ref() {
+                    tp.path.get_ident().filter(|ident| *ident == first_generic_type).ok_or_else(|| {
+                        error("Try requires the first generic type to be used as the `Output` type")
+                            .add_help(first_generic_type.span(), "Output type defined here")
+                            .add_help(ty.span(),format_args!("change this to &{lifetime} {first_generic_type}"))
+                    })?
+                } else {
+                    todo!("ref to invalid type")
+                };
+                Result::Ok(Self::Ref { name, ty, lifetime })
+            }
+            _ => Result::Err(
+                error("Try requires the first generic type to be used as the `Output` type")
+                    .add_help(first_generic_type.span(), "Output type defined here")
+                    .add_help(
+                        ty.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    ),
+            ),
+        }
+    }
+}
 
 /// Generate the residual type with appropriate arguments (! + remaining generics).
 ///
