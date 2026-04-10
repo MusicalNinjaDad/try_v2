@@ -6,16 +6,18 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-//! Provides a derive macro for `Try`
-//! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
-//!
-//! Also enables inter-conversion from `Result<T, E>` `where E: Into::into(Self)`
-//! and back `where E: From::from<Self<!>>`
+//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for intercoversion with 
+//! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
+//! `FromIterator` analog to how `Result` & `Option` do this.
+//! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
+//! of the underlying trait.
 //!
 //! ## Requires:
 //!   - nightly
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
+//!   - `#![feature(try_trait_v2_residual)]`
+//!   - optionally:; `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 //!
 //! ## Limitations on the annotated type:
 //!   - must be an `enum`
@@ -24,7 +26,8 @@
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
 //!
-//! See the individual documentation for [Try] for specifics on the generated code.
+//! See the individual documentation for [Try], [Try_ConvertResult] and [Try_Iterator] for specifics
+//! on the generated code.
 //!
 //! ## Example Usage:
 //! ```rust
