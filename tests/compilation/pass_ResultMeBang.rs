@@ -6,38 +6,43 @@ use try_v2::Try;
 
 #[derive(Try)]
 #[must_use]
-enum Eightball<Y, N> {
+enum Eightball<Y> {
     Yes(Y),
-    No(N),
+    No,
 }
 
 struct Even(i32);
 
 impl TryFrom<i32> for Even {
-    type Error = Eightball<!, &'static str>;
+    type Error = Eightball<!>;
 
-    fn try_from(num: i32) -> Result<Even, Eightball<!, &'static str>> {
+    fn try_from(num: i32) -> Result<Even, Eightball<!>> {
         if num % 2 == 0 {
             Result::Ok(Even(num))
         } else {
-            Result::Err(Eightball::No("odd"))
+            Result::Err(Eightball::No)
         }
     }
 }
 
-fn even_string(num: i32) -> Eightball<String, &'static str> {
+fn even_string(num: i32) -> Eightball<String> {
     let n = Even::try_from(num)?;
     let s = format!("{}", n.0);
     Eightball::Yes(s)
 }
 
-impl<Y, N, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<Y, N>
+impl<Y, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<Y>
 where
-    E: Into<Eightball<Y, N>>,
+    E: Into<Eightball<!>>,
 {
     fn from_residual(residual: Result<std::convert::Infallible, E>) -> Self {
         match residual {
-            Result::Err(e) => e.into(),
+            Result::Err(e) => {
+                let bang: Eightball<!> = e.into();
+                match bang {
+                    Eightball::No => Self::No,
+                }
+            }
         }
     }
 }
