@@ -309,8 +309,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// ## Implementing [TryFrom]
 ///
 /// TryFrom requires a [Result] to be returned. To handle this: use your residual
-/// (e.g. `TestResult<!,E>` in the above example) as the `Error` type. Here's the example from
-/// the integration tests
+/// (e.g. `TestResult<!,E>` in the above example, or Eightball<!> in the one below) as the
+/// `Error` type. Here's the example from the integration tests:
 ///
 /// ```
 /// #![feature(never_type)]
