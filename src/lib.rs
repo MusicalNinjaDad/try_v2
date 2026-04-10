@@ -321,6 +321,19 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     });
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
+    let mut impl_convert = quote! {
+        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
+        {
+            #[inline]
+            #[track_caller]
+            fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
+                match residual {
+                    Result::Err(e) => e.into(),
+                }
+            }
+        }
+    };
+
     let to_result_generics = tryenum.generics_with_params(|p| {
         p
             //remove output type
@@ -334,18 +347,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
-    let impl_convert = quote! {
-        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
-                match residual {
-                    Result::Err(e) => e.into(),
-                }
-            }
-        }
-
+    impl_convert.extend(quote! {
         impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
         {
             #[inline]
@@ -354,7 +356,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
                 std::result::Result::Err(residual.into())
             }
         }
-    };
+    });
     Ok(impl_convert)
 }
 
