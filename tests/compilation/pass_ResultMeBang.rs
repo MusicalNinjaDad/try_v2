@@ -3,6 +3,7 @@
 #![feature(try_trait_v2_residual)]
 
 use try_v2::Try;
+use std::convert::Infallible;
 
 #[derive(Try)]
 #[must_use]
@@ -14,9 +15,9 @@ enum Eightball<T> {
 struct Even(i32);
 
 impl TryFrom<i32> for Even {
-    type Error = Eightball<!>;
+    type Error = Eightball<Infallible>;
 
-    fn try_from(num: i32) -> Result<Even, Eightball<!>> {
+    fn try_from(num: i32) -> Result<Even, Eightball<Infallible>> {
         if num % 2 == 0 {
             Result::Ok(Even(num))
         } else {
@@ -42,10 +43,10 @@ where
     }
 }
 
-impl<T> Into<Eightball<T>> for Eightball<!> {
-    fn into(no: Self) -> Eightball<T> {
+impl<T> From<Eightball<Infallible>> for Eightball<T> {
+    fn from(no: Eightball<Infallible>) -> Self {
         match no {
-            Self::No => Eightball::No,
+            Eightball::No => Self::No,
         }
     }
 }
