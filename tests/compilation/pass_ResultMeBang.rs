@@ -42,4 +42,12 @@ where
     }
 }
 
+impl<T> From<Eightball<!>> for Eightball<T> {
+    fn from(no: Eightball<!>) -> Self {
+        match no {
+            Eightball::No => Self::No,
+        }
+    }
+}
+
 fn main() {}

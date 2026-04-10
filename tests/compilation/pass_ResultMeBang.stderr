@@ -1,33 +1,8 @@
-error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `FromResidual`)
-  --> tests/compilation/fail_ResultMeBang.rs:29:32
+error[E0119]: conflicting implementations of trait `From<Eightball<!>>` for type `Eightball<!>`
+  --> tests/compilation/fail_ResultMeBang.rs:45:1
    |
-28 | fn even_string(num: i32) -> Eightball<String> {
-   | --------------------------------------------- this function should return `Result` or `Option` to accept `?`
-29 |     let n = Even::try_from(num)?;
-   |                                ^ cannot use the `?` operator in a function that returns `Eightball<String>`
+45 | impl<T> From<Eightball<!>> for Eightball<T> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
-help: the trait `From<Eightball<!>>` is not implemented for `Eightball<String>`
-  --> tests/compilation/fail_ResultMeBang.rs:9:1
-   |
- 9 | enum Eightball<T> {
-   | ^^^^^^^^^^^^^^^^^
-help: the following other types implement trait `FromResidual<R>`
-  --> tests/compilation/fail_ResultMeBang.rs:7:10
-   |
- 7 |   #[derive(Try)]
-   |            ^^^ `Eightball<T>` implements `FromResidual<Eightball<!>>`
-...
-34 | / impl<T, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<T>
-35 | | where
-36 | |     E: Into<Eightball<T>>,
-   | |__________________________^ `Eightball<T>` implements `FromResidual<Result<Infallible, E>>`
-   = note: required for `Eightball<!>` to implement `Into<Eightball<String>>`
-note: required for `Eightball<String>` to implement `FromResidual<Result<Infallible, Eightball<!>>>`
-  --> tests/compilation/fail_ResultMeBang.rs:34:12
-   |
-34 | impl<T, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<T>
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     ^^^^^^^^^^^^
-35 | where
-36 |     E: Into<Eightball<T>>,
-   |        ------------------ unsatisfied trait bound introduced here
-   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
+   = note: conflicting implementation in crate `core`:
+           - impl<T> From<T> for T;
