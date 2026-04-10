@@ -69,7 +69,7 @@ impl<'ast> TryEnum<'ast> {
                         Some(OutputType::Ref { lifetime, .. }) => {
                             format!("change this to (&{lifetime} {first_generic_type})")
                         }
-                        Some(OutputType::Contained { ..}) => todo!("74")
+                        Some(OutputType::Contained { .. }) => todo!("74"),
                     };
                     error("Try requires a single generic type for `Output`")
                         // TODO: Check that multiline enum defs show whole def in help
@@ -132,7 +132,7 @@ impl<'ast> TryEnum<'ast> {
                                 #enum_name::#var_name(never) => *never,
                             })
                         }
-                        OutputType::Contained { .. } => todo!("137")
+                        OutputType::Contained { .. } => todo!("137"),
                     };
                     (branch_arm, residual_arm)
                 }
@@ -315,6 +315,33 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     })?,
                     ty,
                 })
+            }
+            Type::Path(type_path) => {
+                let last_segment = type_path
+                    .path
+                    .segments
+                    .last()
+                    .expect("path has at least one segment");
+                if let PathArguments::AngleBracketed(args) = &last_segment.arguments
+                    && args.args.len() == 1
+                    && let GenericArgument::Type(generic_type) =
+                        args.args.first().expect("args.args.len() == 1")
+                {
+                    let container = type_path;
+                    let name = checked_name(generic_type).ok_or_else(|| {
+                        base_error().add_help(
+                            generic_type.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        )
+                    })?;
+                    Result::Ok(Self::Contained {
+                        name,
+                        container,
+                        ty,
+                    })
+                } else {
+                    todo!("Very wrong path, or too many generics")
+                }
             }
             Type::Reference(tr) => {
                 let lifetime = tr
