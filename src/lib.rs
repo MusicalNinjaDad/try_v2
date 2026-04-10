@@ -382,7 +382,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
             #[track_caller]
             fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
                 match residual {
-                    Result::Err(e) => {
+                    std::result::Result::Err(e) => {
                         let bang: #residual_type = e.into();
                         Self::from_residual(bang)
                     }
