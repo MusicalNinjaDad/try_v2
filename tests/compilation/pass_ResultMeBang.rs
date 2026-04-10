@@ -2,9 +2,9 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2::Try;
+use try_v2::{Try, Try_ConvertResult};
 
-#[derive(Try)]
+#[derive(Try, Try_ConvertResult)]
 #[must_use]
 enum Eightball<Y> {
     Yes(Y),
@@ -29,20 +29,6 @@ fn even_string(num: i32) -> Eightball<String> {
     let n = Even::try_from(num)?;
     let s = format!("{}", n.0);
     Eightball::Yes(s)
-}
-
-impl<Y, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<Y>
-where
-    E: Into<Eightball<!>>,
-{
-    fn from_residual(residual: Result<std::convert::Infallible, E>) -> Self {
-        match residual {
-            Result::Err(e) => {
-                let bang: Eightball<!> = e.into();
-                Self::from_residual(bang)
-            }
-        }
-    }
 }
 
 fn main() {}
