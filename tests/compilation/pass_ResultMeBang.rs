@@ -42,10 +42,10 @@ where
     }
 }
 
-impl<T> From<Eightball<!>> for Eightball<T> {
-    fn from(no: Eightball<!>) -> Self {
+impl<T> Into<Eightball<T>> for Eightball<!> {
+    fn into(no: Self) -> Eightball<T> {
         match no {
-            Eightball::No => Self::No,
+            Self::No => Eightball::No,
         }
     }
 }

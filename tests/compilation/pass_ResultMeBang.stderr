@@ -1,8 +1,9 @@
-error[E0119]: conflicting implementations of trait `From<Eightball<!>>` for type `Eightball<!>`
+error[E0119]: conflicting implementations of trait `Into<Eightball<!>>` for type `Eightball<!>`
   --> tests/compilation/fail_ResultMeBang.rs:45:1
    |
-45 | impl<T> From<Eightball<!>> for Eightball<T> {
+45 | impl<T> Into<Eightball<T>> for Eightball<!> {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: conflicting implementation in crate `core`:
-           - impl<T> From<T> for T;
+           - impl<T, U> Into<U> for T
+             where U: From<T>;
