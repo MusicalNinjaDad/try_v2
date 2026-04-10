@@ -1,3 +1,5 @@
+use std::iter::repeat_n;
+
 use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
@@ -327,6 +329,7 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .last()
                     .expect("path has at least one segment");
                 if let PathArguments::AngleBracketed(args) = &last_segment.arguments
+                    // TODO: add filter not `!` (storing a Result<T,!> should be Ok...)
                     && args.args.len() == 1
                     && let GenericArgument::Type(generic_type) =
                         args.args.first().expect("args.args.len() == 1")
@@ -344,7 +347,27 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                         ty,
                     })
                 } else {
-                    todo!("Very wrong path, or too many generics")
+                    match &last_segment.arguments {
+                        PathArguments::AngleBracketed(args) => {
+                            let _ = args
+                                .args
+                                .iter()
+                                .find(|arg| 
+                                    matches!(arg, GenericArgument::Type(t) if checked_name(t).is_some()))
+                                .ok_or_else(|| base_error()
+                                    .add_help(
+                                        args.span(),
+                                        format_args!("this should contain {first_generic_type}")
+                                    )
+                                )?;
+                            Result::Err(base_error().add_help(
+                                args.span(),
+                                format_args!("this should only contain {first_generic_type} and '!'"),
+                            ))
+                        }
+                        PathArguments::None => todo!("path to something"),
+                        PathArguments::Parenthesized(_) => todo!("a function?"),
+                    }
                 }
             }
             Type::Reference(tr) => {
