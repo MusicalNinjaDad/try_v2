@@ -2,8 +2,8 @@ use proc_macro2_diagnostic::prelude::*;
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    GenericParam, Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant,
-    WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
+    GenericParam, Generics, Ident, ImplGenerics, Lifetime, PathArguments, Type, TypeGenerics,
+    Variant, WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -289,15 +289,24 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
 
         // TODO: #47 handle Vec<T>, &[T], Box<T> etc...
         match ty {
-            Type::Path(_) => Result::Ok(Self::Owned {
-                name: checked_name(ty).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    )
-                })?,
-                ty,
-            }),
+            Type::Path(type_path)
+                if let PathArguments::None = type_path
+                    .path
+                    .segments
+                    .last()
+                    .expect("path has at least one segment")
+                    .arguments =>
+            {
+                Result::Ok(Self::Owned {
+                    name: checked_name(ty).ok_or_else(|| {
+                        base_error().add_help(
+                            ty.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        )
+                    })?,
+                    ty,
+                })
+            }
             Type::Reference(tr) => {
                 let lifetime = tr
                     .lifetime
