@@ -621,7 +621,7 @@ mod tests {
                 #[track_caller]
                 fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
                     match residual {
-                        Result::Err(e) => {
+                        std::result::Result::Err(e) => {
                             let bang: Exit<!, E> = e.into();
                             Self::from_residual(bang)
                         }
