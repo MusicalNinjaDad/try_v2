@@ -6,9 +6,9 @@
 
 - `Try_ConvertResult` now requires `E: Into<MyTry<!>>` (required for bug fix below and to reduce risk of accidentally converting an Error into an OK)
 
-### New Features
+### New features
 
-- Add `Try_Interator` to derive `IntoIterator` and `FromIterator`
+- Add `Try_Iterator` to derive `IntoIterator` and `FromIterator`
 
 ### Bugfixes
 
