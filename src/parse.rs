@@ -3,7 +3,7 @@ use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
     GenericParam, Generics, Ident, ImplGenerics, Lifetime, PathArguments, Type, TypeGenerics,
-    TypePath, Variant, WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
+    TypeNever, TypePath, Variant, WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -132,7 +132,10 @@ impl<'ast> TryEnum<'ast> {
                                 #enum_name::#var_name(never) => *never,
                             })
                         }
-                        OutputType::Contained { .. } => todo!("137"),
+                        // TODO: #53 Find a way for compiler to verify Box<!>, Vec<!> etc is impossible
+                        OutputType::Contained { .. } => Some(parse_quote! {
+                            #enum_name::#var_name(foo) => unreachable!("Container of !"),
+                        }),
                     };
                     (branch_arm, residual_arm)
                 }
