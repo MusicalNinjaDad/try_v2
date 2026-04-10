@@ -13,6 +13,7 @@
 //! of the underlying trait.
 //!
 //! ## Requires:
+//! 
 //!   - nightly
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
@@ -20,6 +21,7 @@
 //!   - optionally:; `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 //!
 //! ## Limitations on the annotated type:
+//! 
 //!   - must be an `enum`
 //!   - must have _at least one_ generic type
 //!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
@@ -30,6 +32,7 @@
 //! on the generated code.
 //!
 //! ## Example Usage:
+//! 
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
@@ -71,9 +74,11 @@
 //! ```
 //!
 //! ## MSRV
+//! 
 //! 1.85.1, in case you are using a fixed version of nightly just to get access to specific unstable features.
 //!
 //! ## Currently untested (may work, may not ...):
+//! 
 //!   - `where` clauses
 //!   - storing `Fn`s in variants
 
