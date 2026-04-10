@@ -1,8 +1,8 @@
 # Try_v2
 
- Provides a derive macro for `Try` & optionally `Try_ConvertResult` for intercoversion with
+ Provides a derive macro for `Try` & optionally `Try_ConvertResult` for interconversion with
  `std::result::Result` and `Try_Iterator` for iterating over `IntoIterator` and collecting from
- `FromIterator` analog to how `Result` & `Option` do this.
+ `FromIterator` analogous to how `Result` & `Option` do this.
  See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
  of the underlying trait.
 

@@ -6,14 +6,14 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for intercoversion with
+//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
 //! `FromIterator` analog to how `Result` & `Option` do this.
 //! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
 //! of the underlying trait.
 //!
 //! ## Requires:
-//! 
+//!
 //!   - nightly
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
@@ -21,7 +21,7 @@
 //!   - optionally:; `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 //!
 //! ## Limitations on the annotated type:
-//! 
+//!
 //!   - must be an `enum`
 //!   - must have _at least one_ generic type
 //!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
@@ -32,7 +32,7 @@
 //! on the generated code.
 //!
 //! ## Example Usage:
-//! 
+//!
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
@@ -74,11 +74,11 @@
 //! ```
 //!
 //! ## MSRV
-//! 
+//!
 //! 1.85.1, in case you are using a fixed version of nightly just to get access to specific unstable features.
 //!
 //! ## Currently untested (may work, may not ...):
-//! 
+//!
 //!   - `where` clauses
 //!   - storing `Fn`s in variants
 

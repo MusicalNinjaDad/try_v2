@@ -4,7 +4,7 @@
 
 ### Breaking changes
 
-- `Try_ConverResult` now requires `E: Into<MyTry<!>>` (required for bug fix below and to reduce risk of accidentally converting an Error into an OK)
+- `Try_ConvertResult` now requires `E: Into<MyTry<!>>` (required for bug fix below and to reduce risk of accidentally converting an Error into an OK)
 
 ### Bugfixes
 
