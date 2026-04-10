@@ -1,6 +1,10 @@
 # Changelog try_v2
 
-## [0.3.6]
+## [0.4.0]
+
+### Breaking changes
+
+- `Try_ConverResult` now requires `E: Into<MyTry<!>>` (required for bug fix below and to reduce risk of accidentally converting an Error into an OK)
 
 ### Bugfixes
 
