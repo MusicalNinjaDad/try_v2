@@ -12,7 +12,7 @@
 - `#![feature(never_type)]`
 - `#![feature(try_trait_v2)]`
 - `#![feature(try_trait_v2_residual)]`
-- optionally:; `#![feature(iterator_try_collect)]` (if using Try_Iterator)
+- optionally: `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 
 ## Limitations on the annotated type
 
