@@ -1,0 +1,10 @@
+error[E0119]: conflicting implementations of trait `FromResidual<Result<Infallible, Eightball<!>>>` for type `Eightball<!>`
+  --> tests/compilation/fail_ResultMeBang.rs:44:1
+   |
+34 |   impl<T> std::ops::FromResidual<Result<std::convert::Infallible, Eightball<!>>> for Eightball<T> {
+   |   ----------------------------------------------------------------------------------------------- first implementation here
+...
+44 | / impl<T, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<T>
+45 | | where
+46 | |     E: Into<Eightball<T>>,
+   | |__________________________^ conflicting implementation for `Eightball<!>`

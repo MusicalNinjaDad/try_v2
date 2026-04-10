@@ -35,8 +35,19 @@ impl<T> std::ops::FromResidual<Result<std::convert::Infallible, Eightball<!>>> f
     fn from_residual(residual: Result<std::convert::Infallible, Eightball<!>>) -> Self {
         match residual {
             Result::Err(e) => match e {
-                Eightball::No => Self::No
-            }
+                Eightball::No => Self::No,
+            },
+        }
+    }
+}
+
+impl<T, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<T>
+where
+    E: Into<Eightball<T>>,
+{
+    fn from_residual(residual: Result<std::convert::Infallible, E>) -> Self {
+        match residual {
+            Result::Err(e) => e.into(),
         }
     }
 }
