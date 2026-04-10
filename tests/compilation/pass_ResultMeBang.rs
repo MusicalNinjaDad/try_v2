@@ -42,7 +42,7 @@ where
     }
 }
 
-impl From<Eightball<!, &'static str>> for Eightball<String, &'static str> {
+impl<Y> From<Eightball<!, &'static str>> for Eightball<Y, &'static str> {
     fn from(no: Eightball<!, &'static str>) -> Self {
         match no {
             Eightball::No(s) => Self::No(s),

@@ -1,0 +1,8 @@
+error[E0119]: conflicting implementations of trait `From<Eightball<!, &'static str>>` for type `Eightball<!, &'static str>`
+  --> tests/compilation/fail_ResultMeBang.rs:45:1
+   |
+45 | impl<Y> From<Eightball<!, &'static str>> for Eightball<Y, &'static str> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: conflicting implementation in crate `core`:
+           - impl<T> From<T> for T;
