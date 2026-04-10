@@ -5,8 +5,11 @@
 use try_v2::Try;
 
 #[derive(Try)]
+#[allow(unused)]
 #[must_use]
 enum Eightball<Y> {
     Yes(Box<Y>),
     No,
 }
+
+fn main() {}

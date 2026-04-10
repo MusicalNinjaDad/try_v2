@@ -3,7 +3,7 @@ use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
     GenericParam, Generics, Ident, ImplGenerics, Lifetime, PathArguments, Type, TypeGenerics,
-    TypeNever, TypePath, Variant, WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
+    TypePath, Variant, WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -259,6 +259,7 @@ enum OutputType<'ast> {
     },
     Contained {
         name: &'ast Ident,
+        #[expect(unused)]
         container: &'ast TypePath,
         ty: &'ast Type,
     },
