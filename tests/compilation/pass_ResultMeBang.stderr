@@ -1,8 +1,0 @@
-error[E0119]: conflicting implementations of trait `From<Eightball<Infallible>>` for type `Eightball<Infallible>`
-  --> tests/compilation/fail_ResultMeBang.rs:46:1
-   |
-46 | impl<T> From<Eightball<Infallible>> for Eightball<T> {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = note: conflicting implementation in crate `core`:
-           - impl<T> From<T> for T;
