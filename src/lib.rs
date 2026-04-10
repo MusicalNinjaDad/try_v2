@@ -6,7 +6,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for intercoversion with 
+//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for intercoversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
 //! `FromIterator` analog to how `Result` & `Option` do this.
 //! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
@@ -282,6 +282,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::{Try, Try_ConvertResult};
 /// #[derive(Try, Try_ConvertResult)]
+/// #[must_use]
 /// enum TestResult<T, E> {
 ///     Ok(T),
 ///     TestsFailed,
@@ -289,21 +290,66 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// }
 /// ```
 /// will generate:
-/// ```ignore
+/// ```ignore code-snippet
 /// impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
 /// where
-///     RE: Into<E>
+///     RE: Into<TestResult<!,E>>
 ///
 /// ... which calls Result::Err(e) => e.into(), ...
 /// ```
 /// and
-/// ```ignore
+/// ```ignore code-snippet
 /// impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
 /// where
 ///     RE: From<TestResult<!,E>>
 ///
 /// ... which calls Result::Err(residual.into()) ...
 /// ```
+///
+/// ## Implementing [TryFrom]
+///
+/// TryFrom requires a [Result] to be returned. To handle this: use your residual
+/// (e.g. `TestResult<!,E>` in the above example) as the `Error` type. Here's the example from
+/// the integration tests
+///
+/// ```
+/// #![feature(never_type)]
+/// #![feature(try_trait_v2)]
+/// #![feature(try_trait_v2_residual)]
+///
+/// use try_v2::{Try, Try_ConvertResult};
+///
+/// #[derive(Try, Try_ConvertResult)]
+/// #[must_use]
+/// enum Eightball<Y> {
+///     Yes(Y),
+///     No,
+/// }
+///
+/// struct Even(i32);
+///
+/// impl TryFrom<i32> for Even {
+///     type Error = Eightball<!>;
+///
+///     fn try_from(num: i32) -> Result<Even, Eightball<!>> {
+///         if num % 2 == 0 {
+///             Result::Ok(Even(num))
+///         } else {
+///             Result::Err(Eightball::No)
+///         }
+///     }
+/// }
+///
+/// fn even_string(num: i32) -> Eightball<String> {
+///     let n = Even::try_from(num)?;
+///     let s = format!("{}", n.0);
+///     Eightball::Yes(s)
+/// }
+///
+/// assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
+/// assert!(matches!(even_string(1), Eightball::No));
+/// ```
+///
 pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
