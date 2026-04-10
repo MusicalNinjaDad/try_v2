@@ -10,3 +10,28 @@ enum Eightball<Y> {
     Yes(Box<Y>),
     No,
 }
+
+fn ring() {
+    enum IsBoxed<T> {
+        Yes(Box<T>),
+        No,
+    }
+    let bar: IsBoxed<!> = IsBoxed::No;
+
+    let _: IsBoxed<!> = match bar {
+        IsBoxed::No => IsBoxed::No,
+        IsBoxed::Yes(erm) => *erm,
+    };
+    
+    enum IsVec<T> {
+        Yes(Vec<T>),
+        No,
+    }
+
+    let foo: IsVec<!> = IsVec::No;
+
+    let _: IsVec<!> = match foo {
+        IsVec::No => IsVec::No,
+        IsVec::Yes(_) => unreachable!("contained !")
+    };
+}
