@@ -31,16 +31,6 @@ fn even_string(num: i32) -> Eightball<String> {
     Eightball::Yes(s)
 }
 
-impl<T> std::ops::FromResidual<Result<std::convert::Infallible, Eightball<!>>> for Eightball<T> {
-    fn from_residual(residual: Result<std::convert::Infallible, Eightball<!>>) -> Self {
-        match residual {
-            Result::Err(e) => match e {
-                Eightball::No => Self::No,
-            },
-        }
-    }
-}
-
 impl<T, E> std::ops::FromResidual<Result<std::convert::Infallible, E>> for Eightball<T>
 where
     E: Into<Eightball<T>>,
