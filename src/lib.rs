@@ -6,27 +6,33 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-//! Provides a derive macro for `Try`
-//! ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
-//!
-//! Also enables inter-conversion from `Result<T, E>` `where E: Into::into(Self)`
-//! and back `where E: From::from<Self<!>>`
+//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
+//! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
+//! `FromIterator` analog to how `Result` & `Option` do this.
+//! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
+//! of the underlying trait.
 //!
 //! ## Requires:
+//!
 //!   - nightly
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
+//!   - `#![feature(try_trait_v2_residual)]`
+//!   - optionally:; `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 //!
 //! ## Limitations on the annotated type:
+//!
 //!   - must be an `enum`
 //!   - must have _at least one_ generic type
 //!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
 //!
-//! See the individual documentation for [Try] for specifics on the generated code.
+//! See the individual documentation for [Try], [Try_ConvertResult] and [Try_Iterator] for specifics
+//! on the generated code.
 //!
 //! ## Example Usage:
+//!
 //! ```rust
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
@@ -68,9 +74,11 @@
 //! ```
 //!
 //! ## MSRV
+//!
 //! 1.85.1, in case you are using a fixed version of nightly just to get access to specific unstable features.
 //!
 //! ## Currently untested (may work, may not ...):
+//!
 //!   - `where` clauses
 //!   - storing `Fn`s in variants
 
@@ -279,6 +287,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2::{Try, Try_ConvertResult};
 /// #[derive(Try, Try_ConvertResult)]
+/// #[must_use]
 /// enum TestResult<T, E> {
 ///     Ok(T),
 ///     TestsFailed,
@@ -286,21 +295,66 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// }
 /// ```
 /// will generate:
-/// ```ignore
+/// ```ignore code-snippet
 /// impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
 /// where
-///     RE: Into<E>
+///     RE: Into<TestResult<!,E>>
 ///
 /// ... which calls Result::Err(e) => e.into(), ...
 /// ```
 /// and
-/// ```ignore
+/// ```ignore code-snippet
 /// impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
 /// where
 ///     RE: From<TestResult<!,E>>
 ///
 /// ... which calls Result::Err(residual.into()) ...
 /// ```
+///
+/// ## Implementing [TryFrom]
+///
+/// TryFrom requires a [Result] to be returned. To handle this: use your residual
+/// (e.g. `TestResult<!,E>` in the above example, or Eightball<!> in the one below) as the
+/// `Error` type. Here's the example from the integration tests:
+///
+/// ```
+/// #![feature(never_type)]
+/// #![feature(try_trait_v2)]
+/// #![feature(try_trait_v2_residual)]
+///
+/// use try_v2::{Try, Try_ConvertResult};
+///
+/// #[derive(Try, Try_ConvertResult)]
+/// #[must_use]
+/// enum Eightball<Y> {
+///     Yes(Y),
+///     No,
+/// }
+///
+/// struct Even(i32);
+///
+/// impl TryFrom<i32> for Even {
+///     type Error = Eightball<!>;
+///
+///     fn try_from(num: i32) -> Result<Even, Eightball<!>> {
+///         if num % 2 == 0 {
+///             Result::Ok(Even(num))
+///         } else {
+///             Result::Err(Eightball::No)
+///         }
+///     }
+/// }
+///
+/// fn even_string(num: i32) -> Eightball<String> {
+///     let n = Even::try_from(num)?;
+///     let s = format!("{}", n.0);
+///     Eightball::Yes(s)
+/// }
+///
+/// assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
+/// assert!(matches!(even_string(1), Eightball::No));
+/// ```
+///
 pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
     impl_convert_result(input.into()).into()
 }
@@ -317,9 +371,25 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 
     let from_result_generics = tryenum.generics(|g| {
         g.params
-            .push(parse_quote! {#result_e: Into<#name #ty_generics>})
+            .push(parse_quote! {#result_e: Into<#residual_type>})
     });
     let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
+
+    let mut impl_convert = quote! {
+        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
+        {
+            #[inline]
+            #[track_caller]
+            fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
+                match residual {
+                    std::result::Result::Err(e) => {
+                        let bang: #residual_type = e.into();
+                        Self::from_residual(bang)
+                    }
+                }
+            }
+        }
+    };
 
     let to_result_generics = tryenum.generics_with_params(|p| {
         p
@@ -334,18 +404,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 
     let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
 
-    let impl_convert = quote! {
-        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
-                match residual {
-                    Result::Err(e) => e.into(),
-                }
-            }
-        }
-
+    impl_convert.extend(quote! {
         impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
         {
             #[inline]
@@ -354,7 +413,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
                 std::result::Result::Err(residual.into())
             }
         }
-    };
+    });
     Ok(impl_convert)
 }
 
@@ -556,13 +615,16 @@ mod tests {
         };
 
         let expected_impl: TokenStream2 = quote! {
-            impl<T: Termination, E, Derive_TryConvert_ResultE: Into< Exit<T, E> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T, E>
+            impl<T: Termination, E, Derive_TryConvert_ResultE: Into< Exit<!, E> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T, E>
             {
                 #[inline]
                 #[track_caller]
                 fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
                     match residual {
-                        Result::Err(e) => e.into(),
+                        std::result::Result::Err(e) => {
+                            let bang: Exit<!, E> = e.into();
+                            Self::from_residual(bang)
+                        }
                     }
                 }
             }
