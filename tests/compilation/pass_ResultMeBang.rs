@@ -39,7 +39,7 @@ where
         match residual {
             Result::Err(e) => {
                 let bang: Eightball<!> = e.into();
-                <Self as std::ops::FromResidual>::from_residual(bang)
+                Self::from_residual(bang)
             }
         }
     }
