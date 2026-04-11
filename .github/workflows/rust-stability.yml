@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+    - name: update rust
+      run: rustup update
     - name: Run tests
       run: cargo +${{ matrix.channel }} test --no-fail-fast
 
@@ -35,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+    - name: update rust
+      run: rustup update && rustup component add --toolchain ${{ matrix.channel }} clippy
     - name: clippy
       run: cargo +${{ matrix.channel }} clippy -- --deny warnings
 
@@ -46,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+    - name: update rust
+      run: rustup update && rustup component add --toolchain ${{ matrix.channel }} clippy
     - name: clippy
       run: cargo +${{ matrix.channel }} clippy --tests -- --deny warnings
 
