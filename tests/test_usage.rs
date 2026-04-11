@@ -1,10 +1,15 @@
-#![feature(assert_matches)]
+#![cfg_attr(not(stable_assert_matches), feature(assert_matches))]
 #![feature(iterator_try_collect)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
+#[cfg(not(stable_assert_matches))]
 use std::assert_matches::assert_matches;
+
+#[cfg(stable_assert_matches)]
+use std::assert_matches;
+
 use try_v2::{Try, Try_ConvertResult};
 
 mod bound_ok_type {
