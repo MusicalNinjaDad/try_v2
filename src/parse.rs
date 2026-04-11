@@ -313,13 +313,26 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .lifetime
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
-                let name = checked_name(tr.elem.as_ref()).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to &{lifetime} {first_generic_type}"),
-                    )
-                })?;
-                Result::Ok(Self::Ref { name, ty, lifetime })
+                match tr.elem.as_ref() {
+                    Type::Slice(ts) => {
+                        let name = checked_name(ts.elem.as_ref()).ok_or_else(|| {
+                            base_error().add_help(
+                                ts.elem.span(),
+                                format_args!("change this to {first_generic_type}"),
+                            )
+                        })?;
+                        Result::Ok(Self::Slice { name, ty, lifetime })
+                    }
+                    &_ => {
+                        let name = checked_name(tr.elem.as_ref()).ok_or_else(|| {
+                            base_error().add_help(
+                                ty.span(),
+                                format_args!("change this to &{lifetime} {first_generic_type}"),
+                            )
+                        })?;
+                        Result::Ok(Self::Ref { name, ty, lifetime })
+                    }
+                }
             }
             _ => Result::Err(base_error().add_help(
                 ty.span(),
