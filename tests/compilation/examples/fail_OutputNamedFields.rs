@@ -7,7 +7,7 @@ use try_v2::{Try, Try_ConvertResult};
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
 enum OutputNamedField<T> {
-    Ok{foo: T},
+    Ok { foo: T },
     TestsFailed(T),
     OtherError(String),
 }
@@ -15,7 +15,7 @@ enum OutputNamedField<T> {
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
 enum OutputNamedFieldBorrowed<'t, T> {
-    Ok{foo: &'t T},
+    Ok { foo: &'t T },
     TestsFailed(T),
     OtherError(String),
 }

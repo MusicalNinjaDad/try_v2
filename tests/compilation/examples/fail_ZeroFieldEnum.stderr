@@ -1,31 +1,31 @@
 error: Try cannot be derived for a zero-field enum
- --> tests/compilation/fail_ZeroFieldEnum.rs:7:10
+ --> tests/compilation/examples/fail_ZeroFieldEnum.rs:7:10
   |
 7 | #[derive(Try, Try_ConvertResult)]
   |          ^^^
   |
 help: add at least two variants here...
- --> tests/compilation/fail_ZeroFieldEnum.rs:9:23
+ --> tests/compilation/examples/fail_ZeroFieldEnum.rs:9:23
   |
 9 | enum ZeroFieldEnum<T> {}
   |                       ^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try cannot be derived for a zero-field enum
- --> tests/compilation/fail_ZeroFieldEnum.rs:7:15
+ --> tests/compilation/examples/fail_ZeroFieldEnum.rs:7:15
   |
 7 | #[derive(Try, Try_ConvertResult)]
   |               ^^^^^^^^^^^^^^^^^
   |
 help: add at least two variants here...
- --> tests/compilation/fail_ZeroFieldEnum.rs:9:23
+ --> tests/compilation/examples/fail_ZeroFieldEnum.rs:9:23
   |
 9 | enum ZeroFieldEnum<T> {}
   |                       ^^
   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0392]: type parameter `T` is never used
- --> tests/compilation/fail_ZeroFieldEnum.rs:9:20
+ --> tests/compilation/examples/fail_ZeroFieldEnum.rs:9:20
   |
 9 | enum ZeroFieldEnum<T> {}
   |                    ^ unused type parameter
