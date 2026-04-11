@@ -6,14 +6,15 @@ fn main() {
     let ac = autocfg::new();
     stable_feature(&ac, "assert_matches");
 
-    autocfg::emit_possibility("assert_matches_in_module");
+    autocfg::emit_possibility("assert_matches_in_root");
     let code = r#"
         #![allow(stable_features)]
         #![feature(assert_matches)]
-        use std::assert_matches::assert_matches;
+        use std::assert_matches;
+        assert_matches!(Some(4), Some(_));
     "#;
     if ac.probe_raw(code).is_ok() {
-        autocfg::emit("assert_matches_in_module");
+        autocfg::emit("assert_matches_in_root");
     }
 
     stable_feature(&ac, "let_chains");

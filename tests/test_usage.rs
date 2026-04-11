@@ -4,16 +4,17 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-#[cfg(assert_matches_in_module)]
+use try_v2::{Try, Try_ConvertResult};
+
+#[cfg(not(assert_matches_in_root))]
 use std::assert_matches::assert_matches;
 
-#[cfg(not(assert_matches_in_module))]
+#[cfg(assert_matches_in_root)]
 use std::assert_matches;
-
-use try_v2::{Try, Try_ConvertResult};
 
 mod bound_ok_type {
     use super::*;
+
     use std::process::Termination;
 
     #[derive(Debug, Try, Try_ConvertResult)]
