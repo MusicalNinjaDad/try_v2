@@ -35,6 +35,16 @@ fn assert_matches_in_root(ac: &AutoCfg) {
     #![feature(assert_matches)]
     use std::assert_matches;
 
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn to_allow_clippy_to_lint_tests() {
+            assert_matches!(Some(4), Some(_));
+        }
+    }
+
     fn main() {
         assert_matches!(Some(4), Some(_));
     }
@@ -51,6 +61,16 @@ fn assert_matches_in_module(ac: &AutoCfg) {
     #![allow(stable_features)]
     #![feature(assert_matches)]
     use std::assert_matches::assert_matches;
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn to_allow_clippy_to_lint_tests() {
+            assert_matches!(Some(4), Some(_));
+        }
+    }
 
     fn main() {
         assert_matches!(Some(4), Some(_));
