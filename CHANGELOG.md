@@ -4,7 +4,7 @@
 
 ### Documentation & Testing
 
-- Document & continously validate stability guarantees & experimental feature usage
+- Document & continuously validate stability guarantees & experimental feature usage
 
 ### Bugfixes
 
