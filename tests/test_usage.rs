@@ -243,64 +243,20 @@ mod lifetime_conversion {
         }
     }
 
-    fn borrowed_to_result_passthrough<'t, 'e>(
-        okval: &'t i32,
-        errval: &'e i32,
-    ) -> StdResult<'t, 'e> {
-        let rtn = match errval {
-            ..=4 => BorrowedResult::pass(okval)?,
-            5 => BorrowedResult::fail(errval)?,
-            6.. => BorrowedResult::fail_directly(errval)?,
-        };
-        Ok(rtn)
-    }
-
-    fn borrowed_to_result_restricted<'t, 'e, 'o, 'f>(
-        okval: &'t i32,
-        errval: &'e i32,
-    ) -> StdResult<'o, 'f>
-    where
-        't: 'o,
-        'e: 'f,
-    {
-        let rtn = match errval {
-            ..=4 => BorrowedResult::pass(okval)?,
-            5 => BorrowedResult::fail(errval)?,
-            6.. => BorrowedResult::fail_directly(errval)?,
-        };
-        Ok(rtn)
-    }
-
-    fn result_to_borrowed_passthrough<'o, 'f>(
-        okval: &'o i32,
-        errval: &'f i32,
-    ) -> BorrowedResult<'o, 'f, i32, i32> {
-        let rtn = match errval {
-            ..=4 => pass(okval)?,
-            5 => fail(Failure(errval))?,
-            6.. => fail_directly(Failure(errval))?,
-        };
-        BorrowedResult::Ok(rtn)
-    }
-
-    fn result_to_borrowed_restricted<'o, 'f, 't, 'e>(
-        okval: &'o i32,
-        errval: &'f i32,
-    ) -> BorrowedResult<'t, 'e, i32, i32>
-    where
-        'o: 't,
-        'f: 'e,
-    {
-        let rtn = match errval {
-            ..=4 => pass(okval)?,
-            5 => fail(Failure(errval))?,
-            6.. => fail_directly(Failure(errval))?,
-        };
-        BorrowedResult::Ok(rtn)
-    }
-
     #[test]
-    fn main() {
+    fn test_borrowed_to_result_passthrough() {
+        fn borrowed_to_result_passthrough<'t, 'e>(
+            okval: &'t i32,
+            errval: &'e i32,
+        ) -> StdResult<'t, 'e> {
+            let rtn = match errval {
+                ..=4 => BorrowedResult::pass(okval)?,
+                5 => BorrowedResult::fail(errval)?,
+                6.. => BorrowedResult::fail_directly(errval)?,
+            };
+            Ok(rtn)
+        }
+
         assert_matches!(borrowed_to_result_passthrough(&0, &1), StdResult::Ok(&0));
         assert_matches!(
             borrowed_to_result_passthrough(&0, &5),
@@ -310,6 +266,25 @@ mod lifetime_conversion {
             borrowed_to_result_passthrough(&0, &7),
             StdResult::Err(Failure(&7))
         );
+    }
+
+    #[test]
+    fn test_borrowed_to_result_restricted() {
+        fn borrowed_to_result_restricted<'t, 'e, 'o, 'f>(
+            okval: &'t i32,
+            errval: &'e i32,
+        ) -> StdResult<'o, 'f>
+        where
+            't: 'o,
+            'e: 'f,
+        {
+            let rtn = match errval {
+                ..=4 => BorrowedResult::pass(okval)?,
+                5 => BorrowedResult::fail(errval)?,
+                6.. => BorrowedResult::fail_directly(errval)?,
+            };
+            Ok(rtn)
+        }
 
         assert_matches!(borrowed_to_result_restricted(&0, &1), StdResult::Ok(&0));
         assert_matches!(
@@ -320,6 +295,21 @@ mod lifetime_conversion {
             borrowed_to_result_restricted(&0, &7),
             StdResult::Err(Failure(&7))
         );
+    }
+
+    #[test]
+    fn test_result_to_borrowed_passthrough() {
+        fn result_to_borrowed_passthrough<'o, 'f>(
+            okval: &'o i32,
+            errval: &'f i32,
+        ) -> BorrowedResult<'o, 'f, i32, i32> {
+            let rtn = match errval {
+                ..=4 => pass(okval)?,
+                5 => fail(Failure(errval))?,
+                6.. => fail_directly(Failure(errval))?,
+            };
+            BorrowedResult::Ok(rtn)
+        }
 
         assert_matches!(
             result_to_borrowed_passthrough(&0, &1),
@@ -333,6 +323,26 @@ mod lifetime_conversion {
             result_to_borrowed_passthrough(&0, &7),
             BorrowedResult::Err(&7)
         );
+    }
+
+    #[test]
+    fn test_result_to_borrowed_restricted() {
+        fn result_to_borrowed_restricted<'o, 'f, 't, 'e>(
+            okval: &'o i32,
+            errval: &'f i32,
+        ) -> BorrowedResult<'t, 'e, i32, i32>
+        where
+            'o: 't,
+            'f: 'e,
+        {
+            let rtn = match errval {
+                ..=4 => pass(okval)?,
+                5 => fail(Failure(errval))?,
+                6.. => fail_directly(Failure(errval))?,
+            };
+            BorrowedResult::Ok(rtn)
+        }
+
         assert_matches!(
             result_to_borrowed_restricted(&0, &1),
             BorrowedResult::Ok(&0)
@@ -372,52 +382,47 @@ mod lifetime_duration {
         BorrowedResult::Ok(val)
     }
 
-    fn validate_passthrough_lifetime<'t, 'e>(
-        okval: &'t i32,
-        errval: &'e i32,
-    ) -> BorrowedResult<'t, 'e, i32, i32> {
-        use BorrowedResult::Ok;
+    #[test]
+    fn test_passthrough_lifetime() {
+        fn passthrough_lifetime<'t, 'e>(
+            okval: &'t i32,
+            errval: &'e i32,
+        ) -> BorrowedResult<'t, 'e, i32, i32> {
+            use BorrowedResult::Ok;
 
-        let rtn = match errval {
-            ..=4 => pass(okval)?,
-            5 => fail(errval)?,
-            6.. => fail_directly(errval)?,
-        };
-        Ok(rtn)
-    }
+            let rtn = match errval {
+                ..=4 => pass(okval)?,
+                5 => fail(errval)?,
+                6.. => fail_directly(errval)?,
+            };
+            Ok(rtn)
+        }
 
-    fn restricted_lifetimes<'input, 't, 'e>(
-        okval: &'input i32,
-        errval: &'input i32,
-    ) -> BorrowedResult<'t, 'e, i32, i32>
-    where
-        'input: 't,
-        'input: 'e,
-    {
-        use BorrowedResult::Ok;
-
-        let rtn = match errval {
-            ..=4 => pass(okval)?,
-            5 => fail(errval)?,
-            6.. => fail_directly(errval)?,
-        };
-        Ok(rtn)
+        assert_matches!(passthrough_lifetime(&0, &1), BorrowedResult::Ok(&0));
+        assert_matches!(passthrough_lifetime(&0, &5), BorrowedResult::Err(&5));
+        assert_matches!(passthrough_lifetime(&0, &7), BorrowedResult::Err(&7));
     }
 
     #[test]
-    fn main() {
-        assert_matches!(
-            validate_passthrough_lifetime(&0, &1),
-            BorrowedResult::Ok(&0)
-        );
-        assert_matches!(
-            validate_passthrough_lifetime(&0, &5),
-            BorrowedResult::Err(&5)
-        );
-        assert_matches!(
-            validate_passthrough_lifetime(&0, &7),
-            BorrowedResult::Err(&7)
-        );
+    fn test_restricted_lifetimes() {
+        fn restricted_lifetimes<'input, 't, 'e>(
+            okval: &'input i32,
+            errval: &'input i32,
+        ) -> BorrowedResult<'t, 'e, i32, i32>
+        where
+            'input: 't,
+            'input: 'e,
+        {
+            use BorrowedResult::Ok;
+
+            let rtn = match errval {
+                ..=4 => pass(okval)?,
+                5 => fail(errval)?,
+                6.. => fail_directly(errval)?,
+            };
+            Ok(rtn)
+        }
+
         assert_matches!(restricted_lifetimes(&0, &1), BorrowedResult::Ok(&0));
         assert_matches!(restricted_lifetimes(&0, &5), BorrowedResult::Err(&5));
         assert_matches!(restricted_lifetimes(&0, &7), BorrowedResult::Err(&7));
