@@ -1,6 +1,5 @@
-#![allow(stable_features)]
 #![feature(if_let_guard)]
-#![feature(let_chains)]
+#![cfg_attr(not(stable_let_chains), feature(let_chains))]
 #![feature(never_type)]
 
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
