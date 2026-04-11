@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro for `Try` ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))"
