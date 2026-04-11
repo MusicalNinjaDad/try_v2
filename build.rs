@@ -5,17 +5,8 @@ extern crate autocfg;
 fn main() {
     let ac = autocfg::new();
     stable_feature(&ac, "assert_matches");
-
-    autocfg::emit_possibility("assert_matches_in_root");
-    let code = r#"
-        #![allow(stable_features)]
-        #![feature(assert_matches)]
-        use std::assert_matches;
-        assert_matches!(Some(4), Some(_));
-    "#;
-    if ac.probe_raw(code).is_ok() {
-        autocfg::emit("assert_matches_in_root");
-    }
+    assert_matches_in_module(&ac);
+    assert_matches_in_root(&ac);
 
     stable_feature(&ac, "let_chains");
 
@@ -34,5 +25,39 @@ fn stable_feature(ac: &AutoCfg, feature: &'static str) {
     autocfg::emit_possibility(&cfg);
     if ac.probe_raw(&code).is_err() {
         autocfg::emit(&cfg);
+    }
+}
+
+fn assert_matches_in_root(ac: &AutoCfg) {
+    let cfg = "assert_matches_in_root";
+    let code = r#"
+    #![allow(stable_features)]
+    #![feature(assert_matches)]
+    use std::assert_matches;
+
+    fn main() {
+        assert_matches!(Some(4), Some(_));
+    }
+        "#;
+    autocfg::emit_possibility(cfg);
+    if ac.probe_raw(code).is_ok() {
+        autocfg::emit(cfg);
+    }
+}
+
+fn assert_matches_in_module(ac: &AutoCfg) {
+    let cfg = "assert_matches_in_module";
+    let code = r#"
+    #![allow(stable_features)]
+    #![feature(assert_matches)]
+    use std::assert_matches::assert_matches;
+
+    fn main() {
+        assert_matches!(Some(4), Some(_));
+    }
+        "#;
+    autocfg::emit_possibility(cfg);
+    if ac.probe_raw(code).is_ok() {
+        autocfg::emit(cfg);
     }
 }
