@@ -24,11 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: ${{ matrix.channel }}
     - name: Run tests
-      run: cargo test --no-fail-fast
+      run: cargo +${{ matrix.channel }} test --no-fail-fast
 
   lint:
     strategy:
@@ -38,12 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: ${{ matrix.channel }}
-        components: "clippy"
     - name: clippy
-      run: cargo clippy -- --deny warnings
+      run: cargo +${{ matrix.channel }} clippy -- --deny warnings
 
   lint-tests:
     strategy:
@@ -53,12 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: ${{ matrix.channel }}
-        components: "clippy"
     - name: clippy
-      run: cargo clippy --tests -- --deny warnings
+      run: cargo +${{ matrix.channel }} clippy --tests -- --deny warnings
 
   report:
     if: ${{ always() }}
