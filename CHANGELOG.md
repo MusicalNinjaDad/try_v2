@@ -1,6 +1,16 @@
 # Changelog try_v2
 
-## [0.4.0]
+## [v0.4.1]
+
+### Documentation & Testing
+
+- Document & continously validate stability guarantees & experimental feature usage
+
+### Bugfixes
+
+- Remove lint warnings for stable features on stricter nightly toolchains
+
+## [v0.4.0]
 
 ### Breaking changes
 
