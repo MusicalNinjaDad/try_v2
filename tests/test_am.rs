@@ -4,13 +4,13 @@
 #[test]
 fn what() {
     #[cfg(stable_assert_matches)]
-    OnceCell::new(); //stable
+    dbg!("stable"); //stable
     #[cfg(not(stable_assert_matches))]
-    OnceCell::new(); //unstable
+    dbg!("not stable"); //unstable
     #[cfg(assert_matches_in_root)]
-    OnceCell::new(); //root
+    dbg!("root"); //root
     #[cfg(assert_matches_in_module)]
-    OnceCell::new(); //module
+    dbg!("module"); //module
     panic!();
 }
 
