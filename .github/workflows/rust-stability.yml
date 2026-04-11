@@ -15,7 +15,6 @@ env:
     RUSTC_BOOTSTRAP: 1
 
 jobs:
-  
 
   test:
     strategy:
@@ -63,12 +62,12 @@ jobs:
 
   report:
     if: ${{ always() }}
-    needs: [test, lint]
+    needs: [test, lint, lint-tests]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
     - name: Create issue on failure
-      if: ${{ github.event_name != 'pull_request' && (needs.test.result == 'failure' || needs.lint.result == 'failure') }}
+      if: ${{ github.event_name != 'pull_request' && (needs.test.result == 'failure' || needs.lint.result == 'failure' || needs.lint-tests.result == 'failure') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
