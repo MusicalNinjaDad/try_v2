@@ -69,6 +69,7 @@ impl<'ast> TryEnum<'ast> {
                         Some(OutputType::Ref { lifetime, .. }) => {
                             format!("change this to (&{lifetime} {first_generic_type})")
                         }
+                        Some(OutputType::Slice { .. }) => todo!("handle slice at 72"),
                     };
                     error("Try requires a single generic type for `Output`")
                         // TODO: Check that multiline enum defs show whole def in help
@@ -131,6 +132,7 @@ impl<'ast> TryEnum<'ast> {
                                 #enum_name::#var_name(never) => *never,
                             })
                         }
+                        OutputType::Slice { .. } => None,
                     };
                     (branch_arm, residual_arm)
                 }
@@ -252,18 +254,23 @@ enum OutputType<'ast> {
         ty: &'ast Type,
         lifetime: &'ast Lifetime,
     },
+    Slice {
+        name: &'ast Ident,
+        ty: &'ast Type,
+        lifetime: &'ast Lifetime,
+    },
 }
 
 impl<'ast> OutputType<'ast> {
     fn name(&self) -> &'ast Ident {
         match self {
-            Self::Owned { name, .. } | Self::Ref { name, .. } => name,
+            Self::Owned { name, .. } | Self::Ref { name, .. } | Self::Slice { name, .. } => name,
         }
     }
 
     fn ty(&self) -> &'ast Type {
         match self {
-            Self::Owned { ty, .. } | Self::Ref { ty, .. } => ty,
+            Self::Owned { ty, .. } | Self::Ref { ty, .. } | Self::Slice { ty, .. } => ty,
         }
     }
 }
