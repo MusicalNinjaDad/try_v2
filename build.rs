@@ -12,4 +12,13 @@ fn main() {
     if ac.probe_raw(stable_let_chains).is_err() {
         autocfg::emit("stable_let_chains");
     };
+
+    autocfg::emit_possibility("stable_if_let_guard");
+    let stable_if_let_guard = r#"
+    #![deny(stable_features)]
+    #![feature(if_let_guard)]
+    "#;
+    if ac.probe_raw(stable_if_let_guard).is_err() {
+        autocfg::emit("stable_if_let_guard");
+    };
 }
