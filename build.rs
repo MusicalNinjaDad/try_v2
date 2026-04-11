@@ -8,6 +8,7 @@ fn main() {
 
     autocfg::emit_possibility("assert_matches_in_module");
     let code = r#"
+        #![allow(stable_features)]
         #![feature(assert_matches)]
         use std::assert_matches::assert_matches;
     "#;
