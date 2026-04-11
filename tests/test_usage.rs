@@ -158,32 +158,3 @@ mod iter {
         assert_eq!(text, "Another String");
     }
 }
-
-mod lifetimes {
-    #[allow(unused)]
-    use super::*;
-
-    // #[derive(Debug, Try)]
-    // enum MyResult<'r, T, E> {
-    //     Ok(&'r T),
-    //     Err(&'r E),
-    // }
-
-    // #[derive(Debug, Try, Try_ConvertResult)]
-    // enum MyResult<'t, 'e, T, E> {
-    //     Ok(&'t T),
-    //     Err(&'e E),
-    // }
-
-    // #[derive(Debug, Try)]
-    // enum MyResult<T: 'static, E> {
-    //     Ok(&'static T),
-    //     Err(E),
-    // }
-
-    // #[derive(Debug, Try)]
-    // enum MyResult<'t, T, E> {
-    //     Ok(&'t T),
-    //     Err(E),
-    // }
-}
