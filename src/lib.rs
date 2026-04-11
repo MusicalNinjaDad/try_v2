@@ -105,7 +105,7 @@
 //! ### MSRV
 //!
 //! For those of you working with a pinned nightly (etc.) this crate supports every version of
-//! edition 2024 (rust 1.85.1 onwards, released as stable on 20225-03-18). We use
+//! edition 2024 (rust 1.85.1 onwards, released as stable on 2025-03-18). We use
 //! [autocfg](https://crates.io/crates/autocfg/) to seamlessly handle features which have been
 //! stabilised since then.
 //!
