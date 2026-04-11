@@ -164,6 +164,7 @@ mod iter {
     }
 }
 
+// TODO: #62 fix tests to exercise non-trivial lifetime relationships
 mod lifetime_conversion {
 
     use super::*;
@@ -358,6 +359,7 @@ mod lifetime_conversion {
     }
 }
 
+// TODO: #62 fix tests to exercise non-trivial lifetime relationships
 mod lifetime_duration {
     use super::*;
 
