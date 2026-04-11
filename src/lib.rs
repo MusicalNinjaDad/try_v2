@@ -73,16 +73,16 @@
 //!
 //! Given that this crate exposes an experimental API from std it makes use of experimental
 //! features which require a nightly toolchain.
-//! 
+//!
 //! In order to use this crate you must enable the features which it exposes:
-//! 
+//!
 //! > 🔬 **Required Experimental Features**
 //! >
 //! >  - [`#![feature(never_type)]`](https://github.com/rust-lang/rust/issues/35121)
 //! >  - [`#![feature(try_trait_v2)]`](https://github.com/rust-lang/rust/issues/84277)
 //! >  - [`#![feature(try_trait_v2_residual)]`](https://github.com/rust-lang/rust/issues/91285)
 //! >  - optionally: [`#![feature(iterator_try_collect)]`](https://github.com/rust-lang/rust/issues/94047) (if using [Try_Iterator])
-//! 
+//!
 //! This crate makes use of the following experimental features in addition to those which it
 //! directly supports:
 //!
