@@ -11,6 +11,7 @@ enum Eightball<Y> {
     No,
 }
 
+#[allow(unused)]
 struct Even(i32);
 
 impl TryFrom<i32> for Even {
@@ -25,6 +26,7 @@ impl TryFrom<i32> for Even {
     }
 }
 
+#[allow(unused)]
 fn even_string(num: i32) -> Eightball<String> {
     let n = Even::try_from(num)?;
     let s = format!("{}", n.0);

@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro for `Try` ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))"
@@ -25,8 +25,12 @@ quote = "1.0.45"
 [dev-dependencies]
 trybuild = "1.0.116"
 
+[build-dependencies]
+autocfg = {workspace = true }
+
 [workspace]
 members = ["tests/compilation"]
 
 [workspace.dependencies]
 try_v2 = { path = "."}
+autocfg = "1.5.0"
