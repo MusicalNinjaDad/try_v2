@@ -6,10 +6,10 @@
 
 use try_v2::{Try, Try_ConvertResult};
 
-#[cfg(all(assert_matches_in_module, not(assert_matches_in_root)))]
+#[cfg(assert_matches_in_module)]
 use std::assert_matches::assert_matches;
 
-#[cfg(all(assert_matches_in_root, not(assert_matches_in_module)))]
+#[cfg(assert_matches_in_root)]
 use std::assert_matches;
 
 mod bound_ok_type {
