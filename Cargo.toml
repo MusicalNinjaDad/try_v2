@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro for `Try` ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))"
@@ -10,8 +10,8 @@ homepage = "https://github.com/MusicalNinjaDad/try_v2"
 repository = "https://github.com/MusicalNinjaDad/try_v2"
 categories = ["development-tools"]
 license = "MIT"
-include = ["/src/", "/tests/"]
 rust-version = "1.85.1"
+exclude = [".github", ".devcontainer"]
 
 [lib]
 proc-macro = true

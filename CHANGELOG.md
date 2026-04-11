@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.4.2]
+
+### Bugfixes
+
+- Fix missing files in package
+
 ## [v0.4.1]
 
 ### Documentation & Testing
