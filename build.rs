@@ -1,24 +1,27 @@
+use autocfg::AutoCfg;
+
 extern crate autocfg;
 
 fn main() {
     let ac = autocfg::new();
-    ac.emit_path_cfg("std::assert_matches", "stable_assert_matches");
+    stable_feature(&ac, "assert_matches");
 
-    autocfg::emit_possibility("stable_let_chains");
-    let stable_let_chains = r#"
-    #![deny(stable_features)]
-    #![feature(let_chains)]
-    "#;
-    if ac.probe_raw(stable_let_chains).is_err() {
-        autocfg::emit("stable_let_chains");
-    };
+    stable_feature(&ac, "let_chains");
 
-    autocfg::emit_possibility("stable_if_let_guard");
-    let stable_if_let_guard = r#"
+    stable_feature(&ac, "if_let_guard");
+}
+
+fn stable_feature(ac: &AutoCfg, feature: &'static str) {
+    let cfg = format!("stable_{feature}");
+    let code = format!(
+        r#"
     #![deny(stable_features)]
-    #![feature(if_let_guard)]
-    "#;
-    if ac.probe_raw(stable_if_let_guard).is_err() {
-        autocfg::emit("stable_if_let_guard");
-    };
+    #![feature({feature})]
+    "#
+    );
+
+    autocfg::emit_possibility(&cfg);
+    if ac.probe_raw(&code).is_err() {
+        autocfg::emit(&cfg);
+    }
 }
