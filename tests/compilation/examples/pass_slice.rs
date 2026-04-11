@@ -11,4 +11,11 @@ enum Eightball<'y, Y> {
     No,
 }
 
-fn main() {}
+fn main() {
+    let a = [1,2,3,4,5,6];
+    let s = &a[0..2];
+    let d = *s;
+    let a: [!; 6] = [!];
+    let s = &a[0..2];
+    let d = *s;
+}

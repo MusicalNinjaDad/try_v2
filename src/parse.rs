@@ -132,7 +132,7 @@ impl<'ast> TryEnum<'ast> {
                                 #enum_name::#var_name(never) => *never,
                             })
                         }
-                        OutputType::Slice { .. } => None,
+                        OutputType::Slice { .. } => unreachable!("slice of never"),
                     };
                     (branch_arm, residual_arm)
                 }
