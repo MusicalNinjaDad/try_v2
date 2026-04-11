@@ -24,3 +24,9 @@ quote = "1.0.45"
 
 [dev-dependencies]
 trybuild = "1.0.116"
+
+[workspace]
+members = ["tests/compilation"]
+
+[workspace.dependencies]
+try_v2 = { path = "."}

@@ -1,5 +1,5 @@
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_duration.rs:40:17
+  --> tests/compilation/examples/fail_lifetime_duration.rs:40:17
    |
 30 | fn _unrestricted_t<'input, 't, 'e>(
    |                    ------  -- lifetime `'t` defined here
@@ -12,7 +12,7 @@ error: lifetime may not live long enough
    = help: consider adding the following bound: `'input: 't`
 
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_duration.rs:59:16
+  --> tests/compilation/examples/fail_lifetime_duration.rs:59:16
    |
 47 | fn _unrestricted_e<'input, 't, 'e>(
    |                    ------      -- lifetime `'e` defined here
