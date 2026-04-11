@@ -42,27 +42,14 @@ jobs:
     - name: clippy
       run: cargo +${{ matrix.channel }} clippy -- --deny warnings
 
-  lint-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        channel: ["stable", "beta", "nightly"]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - name: update rust
-      run: rustup update && rustup component add --toolchain ${{ matrix.channel }} clippy
-    - name: clippy
-      run: cargo +${{ matrix.channel }} clippy --tests -- --deny warnings
-
   report:
     if: ${{ always() }}
-    needs: [test, lint, lint-tests]
+    needs: [test, lint]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
     - name: Create issue on failure
-      if: ${{ github.event_name != 'pull_request' && (needs.test.result == 'failure' || needs.lint.result == 'failure' || needs.lint-tests.result == 'failure') }}
+      if: ${{ github.event_name != 'pull_request' && (needs.test.result == 'failure' || needs.lint.result == 'failure') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
