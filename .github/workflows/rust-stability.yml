@@ -24,10 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - name: update rust
-      run: rustup update
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: ${{ matrix.channel }}
     - name: Run tests
-      run: cargo +${{ matrix.channel }} test --no-fail-fast
+      run: cargo test --no-fail-fast
 
   lint:
     strategy:
@@ -37,10 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - name: update rust
-      run: rustup update && rustup component add --toolchain ${{ matrix.channel }} clippy
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: ${{ matrix.channel }}
+        components: "clippy"
     - name: clippy
-      run: cargo +${{ matrix.channel }} clippy -- --deny warnings
+      run: cargo clippy -- --deny warnings
 
   report:
     if: ${{ always() }}
