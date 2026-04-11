@@ -277,19 +277,28 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                 .add_help(first_generic_type.span(), "Output type defined here")
         };
 
+        let checked_name = |t: &'ast Type| -> Option<&'ast Ident> {
+            // is a path ...
+            if let Type::Path(tp) = t {
+                tp.path
+                    // with just a single ident, no parameters, no ::
+                    .get_ident()
+                    // and is the first generic type
+                    .filter(|ident| *ident == first_generic_type)
+            } else {
+                None
+            }
+        };
+
         // TODO: #47 handle Vec<T>, &[T], Box<T> etc...
         match ty {
-            Type::Path(type_path) => Result::Ok(Self::Owned {
-                name: type_path
-                    .path
-                    .get_ident()
-                    .filter(|ident| *ident == first_generic_type)
-                    .ok_or_else(|| {
-                        base_error().add_help(
-                            ty.span(),
-                            format_args!("change this to {first_generic_type}"),
-                        )
-                    })?,
+            Type::Path(_) => Result::Ok(Self::Owned {
+                name: checked_name(ty).ok_or_else(|| {
+                    base_error().add_help(
+                        ty.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    )
+                })?,
                 ty,
             }),
             Type::Reference(tr) => {
@@ -297,22 +306,12 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .lifetime
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
-                let name = if let Type::Path(tp) = tr.elem.as_ref() {
-                    tp.path
-                        .get_ident()
-                        .filter(|ident| *ident == first_generic_type)
-                        .ok_or_else(|| {
-                            base_error().add_help(
-                                ty.span(),
-                                format_args!("change this to &{lifetime} {first_generic_type}"),
-                            )
-                        })?
-                } else {
-                    return Result::Err(base_error().add_help(
+                let name = checked_name(tr.elem.as_ref()).ok_or_else(|| {
+                    base_error().add_help(
                         ty.span(),
                         format_args!("change this to &{lifetime} {first_generic_type}"),
-                    ));
-                };
+                    )
+                })?;
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }
             _ => Result::Err(base_error().add_help(
