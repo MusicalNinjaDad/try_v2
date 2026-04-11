@@ -84,7 +84,7 @@ This crate makes use of the following experimental features in addition to those
 > 🔬 **Additional Experimental Features**
 >
 > - [`#![feature(if_let_guard)]`](https://github.com/rust-lang/rust/issues/51114) (stable since 1.95.0)
-> - [`#![feature(let_chains)]`](https://github.com/rust-lang/rust/issues/139951) (stable since 1.88.0)
+> - [`#![feature(let_chains)]`](https://github.com/rust-lang/rust/issues/53667) (stable since 1.88.0 on 2024 only)
 >
 > This list includes any unstable features used by direct & transitive dependencies (currently, none).
 >
