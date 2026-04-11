@@ -278,9 +278,12 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
         };
 
         let checked_name = |t: &'ast Type| -> Option<&'ast Ident> {
+            // is a path ...
             if let Type::Path(tp) = t {
                 tp.path
+                    // with just a single ident, no parameters, no ::
                     .get_ident()
+                    // and is the first generic type
                     .filter(|ident| *ident == first_generic_type)
             } else {
                 None
