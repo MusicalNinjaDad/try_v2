@@ -6,7 +6,7 @@
 
 - Fix missing files in package
 
-## [v0.4.1] (yanked)
+## [v0.4.1]
 
 ### Documentation & Testing
 
