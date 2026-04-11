@@ -10,7 +10,7 @@ env:
 
 jobs:
   quality-check:
-    uses: ./.github/workflows/rust.yml
+    uses: ./.github/workflows/rust-stability.yml
 
   publish:
     environment: crates.io
