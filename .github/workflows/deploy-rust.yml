@@ -10,6 +10,9 @@ env:
 
 jobs:
   quality-check:
+    permissions:
+      contents: read
+      issues: write
     uses: ./.github/workflows/rust-stability.yml
 
   publish:
