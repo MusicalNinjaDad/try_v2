@@ -18,5 +18,11 @@ enum ContainsWrongGenerics<T, U, E> {
     O(Option<T>),
 }
 
+#[derive(Try)]
+#[must_use]
+enum OutputAndBangIsOK<T, U> {
+    R(Result<U, !>),
+    O(Option<T>),
+}
 
 fn main() {}
