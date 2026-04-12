@@ -7,7 +7,7 @@ use std::{io, path::Path, process::Termination as _T};
 use clap::{Parser, Subcommand};
 use exit_safely::Termination;
 use try_v2::{Try, Try_ConvertResult};
-use try_v2_xtasks::{Cmd, Spawned, clippy, clippy_tests, fmt, git_add};
+use try_v2_xtasks::{Cmd, Spawned, clippy, clippy_tests, fmt, git_add, test};
 
 #[derive(Debug, Termination, Try, Try_ConvertResult)]
 #[repr(u8)]
@@ -88,8 +88,9 @@ fn main() -> Exit<()> {
             Exit::from(fmt)?;
             let clippy = clippy(root)?;
             let clippy_tests = clippy_tests(root)?;
-            let clippies = vec![clippy, clippy_tests];
-            Exit::from(clippies)?;
+            let tests = test(root)?;
+            let checks = vec![clippy, clippy_tests, tests];
+            Exit::from(checks)?;
             let git = git_add(root)?;
             Exit::from(git)
         }

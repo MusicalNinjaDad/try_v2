@@ -77,3 +77,13 @@ pub fn clippy_tests(root: &Path) -> Result<Spawned, io::Error> {
         .spawn()
         .map_into_spawned("clippy the tests")
 }
+
+pub fn test(root: &Path) -> Result<Spawned, io::Error> {
+    Command::new("cargo")
+        .current_dir(root)
+        .arg("test")
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_into_spawned("tests")
+}
