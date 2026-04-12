@@ -29,7 +29,7 @@ trybuild = "1.0.116"
 autocfg = {workspace = true }
 
 [workspace]
-members = ["tests/compilation"]
+members = ["tests/compilation", "xtask"]
 
 [workspace.dependencies]
 try_v2 = { path = "."}

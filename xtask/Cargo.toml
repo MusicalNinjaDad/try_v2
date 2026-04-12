@@ -1,0 +1,9 @@
+[package]
+name = "try_v2_xtasks"
+version = "0.0.1"
+edition = "2024"
+publish = false
+
+[dependencies]
+exit_safely = "0.2.0"
+try_v2 = {workspace = true}
