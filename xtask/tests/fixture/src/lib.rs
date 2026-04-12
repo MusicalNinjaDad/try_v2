@@ -1,1 +1,1 @@
-enum foo {}
+enum foo { bar }

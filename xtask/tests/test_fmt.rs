@@ -2,6 +2,7 @@ use std::fs;
 
 use dircpy::copy_dir;
 use tempfile::tempdir;
+use try_v2_xtasks::fmt;
 
 #[test]
 fn fmt_fixture() {
@@ -9,7 +10,8 @@ fn fmt_fixture() {
     copy_dir("tests/fixture", tmp.path()).expect("couldn't copy fixture");
     let original = fs::read_to_string("tests/fixture/src/lib.rs").unwrap();
     let copied = fs::read_to_string(tmp.path().join("src/lib.rs")).unwrap();
-    assert_eq!(original,copied);
-    fmt(tmp.path()).unwrap();
-    assert_ne!(original,copied);
+    assert_eq!(original, copied);
+    let _ = fmt(tmp.path()).unwrap();
+    let formatted = fs::read_to_string(tmp.path().join("src/lib.rs")).unwrap();
+    assert_ne!(original, formatted);
 }
