@@ -7,7 +7,7 @@ use std::{io, path::Path, process::Termination as _T};
 use clap::{Parser, Subcommand};
 use exit_safely::Termination;
 use try_v2::{Try, Try_ConvertResult};
-use try_v2_xtasks::{Cmd, fmt, git_add};
+use try_v2_xtasks::{Cmd, clippy, fmt, git_add};
 
 #[derive(Debug, Termination, Try, Try_ConvertResult)]
 #[repr(u8)]
@@ -64,6 +64,8 @@ fn main() -> Exit<()> {
             let root = Path::new(".");
             let fmt = fmt(root)?;
             Exit::from(fmt)?;
+            let clippy = clippy(root)?;
+            Exit::from(clippy.wait()?)?;
             let git = git_add(root)?;
             Exit::from(git)
         }
