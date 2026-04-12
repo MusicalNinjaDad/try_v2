@@ -7,7 +7,7 @@ use std::{io, path::Path, process::Termination as _T};
 use clap::{Parser, Subcommand};
 use exit_safely::Termination;
 use try_v2::{Try, Try_ConvertResult};
-use try_v2_xtasks::{Cmd, clippy, clippy_tests, fmt, git_add};
+use try_v2_xtasks::{Cmd, Spawned, clippy, clippy_tests, fmt, git_add};
 
 #[derive(Debug, Termination, Try, Try_ConvertResult)]
 #[repr(u8)]
@@ -43,6 +43,28 @@ impl From<Cmd> for Exit<()> {
     }
 }
 
+impl From<Vec<Spawned>> for Exit<()> {
+    fn from(spawns: Vec<Spawned>) -> Self {
+        let cmds: Vec<_> = spawns
+            .into_iter()
+            .map(|spawn| spawn.wait())
+            .collect::<Result<Vec<_>, _>>()?;
+        let errors: String = cmds
+            .into_iter()
+            .filter_map(|cmd| match Exit::from(cmd) {
+                Self::Ok(_) => None,
+                Self::Error(s) => Some(s + "\n"),
+                _ => unreachable!("cmd always goes to Error"),
+            })
+            .collect();
+        if errors.is_empty() {
+            Self::Ok(())
+        } else {
+            Self::Error(errors)
+        }
+    }
+}
+
 #[derive(Parser)]
 #[command(version)]
 struct XTask {
@@ -66,9 +88,8 @@ fn main() -> Exit<()> {
             Exit::from(fmt)?;
             let clippy = clippy(root)?;
             let clippy_tests = clippy_tests(root)?;
-            // This currently fails fast ... we want to collect all errors, then fail at end
-            Exit::from(clippy.wait()?)?;
-            Exit::from(clippy_tests.wait()?)?;
+            let clippies = vec![clippy, clippy_tests];
+            Exit::from(clippies)?;
             let git = git_add(root)?;
             Exit::from(git)
         }
