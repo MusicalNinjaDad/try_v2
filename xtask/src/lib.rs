@@ -7,3 +7,11 @@ use std::{
 pub fn fmt(root: &Path) -> Result<Output, io::Error> {
     Command::new("cargo").current_dir(root).arg("fmt").output()
 }
+
+pub fn git_add(root: &Path) -> Result<Output, io::Error> {
+    Command::new("git")
+        .current_dir(root)
+        .arg("add")
+        .arg(".")
+        .output()
+}
