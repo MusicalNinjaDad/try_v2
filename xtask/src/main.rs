@@ -40,8 +40,9 @@ fn main() -> Exit<()> {
 
     match &xtask.command {
         Command::Add => {
-            fmt()?;
-            add()?;
+            todo!();
+            // fmt()?;
+            // add()?;
         }
     }
 }
