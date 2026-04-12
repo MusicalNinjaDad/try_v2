@@ -2,16 +2,12 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use std::{
-    io,
-    path::Path,
-    process::{Output, Termination as _T},
-};
+use std::{io, path::Path, process::Termination as _T};
 
 use clap::{Parser, Subcommand};
 use exit_safely::Termination;
 use try_v2::{Try, Try_ConvertResult};
-use try_v2_xtasks::{fmt, git_add};
+use try_v2_xtasks::{Cmd, fmt, git_add};
 
 #[derive(Debug, Termination, Try, Try_ConvertResult)]
 #[repr(u8)]
@@ -35,13 +31,14 @@ impl<T: _T> From<io::Error> for Exit<T> {
     }
 }
 
-impl From<Output> for Exit<()> {
-    fn from(output: Output) -> Self {
-        if output.status.success() {
+impl From<Cmd> for Exit<()> {
+    fn from(cmd: Cmd) -> Self {
+        if cmd.output.status.success() {
+            println!("{}: OK", cmd.name);
             Self::Ok(())
         } else {
-            let stderr: String = String::from_utf8(output.stderr).unwrap_or_default();
-            Self::Error(stderr)
+            let stderr = String::from_utf8_lossy(&cmd.output.stderr);
+            Self::Error(stderr.to_string())
         }
     }
 }
