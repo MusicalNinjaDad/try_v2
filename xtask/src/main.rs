@@ -66,6 +66,7 @@ fn main() -> Exit<()> {
             Exit::from(fmt)?;
             let clippy = clippy(root)?;
             let clippy_tests = clippy_tests(root)?;
+            // This currently fails fast ... we want to collect all errors, then fail at end
             Exit::from(clippy.wait()?)?;
             Exit::from(clippy_tests.wait()?)?;
             let git = git_add(root)?;
