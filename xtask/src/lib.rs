@@ -73,20 +73,39 @@ pub enum Exit<T: _T> {
     IO2(String) = 9,
 }
 
-impl<T: _T> FromIterator<Exit<T>> for Exit<T>
-where
-    T: Debug,
-{
-    fn from_iter<I: IntoIterator<Item = Exit<T>>>(iter: I) -> Self {
+impl FromIterator<Exit<()>> for Exit<()> {
+    fn from_iter<I: IntoIterator<Item = Exit<()>>>(iter: I) -> Self {
         let mut s = String::new();
+        let mut errnos: Vec<u8> = vec![];
         for e in iter {
-            if let Exit::Ok(_) = e {
-                // do nothing
-            } else {
-                s.push_str(format!("{:?}\n", e).as_str());
-            }
+            match e {
+                Exit::Ok(_) => {},
+                Exit::Error(ref m) => {
+                    s.push_str(m);
+                    errnos.push(1);
+                }
+                Exit::InvocationError(ref error) => {
+                    s.push_str(error.to_string().as_str());
+                    errnos.push(2);
+                }
+                Exit::IO(ref error) => {
+                    s.push_str(error.to_string().as_str());
+                    errnos.push(3);
+                }
+                Exit::IO2(ref m) => {
+                    s.push_str(m);
+                    errnos.push(9);
+                }
+            };
         }
-        Self::Error(s)
+        match errnos.into_iter().min().expect("at least one exit") {
+            0 => todo!(),
+            1 => Exit::Error(s),
+            2 => todo!(),
+            3 => todo!(),
+            9 => Exit::IO2(s),
+            _ => todo!(),
+        }
     }
 }
 
