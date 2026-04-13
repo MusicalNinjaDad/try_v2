@@ -7,7 +7,10 @@ use std::{io, path::Path, process::Termination as _T};
 use clap::{Parser, Subcommand};
 use exit_safely::Termination;
 use try_v2::{Try, Try_ConvertResult};
-use try_v2_xtasks::{Cmd, Spawned, clippy, clippy_tests, fmt, git_add, test};
+use try_v2_xtasks::{
+    Cmd, Spawned,
+    commands::{clippy, clippy_tests, fmt, git_add, test},
+};
 
 #[derive(Debug, Termination, Try, Try_ConvertResult)]
 #[repr(u8)]

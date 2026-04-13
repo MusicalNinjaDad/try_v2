@@ -2,7 +2,7 @@ use std::fs;
 
 use dircpy::copy_dir;
 use tempfile::tempdir;
-use try_v2_xtasks::fmt;
+use try_v2_xtasks::commands::fmt;
 
 #[test]
 fn fmt_fixture() {
