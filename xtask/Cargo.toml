@@ -12,3 +12,6 @@ clap = { version = "4.6.0", features = ["derive"] }
 [dev-dependencies]
 dircpy = "0.3.20"
 tempfile = "3.27.0"
+
+[build-dependencies]
+autocfg = { workspace = true }
