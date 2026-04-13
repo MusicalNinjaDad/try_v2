@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Display},
     io,
     process::{Child, Output, Termination as _T},
 };
@@ -70,6 +70,17 @@ pub enum Exit<T: _T> {
     Error(String) = 1,
     InvocationError(String) = 2,
     IO(String) = 3,
+}
+
+impl Exit<()> {
+    fn message(&self) -> &str {
+        match self {
+            Exit::Ok(_) => "",
+            Exit::Error(m) => m,
+            Exit::InvocationError(m) => m,
+            Exit::IO(m) => m,
+        }
+    }
 }
 
 impl FromIterator<Exit<()>> for Exit<()> {
