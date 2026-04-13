@@ -113,12 +113,6 @@ impl<T: _T> From<clap::Error> for Exit<T> {
     }
 }
 
-impl<T: _T> From<io::Error> for Exit<T> {
-    fn from(e: io::Error) -> Self {
-        Self::IO(e.to_string())
-    }
-}
-
 impl From<Cmd> for Exit<()> {
     fn from(cmd: Cmd) -> Self {
         match cmd.result {
