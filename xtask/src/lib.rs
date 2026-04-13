@@ -52,6 +52,22 @@ impl Spawned {
     }
 }
 
+#[derive(Debug)]
+pub struct Spawned_ {
+    pub name: &'static str,
+    pub child: Result<Child, io::Error>,
+}
+
+impl Spawned_ {
+    pub fn wait(self) -> Cmd_ {
+        match self.child {
+            Ok(child) => child.wait_with_output().into_cmd(self.name),
+            Err(e) => Cmd_ { name: self.name, result: Err(e) },
+        }
+    }
+}
+
+
 trait SpawnedExt<E> {
     fn map_into_spawned(self, name: &'static str) -> Result<Spawned, E>;
 }
