@@ -12,21 +12,35 @@ use try_v2::{Try, Try_ConvertResult};
 
 pub mod commands;
 
+#[derive(Debug)]
 pub struct Cmd {
     pub name: &'static str,
     pub output: Output,
 }
 
-trait CmdExt<E> {
-    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, E>;
+#[derive(Debug)]
+pub struct Cmd_ {
+    pub name: &'static str,
+    pub result: Result<Output, io::Error>,
 }
 
-impl<E> CmdExt<E> for Result<Output, E> {
-    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, E> {
+trait CmdExt {
+    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, io::Error>;
+    fn into_cmd(self, name: &'static str) -> Cmd_;
+}
+
+impl CmdExt for Result<Output, io::Error> {
+    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, io::Error> {
         self.map(|output| Cmd { name, output })
     }
+    
+    fn into_cmd(self, name: &'static str) -> Cmd_ {
+        Cmd_ { name, result: self }
+    }
+    
 }
 
+#[derive(Debug)]
 pub struct Spawned {
     pub name: &'static str,
     pub child: Child,
@@ -101,5 +115,20 @@ impl From<Vec<Spawned>> for Exit<()> {
         } else {
             Self::Error(errors)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::process::Command;
+
+    use super::*;
+
+    #[test]
+    fn exit_from_404() {
+        let splat: Cmd_ = Command::new("splat").output().into_cmd("splat");
+        assert_eq!(splat.name, "splat");
+        dbg!(&splat);
+        assert!(matches!(splat.result, Result::Err(_)));
     }
 }
