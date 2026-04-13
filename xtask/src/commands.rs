@@ -4,23 +4,23 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{Cmd, CmdExt as _, Spawned, SpawnedExt as _};
+use crate::{Cmd_, CmdExt as _, Spawned, SpawnedExt as _};
 
-pub fn fmt(root: &Path) -> Result<Cmd, io::Error> {
+pub fn fmt(root: &Path) -> Cmd_ {
     Command::new("cargo")
         .current_dir(root)
         .arg("fmt")
         .output()
-        .map_into_cmd("fmt")
+        .into_cmd("fmt")
 }
 
-pub fn git_add(root: &Path) -> Result<Cmd, io::Error> {
+pub fn git_add(root: &Path) -> Cmd_ {
     Command::new("git")
         .current_dir(root)
         .arg("add")
         .arg(".")
         .output()
-        .map_into_cmd("git add")
+        .into_cmd("git add")
 }
 
 pub fn clippy(root: &Path) -> Result<Spawned, io::Error> {

@@ -11,7 +11,7 @@ fn fmt_fixture() {
     let original = fs::read_to_string("tests/fixture/src/lib.rs").unwrap();
     let copied = fs::read_to_string(tmp.path().join("src/lib.rs")).unwrap();
     assert_eq!(original, copied);
-    let _ = fmt(tmp.path()).unwrap();
+    let _ = fmt(tmp.path());
     let formatted = fs::read_to_string(tmp.path().join("src/lib.rs")).unwrap();
     assert_ne!(original, formatted);
 }
