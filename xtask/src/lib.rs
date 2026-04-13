@@ -14,50 +14,6 @@ use try_v2::{Try, Try_ConvertResult};
 
 pub mod commands;
 
-#[derive(Debug)]
-pub struct Cmd {
-    pub name: &'static str,
-    pub result: Result<Output, io::Error>,
-}
-
-trait CmdExt {
-    fn into_cmd(self, name: &'static str) -> Cmd;
-}
-
-impl CmdExt for Result<Output, io::Error> {
-    fn into_cmd(self, name: &'static str) -> Cmd {
-        Cmd { name, result: self }
-    }
-}
-
-#[derive(Debug)]
-pub struct Spawned {
-    pub name: &'static str,
-    pub child: Result<Child, io::Error>,
-}
-
-impl Spawned {
-    pub fn wait(self) -> Cmd {
-        match self.child {
-            Ok(child) => child.wait_with_output().into_cmd(self.name),
-            Err(e) => Cmd {
-                name: self.name,
-                result: Err(e),
-            },
-        }
-    }
-}
-
-trait SpawnedExt {
-    fn into_spawned(self, name: &'static str) -> Spawned;
-}
-
-impl SpawnedExt for Result<Child, io::Error> {
-    fn into_spawned(self, name: &'static str) -> Spawned {
-        Spawned { name, child: self }
-    }
-}
-
 #[derive(Debug, Termination, Try, Try_ConvertResult, PartialEq, PartialOrd, Eq, Ord)]
 #[repr(u8)]
 #[must_use]
@@ -113,6 +69,22 @@ impl<T: _T> From<clap::Error> for Exit<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct Cmd {
+    pub name: &'static str,
+    pub result: Result<Output, io::Error>,
+}
+
+trait CmdExt {
+    fn into_cmd(self, name: &'static str) -> Cmd;
+}
+
+impl CmdExt for Result<Output, io::Error> {
+    fn into_cmd(self, name: &'static str) -> Cmd {
+        Cmd { name, result: self }
+    }
+}
+
 impl From<Cmd> for Exit<()> {
     fn from(cmd: Cmd) -> Self {
         match cmd.result {
@@ -130,6 +102,34 @@ impl From<Cmd> for Exit<()> {
                 Self::IO(msg)
             }
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Spawned {
+    pub name: &'static str,
+    pub child: Result<Child, io::Error>,
+}
+
+impl Spawned {
+    pub fn wait(self) -> Cmd {
+        match self.child {
+            Ok(child) => child.wait_with_output().into_cmd(self.name),
+            Err(e) => Cmd {
+                name: self.name,
+                result: Err(e),
+            },
+        }
+    }
+}
+
+trait SpawnedExt {
+    fn into_spawned(self, name: &'static str) -> Spawned;
+}
+
+impl SpawnedExt for Result<Child, io::Error> {
+    fn into_spawned(self, name: &'static str) -> Spawned {
+        Spawned { name, child: self }
     }
 }
 
