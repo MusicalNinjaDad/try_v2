@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup update && rustup default ${{ matrix.channel }} && rustup install --profile default
+      run: rustup set profile default && rustup update && rustup default ${{ matrix.channel }}
     - name: Run tests
       run: cargo test --no-fail-fast
 
@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup update && rustup default ${{ matrix.channel }} && rustup install --profile default
+      run: rustup set profile default && rustup update && rustup default ${{ matrix.channel }}
     - name: clippy
       run: cargo clippy -- --deny warnings
 
