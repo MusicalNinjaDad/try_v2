@@ -21,4 +21,5 @@ fn fmt_fixture() {
     );
     let formatted = fs::read_to_string(tmp.path().join("src/lib.rs")).unwrap();
     assert_ne!(original, formatted);
+    dbg!(tmp.path());
 }
