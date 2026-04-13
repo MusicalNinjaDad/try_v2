@@ -14,41 +14,18 @@ use try_v2::{Try, Try_ConvertResult};
 pub mod commands;
 
 #[derive(Debug)]
-pub struct Cmd {
-    pub name: &'static str,
-    pub output: Output,
-}
-
-#[derive(Debug)]
 pub struct Cmd_ {
     pub name: &'static str,
     pub result: Result<Output, io::Error>,
 }
 
 trait CmdExt {
-    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, io::Error>;
     fn into_cmd(self, name: &'static str) -> Cmd_;
 }
 
 impl CmdExt for Result<Output, io::Error> {
-    fn map_into_cmd(self, name: &'static str) -> Result<Cmd, io::Error> {
-        self.map(|output| Cmd { name, output })
-    }
-
     fn into_cmd(self, name: &'static str) -> Cmd_ {
         Cmd_ { name, result: self }
-    }
-}
-
-#[derive(Debug)]
-pub struct Spawned {
-    pub name: &'static str,
-    pub child: Child,
-}
-
-impl Spawned {
-    pub fn wait(self) -> Result<Cmd, io::Error> {
-        self.child.wait_with_output().map_into_cmd(self.name)
     }
 }
 
@@ -71,15 +48,10 @@ impl Spawned_ {
 }
 
 trait SpawnedExt {
-    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error>;
     fn into_spawned(self, name: &'static str) -> Spawned_;
 }
 
 impl SpawnedExt for Result<Child, io::Error> {
-    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error> {
-        self.map(|child| Spawned { name, child })
-    }
-
     fn into_spawned(self, name: &'static str) -> Spawned_ {
         Spawned_ { name, child: self }
     }
@@ -162,40 +134,6 @@ impl From<Cmd_> for Exit<()> {
                 let msg = format!("{} failed: {}", cmd.name, e);
                 Self::IO(msg)
             }
-        }
-    }
-}
-
-impl From<Cmd> for Exit<()> {
-    fn from(cmd: Cmd) -> Self {
-        if cmd.output.status.success() {
-            println!("{}: OK", cmd.name);
-            Self::Ok(())
-        } else {
-            let stderr = String::from_utf8_lossy(&cmd.output.stderr);
-            Self::Error(stderr.to_string())
-        }
-    }
-}
-
-impl From<Vec<Spawned>> for Exit<()> {
-    fn from(spawns: Vec<Spawned>) -> Self {
-        let cmds: Vec<_> = spawns
-            .into_iter()
-            .map(|spawn| spawn.wait())
-            .collect::<Result<Vec<_>, _>>()?;
-        let errors: String = cmds
-            .into_iter()
-            .filter_map(|cmd| match Exit::from(cmd) {
-                Self::Ok(_) => None,
-                Self::Error(s) => Some(s + "\n"),
-                _ => unreachable!("cmd always goes to Error"),
-            })
-            .collect();
-        if errors.is_empty() {
-            Self::Ok(())
-        } else {
-            Self::Error(errors)
         }
     }
 }
