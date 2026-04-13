@@ -101,6 +101,7 @@ impl FromIterator<Exit<()>> for Exit<()> {
                     None
                 } else {
                     msg.push_str(e.message());
+                    msg.push('\n');
                     Some(e)
                 }
             })
@@ -201,13 +202,13 @@ mod tests {
     fn collect_exit() {
         let exits = [
             Exit::Ok(()),
-            Exit::Error("one".to_string()),
-            Exit::IO("two".to_string()),
+            Exit::IO("one".to_string()),
+            Exit::Error("two".to_string()),
             Exit::Error("three".to_string()),
         ];
         let exit: Exit<()> = exits.into_iter().collect();
         let expected = "one\ntwo\nthree\n";
         dbg!(&exit);
-        assert!(matches!(exit, Exit::IO(s) if s == expected));
+        assert!(matches!(exit, Exit::Error(s) if s == expected));
     }
 }
