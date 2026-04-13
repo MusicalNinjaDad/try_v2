@@ -70,11 +70,16 @@ impl Spawned_ {
 
 trait SpawnedExt {
     fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error>;
+    fn into_spawned(self, name: &'static str) -> Spawned_;
 }
 
 impl SpawnedExt for Result<Child, io::Error> {
     fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error> {
         self.map(|child| Spawned { name, child })
+    }
+    
+    fn into_spawned(self, name: &'static str) -> Spawned_ {
+        Spawned_ { name, child: self }
     }
 }
 
