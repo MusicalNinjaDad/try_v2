@@ -70,7 +70,6 @@ pub enum Exit<T: _T> {
     Error(String) = 1,
     InvocationError(String) = 2,
     IO(String) = 3,
-    IO2(String) = 9,
 }
 
 impl FromIterator<Exit<()>> for Exit<()> {
@@ -92,18 +91,13 @@ impl FromIterator<Exit<()>> for Exit<()> {
                     s.push_str(error.to_string().as_str());
                     errnos.push(3);
                 }
-                Exit::IO2(ref m) => {
-                    s.push_str(m);
-                    errnos.push(9);
-                }
             };
         }
         match errnos.into_iter().min().expect("at least one exit") {
             0 => todo!(),
             1 => Exit::Error(s),
-            2 => todo!(),
-            3 => todo!(),
-            9 => Exit::IO2(s),
+            2 => Exit::InvocationError(s),
+            3 => Exit::IO(s),
             _ => todo!(),
         }
     }
@@ -135,7 +129,7 @@ impl From<Cmd_> for Exit<()> {
             }
             Err(e) => {
                 let msg = format!("{} failed: {}", cmd.name, e);
-                Self::IO2(msg)
+                Self::IO(msg)
             }
         }
     }
@@ -189,7 +183,7 @@ mod tests {
             matches!(splat.result, Result::Err(ref e) if matches!(e.kind(), io::ErrorKind::NotFound))
         );
         let exit: Exit<()> = Exit::from(splat);
-        let Exit::IO2(ref msg) = exit else {
+        let Exit::IO(ref msg) = exit else {
             panic!("not an IO2")
         };
         eprintln!("{}", msg);
@@ -201,12 +195,12 @@ mod tests {
         let exits = [
             Exit::Ok(()),
             Exit::Error("one".to_string()),
-            Exit::IO2("two".to_string()),
+            Exit::IO("two".to_string()),
             Exit::Error("three".to_string()),
         ];
         let exit: Exit<()> = exits.into_iter().collect();
         let expected = "one\ntwo\nthree\n";
         dbg!(&exit);
-        assert!(matches!(exit, Exit::IO2(s) if s == expected));
+        assert!(matches!(exit, Exit::IO(s) if s == expected));
     }
 }
