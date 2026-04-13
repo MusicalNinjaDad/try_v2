@@ -62,11 +62,13 @@ impl Spawned_ {
     pub fn wait(self) -> Cmd_ {
         match self.child {
             Ok(child) => child.wait_with_output().into_cmd(self.name),
-            Err(e) => Cmd_ { name: self.name, result: Err(e) },
+            Err(e) => Cmd_ {
+                name: self.name,
+                result: Err(e),
+            },
         }
     }
 }
-
 
 trait SpawnedExt {
     fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error>;
@@ -77,7 +79,7 @@ impl SpawnedExt for Result<Child, io::Error> {
     fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error> {
         self.map(|child| Spawned { name, child })
     }
-    
+
     fn into_spawned(self, name: &'static str) -> Spawned_ {
         Spawned_ { name, child: self }
     }
