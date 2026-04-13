@@ -70,6 +70,7 @@ pub enum Exit<T: _T> {
     Error(String) = 1,
     InvocationError(Box<clap::Error>) = 2,
     IO(Box<io::Error>) = 3,
+    IO2(String) = 9,
 }
 
 impl<T: _T> From<clap::Error> for Exit<T> {
@@ -81,6 +82,18 @@ impl<T: _T> From<clap::Error> for Exit<T> {
 impl<T: _T> From<io::Error> for Exit<T> {
     fn from(e: io::Error) -> Self {
         Self::IO(Box::new(e))
+    }
+}
+
+impl From<Cmd_> for Exit<()> {
+    fn from(cmd: Cmd_) -> Self {
+        match cmd.result {
+            Ok(_) => todo!(),
+            Err(e) => {
+                let msg = format!("{} failed: {}", cmd.name, e);
+                Self::IO2(msg)
+            }, 
+        }
     }
 }
 
@@ -128,7 +141,10 @@ mod tests {
     fn exit_from_404() {
         let splat: Cmd_ = Command::new("splat").output().into_cmd("splat");
         assert_eq!(splat.name, "splat");
-        dbg!(&splat);
-        assert!(matches!(splat.result, Result::Err(_)));
+        assert!(matches!(splat.result, Result::Err(ref e) if matches!(e.kind(), io::ErrorKind::NotFound)));
+        let exit: Exit<()> = Exit::from(splat);
+        let Exit::IO2(ref msg) = exit else {panic!("not an IO2")};
+        eprintln!("{}", msg);
+        assert!(msg.starts_with("splat failed: "));
     }
 }
