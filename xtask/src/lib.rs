@@ -62,7 +62,7 @@ impl<E> SpawnedExt<E> for Result<Child, E> {
     }
 }
 
-#[derive(Debug, Termination, Try, Try_ConvertResult)]
+#[derive(Debug, Termination, Try, Try_ConvertResult, PartialEq, PartialOrd)]
 #[repr(u8)]
 #[must_use]
 pub enum Exit<T: _T> {
@@ -78,7 +78,7 @@ impl FromIterator<Exit<()>> for Exit<()> {
         let mut errnos: Vec<u8> = vec![];
         for e in iter {
             match e {
-                Exit::Ok(_) => {},
+                Exit::Ok(_) => {}
                 Exit::Error(ref m) => {
                     s.push_str(m);
                     errnos.push(1);
