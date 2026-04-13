@@ -26,9 +26,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup update
+      run: rustup update && rustup default ${{ matrix.channel }} && rustup install --profile default
     - name: Run tests
-      run: cargo +${{ matrix.channel }} test --no-fail-fast
+      run: cargo test --no-fail-fast
 
   lint:
     strategy:
@@ -39,9 +39,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup update && rustup component add --toolchain ${{ matrix.channel }} clippy
+      run: rustup update && rustup default ${{ matrix.channel }} && rustup install --profile default
     - name: clippy
-      run: cargo +${{ matrix.channel }} clippy -- --deny warnings
+      run: cargo clippy -- --deny warnings
 
   report:
     if: ${{ always() }}
