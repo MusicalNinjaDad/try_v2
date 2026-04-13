@@ -68,12 +68,12 @@ impl Spawned_ {
 }
 
 
-trait SpawnedExt<E> {
-    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, E>;
+trait SpawnedExt {
+    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error>;
 }
 
-impl<E> SpawnedExt<E> for Result<Child, E> {
-    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, E> {
+impl SpawnedExt for Result<Child, io::Error> {
+    fn map_into_spawned(self, name: &'static str) -> Result<Spawned, io::Error> {
         self.map(|child| Spawned { name, child })
     }
 }
