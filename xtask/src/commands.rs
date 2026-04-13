@@ -3,9 +3,9 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{Cmd_, CmdExt as _, Spawned_, SpawnedExt as _};
+use crate::{Cmd, CmdExt as _, Spawned, SpawnedExt as _};
 
-pub fn fmt(root: &Path) -> Cmd_ {
+pub fn fmt(root: &Path) -> Cmd {
     Command::new("cargo")
         .current_dir(root)
         .arg("fmt")
@@ -13,7 +13,7 @@ pub fn fmt(root: &Path) -> Cmd_ {
         .into_cmd("fmt")
 }
 
-pub fn git_add(root: &Path) -> Cmd_ {
+pub fn git_add(root: &Path) -> Cmd {
     Command::new("git")
         .current_dir(root)
         .arg("add")
@@ -22,7 +22,7 @@ pub fn git_add(root: &Path) -> Cmd_ {
         .into_cmd("git add")
 }
 
-pub fn clippy(root: &Path) -> Spawned_ {
+pub fn clippy(root: &Path) -> Spawned {
     Command::new("cargo")
         .current_dir(root)
         .arg("clippy")
@@ -32,7 +32,7 @@ pub fn clippy(root: &Path) -> Spawned_ {
         .into_spawned("clippy")
 }
 
-pub fn clippy_tests(root: &Path) -> Spawned_ {
+pub fn clippy_tests(root: &Path) -> Spawned {
     Command::new("cargo")
         .current_dir(root)
         .arg("clippy")
@@ -43,7 +43,7 @@ pub fn clippy_tests(root: &Path) -> Spawned_ {
         .into_spawned("clippy the tests")
 }
 
-pub fn test(root: &Path) -> Spawned_ {
+pub fn test(root: &Path) -> Spawned {
     Command::new("cargo")
         .current_dir(root)
         .arg("test")

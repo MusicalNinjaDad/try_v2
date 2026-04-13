@@ -14,32 +14,32 @@ use try_v2::{Try, Try_ConvertResult};
 pub mod commands;
 
 #[derive(Debug)]
-pub struct Cmd_ {
+pub struct Cmd {
     pub name: &'static str,
     pub result: Result<Output, io::Error>,
 }
 
 trait CmdExt {
-    fn into_cmd(self, name: &'static str) -> Cmd_;
+    fn into_cmd(self, name: &'static str) -> Cmd;
 }
 
 impl CmdExt for Result<Output, io::Error> {
-    fn into_cmd(self, name: &'static str) -> Cmd_ {
-        Cmd_ { name, result: self }
+    fn into_cmd(self, name: &'static str) -> Cmd {
+        Cmd { name, result: self }
     }
 }
 
 #[derive(Debug)]
-pub struct Spawned_ {
+pub struct Spawned {
     pub name: &'static str,
     pub child: Result<Child, io::Error>,
 }
 
-impl Spawned_ {
-    pub fn wait(self) -> Cmd_ {
+impl Spawned {
+    pub fn wait(self) -> Cmd {
         match self.child {
             Ok(child) => child.wait_with_output().into_cmd(self.name),
-            Err(e) => Cmd_ {
+            Err(e) => Cmd {
                 name: self.name,
                 result: Err(e),
             },
@@ -48,12 +48,12 @@ impl Spawned_ {
 }
 
 trait SpawnedExt {
-    fn into_spawned(self, name: &'static str) -> Spawned_;
+    fn into_spawned(self, name: &'static str) -> Spawned;
 }
 
 impl SpawnedExt for Result<Child, io::Error> {
-    fn into_spawned(self, name: &'static str) -> Spawned_ {
-        Spawned_ { name, child: self }
+    fn into_spawned(self, name: &'static str) -> Spawned {
+        Spawned { name, child: self }
     }
 }
 
@@ -118,8 +118,8 @@ impl<T: _T> From<io::Error> for Exit<T> {
     }
 }
 
-impl From<Cmd_> for Exit<()> {
-    fn from(cmd: Cmd_) -> Self {
+impl From<Cmd> for Exit<()> {
+    fn from(cmd: Cmd) -> Self {
         match cmd.result {
             Ok(output) => {
                 if output.status.success() {
@@ -138,8 +138,8 @@ impl From<Cmd_> for Exit<()> {
     }
 }
 
-impl From<Vec<Spawned_>> for Exit<()> {
-    fn from(spawns: Vec<Spawned_>) -> Self {
+impl From<Vec<Spawned>> for Exit<()> {
+    fn from(spawns: Vec<Spawned>) -> Self {
         spawns
             .into_iter()
             .map(|spawn| spawn.wait())
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn exit_from_404() {
-        let splat: Cmd_ = Command::new("splat").output().into_cmd("splat");
+        let splat: Cmd = Command::new("splat").output().into_cmd("splat");
         assert_eq!(splat.name, "splat");
         assert!(
             matches!(splat.result, Result::Err(ref e) if matches!(e.kind(), io::ErrorKind::NotFound))
