@@ -68,8 +68,8 @@ impl<E> SpawnedExt<E> for Result<Child, E> {
 pub enum Exit<T: _T> {
     Ok(T) = 0,
     Error(String) = 1,
-    InvocationError(Box<clap::Error>) = 2,
-    IO(Box<io::Error>) = 3,
+    InvocationError(String) = 2,
+    IO(String) = 3,
     IO2(String) = 9,
 }
 
@@ -111,13 +111,13 @@ impl FromIterator<Exit<()>> for Exit<()> {
 
 impl<T: _T> From<clap::Error> for Exit<T> {
     fn from(e: clap::Error) -> Self {
-        Self::InvocationError(Box::new(e))
+        Self::InvocationError(e.to_string())
     }
 }
 
 impl<T: _T> From<io::Error> for Exit<T> {
     fn from(e: io::Error) -> Self {
-        Self::IO(Box::new(e))
+        Self::IO(e.to_string())
     }
 }
 
