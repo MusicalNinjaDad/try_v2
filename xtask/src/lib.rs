@@ -200,6 +200,16 @@ impl From<Vec<Spawned>> for Exit<()> {
     }
 }
 
+impl From<Vec<Spawned_>> for Exit<()> {
+    fn from(spawns: Vec<Spawned_>) -> Self {
+        spawns
+            .into_iter()
+            .map(|spawn| spawn.wait())
+            .map(Exit::from)
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::process::Command;
