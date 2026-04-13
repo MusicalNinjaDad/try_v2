@@ -15,15 +15,22 @@ fn main() {
 
 fn stable_feature(ac: &AutoCfg, feature: &'static str) {
     let cfg = format!("stable_{feature}");
-    let code = format!(
+    let deny = format!(
         r#"
     #![deny(stable_features)]
     #![feature({feature})]
     "#
     );
 
+    let allow = format!(
+        r#"
+    #![allow(stable_features)]
+    #![feature({feature})]
+    "#
+    );
+
     autocfg::emit_possibility(&cfg);
-    if ac.probe_raw(&code).is_err() {
+    if ac.probe_raw(&deny).is_err() && ac.probe_raw(&allow).is_ok() {
         autocfg::emit(&cfg);
     }
 }
