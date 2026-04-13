@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 
 use std::{
-    fmt::{Debug, Display},
+    fmt::Debug,
     io,
     process::{Child, Output, Termination as _T},
 };
@@ -62,7 +62,7 @@ impl<E> SpawnedExt<E> for Result<Child, E> {
     }
 }
 
-#[derive(Debug, Termination, Try, Try_ConvertResult, PartialEq, PartialOrd)]
+#[derive(Debug, Termination, Try, Try_ConvertResult, PartialEq, PartialOrd, Eq, Ord)]
 #[repr(u8)]
 #[must_use]
 pub enum Exit<T: _T> {
@@ -81,36 +81,32 @@ impl Exit<()> {
             Exit::IO(m) => m,
         }
     }
+
+    fn replace_message(self, msg: String) -> Option<Self> {
+        match self {
+            Exit::Ok(_) => None,
+            Exit::Error(_) => Some(Exit::Error(msg)),
+            Exit::InvocationError(_) => Some(Exit::InvocationError(msg)),
+            Exit::IO(_) => Some(Exit::IO(msg)),
+        }
+    }
 }
 
 impl FromIterator<Exit<()>> for Exit<()> {
     fn from_iter<I: IntoIterator<Item = Exit<()>>>(iter: I) -> Self {
-        let mut s = String::new();
-        let mut errnos: Vec<u8> = vec![];
-        for e in iter {
-            match e {
-                Exit::Ok(_) => {}
-                Exit::Error(ref m) => {
-                    s.push_str(m);
-                    errnos.push(1);
+        let mut msg = String::new();
+        iter.into_iter()
+            .filter_map(|e| {
+                if let Exit::Ok(_) = e {
+                    None
+                } else {
+                    msg.push_str(e.message());
+                    Some(e)
                 }
-                Exit::InvocationError(ref error) => {
-                    s.push_str(error.to_string().as_str());
-                    errnos.push(2);
-                }
-                Exit::IO(ref error) => {
-                    s.push_str(error.to_string().as_str());
-                    errnos.push(3);
-                }
-            };
-        }
-        match errnos.into_iter().min().expect("at least one exit") {
-            0 => todo!(),
-            1 => Exit::Error(s),
-            2 => Exit::InvocationError(s),
-            3 => Exit::IO(s),
-            _ => todo!(),
-        }
+            })
+            .min()
+            .and_then(|e| e.replace_message(msg))
+            .unwrap_or(Exit::Ok(()))
     }
 }
 
