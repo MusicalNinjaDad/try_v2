@@ -3,6 +3,7 @@
 #![feature(try_trait_v2_residual)]
 
 use std::{
+    fmt::Debug,
     io,
     process::{Child, Output, Termination as _T},
 };
@@ -70,6 +71,23 @@ pub enum Exit<T: _T> {
     InvocationError(Box<clap::Error>) = 2,
     IO(Box<io::Error>) = 3,
     IO2(String) = 9,
+}
+
+impl<T: _T> FromIterator<Exit<T>> for Exit<T>
+where
+    T: Debug,
+{
+    fn from_iter<I: IntoIterator<Item = Exit<T>>>(iter: I) -> Self {
+        let mut s = String::new();
+        for e in iter {
+            if let Exit::Ok(_) = e {
+                // do nothing
+            } else {
+                s.push_str(format!("{:?}\n", e).as_str());
+            }
+        }
+        Self::Error(s)
+    }
 }
 
 impl<T: _T> From<clap::Error> for Exit<T> {
@@ -157,5 +175,19 @@ mod tests {
         };
         eprintln!("{}", msg);
         assert!(msg.starts_with("splat failed: "));
+    }
+
+    #[test]
+    fn collect_exit() {
+        let exits = [
+            Exit::Ok(()),
+            Exit::Error("one".to_string()),
+            Exit::IO2("two".to_string()),
+            Exit::Error("three".to_string()),
+        ];
+        let exit: Exit<()> = exits.into_iter().collect();
+        let expected = "one\ntwo\nthree\n";
+        dbg!(&exit);
+        assert!(matches!(exit, Exit::IO2(s) if s == expected));
     }
 }
