@@ -18,6 +18,8 @@ fn main() {
     ac.emit_unstable_feature("if_let_guard");
 }
 
+/// Location of assert_matches!() macro. Stabilisation was reverted at last minute
+/// on 2026-04-10, leaving the macro in the new planned location.
 enum AssertMatchesLocation {
     /// Macro is at `std::assert_matches`
     Root,
@@ -51,6 +53,14 @@ trait Nightly {
 
     /// Location of assert_matches!() macro. Stabilisation was reverted at last minute
     /// on 2026-04-10, leaving the macro in the new planned location.
+    ///
+    /// #Recommended usage
+    /// ```
+    /// AssertMatchesLocation::emit_possibilities();
+    /// if let Some(location) = ac.assert_matches_location() {
+    ///     autocfg::emit(&location.to_string())
+    /// }
+    /// ```
     fn assert_matches_location(&self) -> Option<AssertMatchesLocation>;
 }
 
