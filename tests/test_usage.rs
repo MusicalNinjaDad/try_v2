@@ -4,7 +4,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2::{Try, Try_ConvertResult, Try_Methods};
 
 #[cfg(assert_matches_in_module)]
 use std::assert_matches::assert_matches;
@@ -429,5 +429,25 @@ mod lifetime_duration {
         assert_matches!(restricted_lifetimes(&0, &1), BorrowedResult::Ok(&0));
         assert_matches!(restricted_lifetimes(&0, &5), BorrowedResult::Err(&5));
         assert_matches!(restricted_lifetimes(&0, &7), BorrowedResult::Err(&7));
+    }
+}
+
+/// Validate that the derived methods work
+mod methods {
+
+    use super::*;
+
+    #[derive(Debug, Try, Try_Methods)]
+    #[must_use]
+    enum Validated<T, E> {
+        Valid(T),
+        Invalid,
+        ValidationFailed(E),
+    }
+
+    #[test]
+    fn unwrap() {
+        let x: Validated<_, String> = Validated::Valid(2);
+        assert_eq!(x.unwrap(), 2);
     }
 }

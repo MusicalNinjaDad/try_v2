@@ -449,6 +449,46 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_convert)
 }
 
+#[proc_macro_derive(Try_Methods)]
+/// Derives std methods:
+///
+/// ## Extracting the contained value
+/// - `unwrap()` return the value contained in the Output variant - or *panics* with a generic message
+pub fn try_methods(input: TokenStream1) -> TokenStream1 {
+    impl_try_methods(input.into()).into()
+}
+
+fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+
+    let tryenum = TryEnum::parse(&ast)?;
+    #[allow(unused_variables)]
+    let (
+        name,
+        output_variant_name,
+        output_type,
+        residual_type_name,
+        residual_type,
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
+
+    // TODO: Better error message: needs where ... Debug
+    let impl_extraction = quote! {
+        impl #impl_generics #name #ty_generics #where_clause {
+            pub fn unwrap(self) -> #output_type {
+                let #name::#output_variant_name(val) = self else {
+                    panic!();
+                };
+                val
+            }
+        }
+    };
+
+    Ok(impl_extraction)
+}
+
 #[proc_macro_derive(Try_Iterator)]
 /// Derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`.
 ///
