@@ -38,8 +38,8 @@ impl Display for AssertMatchesLocation {
 
 impl AssertMatchesLocation {
     fn emit_possibilities() {
-        autocfg::emit_possibility("assert_matches_in_root");
-        autocfg::emit_possibility("assert_matches_in_module");
+        autocfg::emit_possibility(&AssertMatchesLocation::Root.to_string());
+        autocfg::emit_possibility(&AssertMatchesLocation::Module.to_string());
     }
 }
 
