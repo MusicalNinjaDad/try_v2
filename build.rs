@@ -5,15 +5,12 @@ extern crate autocfg;
 fn main() {
     let ac = autocfg::new();
     ac.emit_unstable_feature("assert_matches");
-    stable_feature(&ac, "assert_matches");
     assert_matches_in_module(&ac);
     assert_matches_in_root(&ac);
 
     ac.emit_unstable_feature("let_chains");
-    stable_feature(&ac, "let_chains");
 
     ac.emit_unstable_feature("if_let_guard");
-    stable_feature(&ac, "if_let_guard");
 }
 
 trait UnstableFeature {
@@ -40,29 +37,6 @@ impl UnstableFeature for AutoCfg {
         }
     }
 }
-
-fn stable_feature(ac: &AutoCfg, feature: &'static str) {
-    let cfg = format!("stable_{feature}");
-    let deny = format!(
-        r#"
-    #![deny(stable_features)]
-    #![feature({feature})]
-    "#
-    );
-
-    let allow = format!(
-        r#"
-    #![allow(stable_features)]
-    #![feature({feature})]
-    "#
-    );
-
-    autocfg::emit_possibility(&cfg);
-    if ac.probe_raw(&deny).is_err() && ac.probe_raw(&allow).is_ok() {
-        autocfg::emit(&cfg);
-    }
-}
-
 fn assert_matches_in_root(ac: &AutoCfg) {
     let cfg = "assert_matches_in_root";
     let code = r#"
