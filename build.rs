@@ -13,7 +13,7 @@ fn main() {
     ac.emit_unstable_feature("if_let_guard");
 }
 
-trait UnstableFeature {
+trait Nightly {
     /// Identify whether a an experimental feature flag is available _and_ required on nightly.
     /// Always fails if feature flags are unavailable.
     ///
@@ -22,7 +22,7 @@ trait UnstableFeature {
     fn emit_unstable_feature(&self, feature: &'static str);
 }
 
-impl UnstableFeature for AutoCfg {
+impl Nightly for AutoCfg {
     fn emit_unstable_feature(&self, feature: &'static str) {
         let cfg = format!("unstable_{feature}");
         let code = format!(
