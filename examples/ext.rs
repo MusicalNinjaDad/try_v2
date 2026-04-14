@@ -40,8 +40,8 @@ fn main() {
 }
 
 mod with_try {
-    use std::{fmt::Display, ops::Add};
     use log::info;
+    use std::{fmt::Display, ops::Add};
 
     use try_v2::Try;
 

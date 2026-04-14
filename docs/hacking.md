@@ -52,16 +52,13 @@ Std contains 3 types which impl Try for all cases: `Result<T, E>`, `Option<T>` &
 ```rust
 use std::{error::Error, io};
 
-/// I _might_ know whether I have an answer at all
-///     Getting the answer _might_ have caused an error
-///         And the answer _might_ be "nope"
-type MaybeMaybe<T> = Option<Result<Option<T>, ValidErrors>>;
+/// I _might_ have found somewhere that could contain duplicate info
+///     Identifying duplicates _might_ have caused an error
+///         And the answer _might_ be "no overlap"
+type DuplicateData<T> = Option<Result<Option<T>, ValidErrors>>;
 
-/// If it's an error, it matters what sort ...
 enum ValidErrors {
-    /// Parsing something failed
     Parsing(Box<dyn Error>),
-    /// Getting some data failed
     IO(Box<io::Error>),
 }
 
@@ -69,7 +66,7 @@ enum ValidErrors {
 // repeated let-if-let-else-return directly in the code each time :(
 
 fn main() {
-    fn increment_foo(foo: MaybeMaybe<i32>) -> MaybeMaybe<i32> {
+    fn process(foo: DuplicateData<i32>) -> DuplicateData<i32> {
         let bar = if let Some(Ok(Some(value))) = foo {
             value
         } else {
@@ -78,8 +75,8 @@ fn main() {
         let baz = bar + 1;
         Some(Ok(Some(baz)))
     }
-    let foo: MaybeMaybe<i32> = Some(Ok(Some(5)));
-    assert!(matches!(increment_foo(foo), Some(Ok(Some(6)))));
+    let foo: DuplicateData<i32> = Some(Ok(Some(5)));
+    assert!(matches!(process(foo), Some(Ok(Some(6)))));
 }
 ```
 
@@ -90,35 +87,33 @@ use std::{error::Error, io};
 
 use try_v2::Try;
 
-use MaybeMaybe::{Ok};
+use DuplicateData::Duplicate;
 
 #[derive(Debug, Try)]
 #[must_use]
-enum MaybeMaybe<T> {
-    Ok(T),
-    NoAnswer,
-    NoValue,
+enum DuplicateData<T> {
+    Duplicate(T),
+    NoCandidate,
+    NoDuplicates,
     ParsingError(Box<dyn Error>),
     IOError(Box<io::Error>),
 }
 
 fn main() {
-    fn increment_foo(foo: MaybeMaybe<i32>) -> MaybeMaybe<i32> {
+    fn process(foo: DuplicateData<i32>) -> DuplicateData<i32> {
         let baz = foo? + 1;
-        Ok(baz)
+        Duplicate(baz)
     }
-    let foo: MaybeMaybe<i32> = Ok(5);
-    assert!(matches!(increment_foo(foo), Ok(6)));
+    let foo: DuplicateData<i32> = Duplicate(5);
+    assert!(matches!(process(foo), Duplicate(6)));
 }
 ```
 
 ### Flattening trait MyFunctionsExt
 
-
-
 ### Boilerplate -> Derive
 
-While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and 
+While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and
 
 - traits themselves
 - all the nice functions that std lib have in common
@@ -146,4 +141,4 @@ While the above is really easy to create, use and reason about, manually impleme
 - global state inherently evil
 - diagnosticresult
 - loggedresult
-- async & channels
+- async & channels (LastPage, Page, Err)
