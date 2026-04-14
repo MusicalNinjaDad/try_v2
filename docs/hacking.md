@@ -45,13 +45,80 @@ As wierd as it may be from the naming `try_blocks`, `try_blocks_heterogeneous` a
 
 ## Simple case
 
-3 std types + Poll?
+Std contains 3 types which impl Try for all cases: `Result<T, E>`, `Option<T>` & `ControlFlow<B, C>`. Many of the most obvious uses for Try involve `Result`-like or `Option`-like situations and it is usually possible, if a little verbose / annoying, to work with `Result` & `Option` to get the same result (!).
 
 ### Flattening nested types
 
+```rust
+use std::{error::Error, io};
+
+/// I _might_ know whether I have an answer at all
+///     Getting the answer _might_ have caused an error
+///         And the answer _might_ be "nope"
+type MaybeMaybe<T> = Option<Result<Option<T>, ValidErrors>>;
+
+/// If it's an error, it matters what sort ...
+enum ValidErrors {
+    /// Parsing something failed
+    Parsing(Box<dyn Error>),
+    /// Getting some data failed
+    IO(Box<io::Error>),
+}
+
+// There is no good way to unpack this for use, or pass it "up the chain" for handling without
+// repeated let-if-let-else-return directly in the code each time :(
+
+fn main() {
+    fn increment_foo(foo: MaybeMaybe<i32>) -> MaybeMaybe<i32> {
+        let bar = if let Some(Ok(Some(value))) = foo {
+            value
+        } else {
+            return foo;
+        };
+        let baz = bar + 1;
+        Some(Ok(Some(baz)))
+    }
+    let foo: MaybeMaybe<i32> = Some(Ok(Some(5)));
+    assert!(matches!(increment_foo(foo), Some(Ok(Some(6)))));
+}
+```
+
+Wouldn't it be nicer to be able to have everthing in one place, with meaningful names for when I do want to handle non-`Some(Ok(Some(_)))` values? This is much easier to create, read, and reason about.
+
+```rust
+use std::{error::Error, io};
+
+use try_v2::Try;
+
+use MaybeMaybe::{Ok};
+
+#[derive(Debug, Try)]
+#[must_use]
+enum MaybeMaybe<T> {
+    Ok(T),
+    NoAnswer,
+    NoValue,
+    ParsingError(Box<dyn Error>),
+    IOError(Box<io::Error>),
+}
+
+fn main() {
+    fn increment_foo(foo: MaybeMaybe<i32>) -> MaybeMaybe<i32> {
+        let baz = foo? + 1;
+        Ok(baz)
+    }
+    let foo: MaybeMaybe<i32> = Ok(5);
+    assert!(matches!(increment_foo(foo), Ok(6)));
+}
+```
+
 ### Flattening trait MyFunctionsExt
 
+
+
 ### Boilerplate -> Derive
+
+While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and 
 
 - traits themselves
 - all the nice functions that std lib have in common
@@ -61,6 +128,12 @@ As wierd as it may be from the naming `try_blocks`, `try_blocks_heterogeneous` a
 - choice of residual
 - interconversion with result, overlapping Into impls
 - &! not infallible
+
+### Std inconsistencies & niggles
+
+#### Poll - documentation
+
+#### ControlFlow B, C not C, B
 
 ## Complex cases
 
