@@ -379,10 +379,10 @@ Current task in progress is to derive equivalent methods named according to the 
 
 There are a few "gotcha!s" with even the simple implementation which can be easily avoided by careful documentation, reading & thinking ... or deriving.
 
-- Interconversion with Result: overlapping `Into` impls.
-    This one bit me in the ass when using my own macros - while it may feel slightly awkward to require conversion to & from Result<_, MyResidual> anything else can trip you up later and be a pig to work out why (See [PR #50: fix Result Me bang (e.g. in TryFrom)](https://github.com/MusicalNinjaDad/try_v2/pull/50)).
-- When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm.
-    It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
+- Interconversion with Result: overlapping `Into` impls.  
+This one bit me in the ass when using my own macros - while it may feel slightly awkward to require conversion to & from Result<_, MyResidual> anything else can trip you up later and be a pig to work out why (See [PR #50: fix Result Me bang (e.g. in TryFrom)](https://github.com/MusicalNinjaDad/try_v2/pull/50)).
+- When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm.  
+It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
 
 ### Std inconsistencies & niggles
 
