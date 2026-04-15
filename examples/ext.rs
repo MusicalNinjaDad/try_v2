@@ -36,7 +36,7 @@ impl NumberExt<i32> for Counter<i32> {
 
 fn main() {
     let foo = Counter::new();
-    assert_eq!(foo.inc(2).unwrap(), 2);
+    assert!(matches!(foo.inc(2), Some(2)));
 }
 
 mod with_try {
