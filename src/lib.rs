@@ -20,7 +20,7 @@
 //!
 //!   - must be an `enum`
 //!   - must have _at least one_ generic type
-//!   - the _first_ generic type must be the `Output` type (produced when not short circuiting)
+//!   - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
 //!
@@ -42,7 +42,7 @@
 //!     OtherError(String)
 //! }
 //!
-//! // Basic short circuiting thanks to `#[derive(Try)]`
+//! // Basic short-circuiting thanks to `#[derive(Try)]`
 //! fn run_tests() -> TestResult<()> {
 //!     TestResult::OtherError("oops!".to_string())?; // <- Function short-circuits here ...
 //!     TestResult::TestsFailed?;
@@ -486,7 +486,6 @@ fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
     let (debug_impl_generics, debug_ty_generics, debug_where_clause) =
         debug_generics.split_for_impl();
 
-    // TODO: Better error message: needs where ... Debug
     let impl_extraction = quote! {
         impl #debug_impl_generics #name #debug_ty_generics #debug_where_clause {
             pub fn unwrap(self) -> #output_type {
