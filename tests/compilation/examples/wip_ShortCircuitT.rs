@@ -1,3 +1,5 @@
+//! WIP: Should fail with a better error message
+
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
