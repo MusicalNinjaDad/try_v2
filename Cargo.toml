@@ -31,7 +31,7 @@ autocfg = {workspace = true }
 
 [workspace]
 members = ["tests/compilation", "xtask"]
-default-members = ["xtask"]
+default-members = [".", "xtask"]
 
 [workspace.dependencies]
 try_v2 = { path = "."}
