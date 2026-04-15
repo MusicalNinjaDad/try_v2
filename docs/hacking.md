@@ -31,13 +31,13 @@ After working with the trait in various use cases, taking it apart to try (!) an
 
 ## The 3 traits + 1 type + 1 function
 
-When talking about `Try` below, I will usually consider the following traits in one package:
+When talking about `Try` below, I will usually consider the following traits in one package (in order of importance for implementing Try):
 
 - `trait Try` (`try_trait_v2`)
-- `trait FromResidual` (`try_trait_v2`)
-- `trait Residual` (`try_trait_v2_residual`)
-- `type !` (`never_type`)
-- `fn try_collect()` (`iterator_try_collect`)
+- `trait FromResidual` (`try_trait_v2`), Try is unusable without this
+- `trait Residual` (`try_trait_v2_residual`), Invaluable for working generically on a Try type
+- `type !` (`never_type`), Saves a bucket-load of keypresses
+- `fn try_collect()` (`iterator_try_collect`), very-nice-to-have & makes `#[derive(Try_Iterator)]` possible
 
 ### 2 more experimental features
 
@@ -496,6 +496,14 @@ y += match x {
 assert_eq!(y, 2);
 ```
 
-which requires either manually stating that code is unreachable, not something I want to do in derived code, or knowing the specifics of the wrapper used and how to convert it to the inner type (not possible in derived code).
+This requires either:
 
-I can understand the troubles in differentiating `Box<!>`, `Vec<std::convert::Infallible>`, `Result<!,CustomZeroVariantEnum>` (all are verifiably impossible to construct) from `Option<!>` (can be `None`)! This is something that would be a valuable, and non-trivial, improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
+- manually stating that code is unreachable, not something I want to do in derived code, or
+- knowing the specifics of the wrapper used and how to convert it to the inner type (not possible in derived code).
+
+I can understand the troubles in differentiating:
+
+- `Box<!>`, `Vec<std::convert::Infallible>`, `Result<!,CustomZeroVariantEnum>` (all are verifiably impossible to construct) from
+- `Option<!>` (can be `None`)!
+
+This is something that would be a valuable, and non-trivial, improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
