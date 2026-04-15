@@ -515,10 +515,12 @@ This requires either:
 
 I can understand the troubles in differentiating:
 
-- `Box<!>`, `Vec<std::convert::Infallible>`, `Result<!,CustomZeroVariantEnum>` (all are verifiably impossible to construct) from
+- `Box<!>`, `Vec<std::convert::Infallible>`, `Result<!,CustomZeroVariantEnum>` (all are verifiably impossible to construct in purely safe code) from
 - `Option<!>` (can be `None`)!
 
-This is something that would be a valuable, and non-trivial, improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
+This is something that would be a valuable, and non-trivial[^1], improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
+
+[^1]: See the blog post at the start of [this discussion](https://internals.rust-lang.org/t/blog-post-never-patterns-exhaustive-matching-and-uninhabited-types/8197) & RalfJ's later blog post [linked here](https://internals.rust-lang.org/t/two-kinds-of-invariants-safety-and-validity/8264)
 
 ## Other Std inconsistencies & niggles
 
