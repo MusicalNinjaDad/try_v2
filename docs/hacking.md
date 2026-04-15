@@ -378,6 +378,12 @@ There are a few "gotcha!s" with even the simple implementation which can be easi
 
 A few things I noticed in std niggled me slightly
 
+#### No clippy lint must_use_try
+
+`Result` & `ControlFlow` are marked `#[must_use]` for good reason. `Option` is not, but possibly should be. I've added a compiler warning in the derive macro if the type is not `#[must_use]` but this cannot be silenced (yet, todo) and is not _really_ the right approach.
+
+It would be a very valuable clippy lint to check that types which implement `Try` are labelled as `#[must_use]`. This would emit the warning when the user expects it - during linting - and can be silenced with an `#[allow(...)]`.
+
 #### Poll - documentation
 
 While `Option` & [`Result`](https://doc.rust-lang.org/std/result/index.html#the-question-mark-operator-) nicely document using `?`, [Poll](https://doc.rust-lang.org/std/task/enum.Poll.html) does not. I'd consider it really valuable to understand why the two specific implementations were chosen and how they are intended to be used:
