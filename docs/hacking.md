@@ -206,6 +206,8 @@ fn main() {
 
 While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and a few gotchas. Getting the same ergonomics that are available from Option, Try & Control-Flow adds even more boilerplate. As such the pay off was never there for me personally, until I was _forced_ to put a minimal implementation in place for [exit_safely](https://crates.io/crates/exit_safely). In true [pass-the-salt](https://xkcd.com/974/) style I went ahead and created the derive macros in [try_v2](https://crates.io/crates/try_v2).
 
+Note: I'd be happy to pass some (or all) of these into std, while leaving the "nice-to-haves" in a separate crate, if that would be valuable.
+
 ### Derivable case
 
 The simple case described above is derivable (as in the examples) and is probably the most (numerically) common expected usage of Try. To be able to guarantee the `Foo<!>` pattern for the `Residual` and algorithmically generate arms for `branch()`, `from_residual()` etc. the macro enforces a few invariants on the annotated type:
@@ -331,8 +333,39 @@ assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
 assert!(matches!(even_string(1), Eightball::No));
 ```
 
-- traits themselves
-- all the nice functions that std lib have in common
+#### Macro `Try_Iterator`: derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`
+
+The stdlib implementations are almost identical. I took a lazy approach and have leveraged `std::option::IntoIter` to allow:
+
+```rust
+let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
+
+let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
+assert!(matches!(first_results, TestsFailed));
+
+let mut test: TestResult<i32, &'static str> = Ok(4);
+let borrowed_result: &i32 = test.iter().next().unwrap();
+assert_eq!(borrowed_result, &4);
+match test.iter_mut().next() {
+    Some(v) => *v = 5,
+    None => {},
+}
+assert!(matches!(test, TestResult::Ok(v) if v == 5));
+let result = test.into_iter().next();
+assert_eq!(result, Some(5));
+```
+
+#### Macro `Try_Methods` (WIP): derives `unwrap()`
+
+`Option` & `Result` have a large set of sematically overlapping ergonomic methods for:
+
+- Querying the variant
+- Adapters for working with references (only `Option`)
+- Extracting contained values
+- Transforming contained values
+- Boolean operators
+
+Current task in progress is to derive equivalent methods named according to the enum variants. Right now, I have unwrap, goal is `is_testfailed()`, `expect()`, `othererror_or_else()`, `map_othererror` etc.
 
 ### Gotchas -> Derive
 
