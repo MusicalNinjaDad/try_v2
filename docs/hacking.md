@@ -384,38 +384,6 @@ This one bit me in the ass when using my own macros - while it may feel slightly
 - When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm.  
 It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
 
-### Std inconsistencies & niggles
-
-A few things I noticed in std niggled me slightly
-
-#### No clippy lint `must_use_try`
-
-`Result` & `ControlFlow` are marked `#[must_use]` for good reason. `Option` is not, but possibly should be. I've added a compiler warning in the derive macro if the type is not `#[must_use]` but this cannot be silenced (yet, todo) and is not _really_ the right approach.
-
-It would be a very valuable clippy lint to check that types which implement `Try` are labelled as `#[must_use]`. This would emit the warning when the user expects it - during linting - and can be silenced with an `#[allow(...)]`.
-
-#### Poll - documentation
-
-While `Option` & [`Result`](https://doc.rust-lang.org/std/result/index.html#the-question-mark-operator-) nicely document using `?`, [Poll](https://doc.rust-lang.org/std/task/enum.Poll.html) does not. I'd consider it really valuable to understand why the two specific implementations were chosen and how they are intended to be used:
-
-```rust
-impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Option<Result<T, F>>>
-where
-    F: From<E>,
-```
-
-and
-
-```rust
-impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Result<T, F>>
-where
-    F: From<E>,
-```
-
-#### ControlFlow<B, C> not ControlFlow<C, B>
-
-`Result` and `Option` both lead with the generic for the Output type, ControlFlow does not. Given that the variants are ordered `Continue`, `Break` I find the alphabetical generics to be a regular source of "oops!"
-
 ## Complex cases
 
 I've already run into 3 cases where I was not able to derive `Try`. I find two of them to be fine - they are cases where I want direct control over the mechanics.
@@ -551,3 +519,35 @@ I can understand the troubles in differentiating:
 - `Option<!>` (can be `None`)!
 
 This is something that would be a valuable, and non-trivial, improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
+
+## Other Std inconsistencies & niggles
+
+A few things I noticed in std niggled me slightly (in addition to the Box<!> case above)
+
+### No clippy lint `must_use_try`
+
+`Result` & `ControlFlow` are marked `#[must_use]` for good reason. `Option` is not, but possibly should be. I've added a compiler warning in the derive macro if the type is not `#[must_use]` but this cannot be silenced (yet, todo) and is not _really_ the right approach.
+
+It would be a very valuable clippy lint to check that types which implement `Try` are labelled as `#[must_use]`. This would emit the warning when the user expects it - during linting - and can be silenced with an `#[allow(...)]`.
+
+### Poll - documentation
+
+While `Option` & [`Result`](https://doc.rust-lang.org/std/result/index.html#the-question-mark-operator-) nicely document using `?`, [Poll](https://doc.rust-lang.org/std/task/enum.Poll.html) does not. I'd consider it really valuable to understand why the two specific implementations were chosen and how they are intended to be used:
+
+```rust
+impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Option<Result<T, F>>>
+where
+    F: From<E>,
+```
+
+and
+
+```rust
+impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Result<T, F>>
+where
+    F: From<E>,
+```
+
+### ControlFlow<B, C> not ControlFlow<C, B>
+
+`Result` and `Option` both lead with the generic for the Output type, ControlFlow does not. Given that the variants are ordered `Continue`, `Break` I find the alphabetical generics to be a regular source of "oops!"
