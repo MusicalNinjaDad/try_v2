@@ -7,7 +7,7 @@ Let me start off by saying, I _love_ `trait Try` and really hope to see it accep
 I like the trait for two reasons:
 
 1. I don't like it when std can do stuff I can't, `Try` opens up the power and versatility of `?` to my own code.
-1. I don't like writing extra code when it feels like I'm just working _around_ language constraints. `Try` lets me add `impl`s directly to a custom `Result` type or flatten nested contructs inside `Option`s & `Result`s
+1. I don't like writing extra code when it feels like I'm just working _around_ language constraints. `Try` lets me add `impl`s directly to a custom `Result` type or flatten nested constructs inside `Option`s & `Result`s
 
 ## My related crates
 
@@ -41,7 +41,7 @@ When talking about `Try` below, I will usually consider the following traits in 
 
 ### 2 more experimental features
 
-As wierd as it may be from the naming `try_blocks`, `try_blocks_heterogeneous` are more separate from a usage point of view.
+As weird as it may be from the naming `try_blocks`, `try_blocks_heterogeneous` are more separate from a usage point of view.
 
 ## Simple case
 
@@ -222,7 +222,7 @@ The simple case described above is derivable (as in the examples) and is probabl
 - must have _at least one_ generic type
 - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
-- no other variant can store the Output type (see #72 add a nice error message)
+- no other variant can store the Output type (see #72 "add a nice error message")
 
 While technically, the generic ordering requirement could be relaxed with slightly more complex logic, it is [deliberately tight](https://en.wikipedia.org/wiki/Poka-yoke) - to avoid accidental, and hard to spot, mistakes caused by switching generics.
 
@@ -346,7 +346,7 @@ assert!(matches!(even_string(1), Eightball::No));
 The stdlib implementations are almost identical. I took a lazy approach and have leveraged `std::option::IntoIter` to allow:
 
 ```rust
-let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
+let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something weird"), Ok(3), Ok(4)];
 
 let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
 assert!(matches!(first_results, TestsFailed));
@@ -365,7 +365,7 @@ assert_eq!(result, Some(5));
 
 ### Macro `Try_Methods` (WIP): derives `unwrap()`
 
-`Option` & `Result` have a large set of sematically overlapping ergonomic methods for:
+`Option` & `Result` have a large set of semantically overlapping ergonomic methods for:
 
 - Querying the variant
 - Adapters for working with references (only `Option`)

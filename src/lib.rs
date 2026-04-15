@@ -524,7 +524,7 @@ fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
 /// }
 ///
 /// # fn main() {
-/// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something wierd"), Ok(3), Ok(4)];
+/// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something weird"), Ok(3), Ok(4)];
 ///
 /// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
 /// assert!(matches!(first_results, TestsFailed));
