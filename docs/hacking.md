@@ -224,11 +224,11 @@ The simple case described above is derivable (as in the examples) and is probabl
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
 - no other variant can store the Output type (see #72 add a nice error message)
 
-While technically, the generic ordering requirement could be relaxed with slightly more complex logic, it is [deliberately tight](https://en.wikipedia.org/wiki/Poka-yoke) - to avoid accidental and hard to spot mistakes caused by switching generics.
+While technically, the generic ordering requirement could be relaxed with slightly more complex logic, it is [deliberately tight](https://en.wikipedia.org/wiki/Poka-yoke) - to avoid accidental, and hard to spot, mistakes caused by switching generics.
 
-### Derivable code
+### Derive Example
 
-For the following case
+For the following case (based upon the usage in [pt](https://github.com/MusicalNinjaDad/pt))
 
 ```rust
 #[derive(Try, Try_ConvertResult)]
@@ -239,7 +239,7 @@ enum TestResult<T, E> {
 }
 ```
 
-#### Macro `Try`: derives `Try`, `FromResidual` and `Residual`
+### Macro `Try`: derives `Try`, `FromResidual` and `Residual`
 
 will result in code of the shape:
 
@@ -271,7 +271,7 @@ impl<T, E> Residual<T> for TestResult<!, E> {
 }
 ```
 
-#### Macro `Try_ConvertResult`: derives bidirection `FromResidual` with `Result`
+### Macro `Try_ConvertResult`: derives bidirectional `FromResidual` with `Result`
 
 will generate
 
@@ -339,7 +339,7 @@ assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
 assert!(matches!(even_string(1), Eightball::No));
 ```
 
-#### Macro `Try_Iterator`: derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`
+### Macro `Try_Iterator`: derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`
 
 The stdlib implementations are almost identical. I took a lazy approach and have leveraged `std::option::IntoIter` to allow:
 
@@ -361,7 +361,7 @@ let result = test.into_iter().next();
 assert_eq!(result, Some(5));
 ```
 
-#### Macro `Try_Methods` (WIP): derives `unwrap()`
+### Macro `Try_Methods` (WIP): derives `unwrap()`
 
 `Option` & `Result` have a large set of sematically overlapping ergonomic methods for:
 
