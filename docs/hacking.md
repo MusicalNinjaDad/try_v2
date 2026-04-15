@@ -367,18 +367,38 @@ assert_eq!(result, Some(5));
 
 Current task in progress is to derive equivalent methods named according to the enum variants. Right now, I have unwrap, goal is `is_testfailed()`, `expect()`, `othererror_or_else()`, `map_othererror` etc.
 
-### Gotchas -> Derive
+### Gotcha!s -> Derive
 
-- choice of residual
-- interconversion with result, overlapping Into impls
-- &! not infallible
-- Interconversion with Option
+There are a few "gotcha!s" with even the simple implementation which can be easily avoided.
+
+- Interconversion with Result, overlapping Into impls. This one bit me in the ass when using my own macros - while it may feel slightly awkward to require conversion to & from Result<_, MyResidual> anything else can trip you up later and be a pig to work out why (See [PR #50: fix Result Me bang (e.g. in TryFrom)](https://github.com/MusicalNinjaDad/try_v2/pull/50)).
+- When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm. It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
 
 ### Std inconsistencies & niggles
 
+A few things I noticed in std niggled me slightly
+
 #### Poll - documentation
 
-#### ControlFlow B, C not C, B
+While `Option` & [`Result`](https://doc.rust-lang.org/std/result/index.html#the-question-mark-operator-) nicely document using `?`, [Poll](https://doc.rust-lang.org/std/task/enum.Poll.html) does not. I'd consider it really valuable to understand why the two specific implementations were chosen and how they are intended to be used:
+
+```rust
+impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Option<Result<T, F>>>
+where
+    F: From<E>,
+```
+
+and
+
+```rust
+impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Result<T, F>>
+where
+    F: From<E>,
+```
+
+#### ControlFlow<B, C> not ControlFlow<C, B>
+
+`Result` and `Option` both lead with the generic for the Output type, ControlFlow does not. Given that the variants are ordered `Continue`, `Break` I find the alphabetical generics to be a regular source of "oops!"
 
 ## Complex cases
 
