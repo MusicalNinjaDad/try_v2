@@ -84,7 +84,9 @@ fn main() {
 }
 ```
 
-Wouldn't it be nicer to be able to have everthing in one place, with meaningful names for when I do want to handle non-`Some(Ok(Some(_)))` values? This is much easier to create, read, and reason about.
+Wouldn't it be nicer to be able to have everything in one place, with meaningful names for when I do want to handle non-`Some(Ok(Some(_)))` values?
+
+This is much easier to create, read, and reason about:
 
 ```rust
 use std::{error::Error, io};
