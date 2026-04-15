@@ -18,7 +18,7 @@
 
 - must be an `enum`
 - must have _at least one_ generic type
-- the _first_ generic type must be the `Output` type (produced when not short circuiting)
+- the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
 
 See the [full documentation](https://docs.rs/try_v2/latest/try_v2/) for specifics on the generated code.
@@ -38,7 +38,7 @@ enum TestResult<T> {
     OtherError(String)
 }
 
-// Basic short circuiting thanks to `#[derive(Try)]`
+// Basic short-circuiting thanks to `#[derive(Try)]`
 fn run_tests() -> TestResult<()> {
     TestResult::OtherError("oops!".to_string())?; // <- Function short-circuits here ...
     TestResult::TestsFailed?;
