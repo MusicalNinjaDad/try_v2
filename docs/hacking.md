@@ -222,7 +222,7 @@ The simple case described above is derivable (as in the examples) and is probabl
 - must have _at least one_ generic type
 - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
-- no other variant can store the Output type (TODO #72 add a nice error message)
+- no other variant can store the Output type (see #72 add a nice error message)
 
 While technically, the generic ordering requirement could be relaxed with slightly more complex logic, it is [deliberately tight](https://en.wikipedia.org/wiki/Poka-yoke) - to avoid accidental and hard to spot mistakes caused by switching generics.
 

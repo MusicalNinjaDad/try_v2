@@ -25,7 +25,7 @@ fn main() {
         let Some(Ok(Some(bar))) = foo else {
             return foo;
         };
-        
+
         let baz = bar + 1;
         Some(Ok(Some(baz)))
     }
