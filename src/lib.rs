@@ -23,6 +23,7 @@
 //!   - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 //!   - the output variant (does not short-circuit) must be the _first_ variant and store the output
 //!     type as the _only unnamed_ field
+//!   - no other variant can store the Output type (TODO #72 add a nice error message)
 //!
 //! See the individual documentation for [Try], [Try_ConvertResult] and [Try_Iterator] for specifics
 //! on the generated code.

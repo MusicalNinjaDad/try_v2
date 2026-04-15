@@ -20,6 +20,7 @@
 - must have _at least one_ generic type
 - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
 - the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
+- no other variant can store the Output type (TODO #72 add a nice error message)
 
 See the [full documentation](https://docs.rs/try_v2/latest/try_v2/) for specifics on the generated code.
 
