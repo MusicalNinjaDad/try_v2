@@ -25,9 +25,9 @@ To date I've thought about using the trait multiple times but always found I wou
 
 [MusicalNinjaDad/try_v2](https://github.com/MusicalNinjaDad/try_v2) provides a set of derive macros to make `Try` more accessible. (See below for details)
 
-## Criticism: complexity
+## (Invalid) criticism: complexity
 
-After working with the trait in various use cases, taking it apart to try (!) and derive a generic implementation and spending time reading RFCs, unstable books, comments in std source code, github issues, PRs, discord discussions, ... to my mind, the remaining complexity in `Try` is **inherent**. The implementation is as simple as possible to provide the power and flexibility required for the more meaningful use cases.
+After working with the trait in various use cases, taking it apart to try (!) and derive a generic implementation and spending time reading RFCs, unstable books, comments in std source code, github issues, PRs, discord discussions, ... to my mind, the remaining complexity in `Try` is **inherent**. The implementation is **as simple as possible** to provide the power and flexibility required for the more **meaningful use cases**.
 
 ## The 3 traits + 1 type + 1 function
 
