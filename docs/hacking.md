@@ -63,15 +63,19 @@ enum ValidErrors {
 }
 
 // There is no good way to unpack this for use, or pass it "up the chain" for handling without
-// repeated let-if-let-else-return directly in the code each time :(
+// repeated let Some(Ok(Some()))-else-return directly in the code each time :(
 
 fn main() {
     fn process(foo: DuplicateData<i32>) -> DuplicateData<i32> {
-        let bar = if let Some(Ok(Some(value))) = foo {
-            value
-        } else {
+        // This looks very much like:
+        // bar, err := foo
+        // if err != nil {
+        //      return err
+        // }
+        let Some(Ok(Some(bar))) = foo else {
             return foo;
         };
+        
         let baz = bar + 1;
         Some(Ok(Some(baz)))
     }
