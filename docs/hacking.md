@@ -294,7 +294,9 @@ where
 ... which calls Result::Err(residual.into()) ...
 ```
 
-Why require `From/Into Foo<!>` and not `Foo<_>`? 2 reasons:
+#### Why require `From/Into Foo<!>` and not `Foo<_>`?
+
+2 reasons:
 
 1. Otherwise you cannot create a non-conflicting implementation to allow for functions returning `Result<T, MyTry<!>>` to be ?-ed in functions returning `MyTry<U>`
 2. It stops accidentally returning a `Result::Err(TestResult::Ok)` ([Poka-Yoke](https://en.wikipedia.org/wiki/Poka-yoke) again). If you actually want this ... don't derive as you probably need specific logic to handle this edge.
