@@ -469,3 +469,33 @@ I'd consider the pattern both inherently dangerous and invaluable in select case
   ```
 
 ### Box vs Vec vs Option
+
+This one I find more annoying. The simple case is safe to derive for outputs `T` and `&'t T` but not for `Box<T>`, `Vec<T>` etc. The compiler currently does not identify anything other than a pure `!` (or `Infallible` etc.) as impossible when checking match arms. For the purpose of match-arm completeness we currently need to write:
+
+```rust
+enum ValidatedBox<T> {
+    ValidValue(Box<T>),
+    InvalidValue,
+}
+
+use ValidatedBox::{InvalidValue, ValidValue};
+
+let x: ValidatedBox<!> = InvalidValue;
+let mut y = 0;
+
+y += match x {
+    InvalidValue => 1,
+    ValidValue(_) => unreachable!("no way to construct a Box<!>"),
+};
+
+y += match x {
+    InvalidValue => 1,
+    ValidValue(b) => match *b {},
+};
+
+assert_eq!(y, 2);
+```
+
+which requires either manually stating that code is unreachable, not something I want to do in derived code, or knowing the specifics of the wrapper used and how to convert it to the inner type (not possible in derived code).
+
+I can understand the troubles in differentiating `Box<!>`, `Vec<std::convert::Infallible>`, `Result<!,CustomZeroVariantEnum>` (all are verifiably impossible to construct) from `Option<!>` (can be `None`)! This is something that would be a valuable, and non-trivial, improvement to the compiler to improve ergonomics as more people begin to use `Try` and therefore `!`
