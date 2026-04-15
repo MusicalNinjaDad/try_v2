@@ -408,13 +408,64 @@ where
 
 ## Complex cases
 
-### struct with hidden inner
+I've already run into 3 cases where I was not able to derive `Try`. I find two of them to be fine - they are cases where I want direct control over the mechanics.
+
+### Struct with hidden inner
+
+In [proc_macro2_diagnostic](https://crates.io/crates/proc_macro2_diagnostic) I chose to hide the enum behind an opaque struct. Primarily, I wanted to keep the specifics of the stored type as an implementation detail and find a pub enum which cannot be deconstructed or directly constructed to be "nasty". Secondly, I wanted to keep the variants of the enum as an implementation detail, allowing me to adjust them later.
+
+This cost me some extra code but implementing `Try` etc. on a `struct` works perfectly fine.
+
+### ? with side-effects
+
+Let me start by offering an unrequested opinion: global state is inherently evil, hidden side-effects are inherently evil and usually rely on global state.
+
+And yet ... also in [proc_macro2_diagnostic](https://crates.io/crates/proc_macro2_diagnostic) I have `?` with side-effects :flushed:. Top-level compiler diagnostics (on nightly) are not all errors, a custom `Try` implementation allowed both fatal errors & non-fatal warnings:
+
+```rust
+/// Result-like type which can represent a valid return value, an error or a warning accompanying
+/// a valid return value. Warnings will be emitted upon `?`, allowing your code to continue with
+/// the valid value. Errors will short-circuit upon `?` and be emitted upon final conversion to a
+/// [proc_macro::TokenStream]
+/// ...
+pub struct DiagnosticResult<T> {
+    inner: DiagnosticResult_<T>,
+}
+```
+
+I'd consider the pattern both inherently dangerous and invaluable in select cases:
+
+- `LoggedResult` (near the top of my todo list)
+
+    ```rust
+    /// Calling `?`:
+    ///   - Ok(t) -> provides `t`;
+    ///   - NonFatal(t, record) -> emits `record` to the logger & provides `t`
+    ///   - Fatal(e) -> passes the error up the chain, without emitting anything.
+    pub enum LoggedResult<T, E> {
+        Ok(T),
+        NonFatal(T, log::Record),
+        Fatal(E)
+    }
+    ```
+
+- Async cases, not so easily lib-ified, e.g. for handling paged responses to a query:
+
+  ```rust
+    /// Calling ?:
+    ///   - LastPage(data) -> provides `data`;
+    ///   - Page(data, next_page_uri) -> sends `next_page_uri` to page_handler channel & provides `data`
+    ///   - Err(e) -> passes the error up the chain.
+    struct PagedResponse<T, E> {
+        handler: async_channel::Sender,
+        payload: Payload<T, E>
+    }
+
+    enum Payload<T, E> {
+        LastPage(T),
+        Page(T, http::uri::Uri),
+        Err(E),
+    }
+  ```
 
 ### Box vs Vec vs Option
-
-### ? with sideeffects
-
-- global state inherently evil
-- diagnosticresult
-- loggedresult
-- async & channels (LastPage, Page, Err)
