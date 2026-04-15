@@ -388,7 +388,7 @@ It is all too tempting to use `unreachable!()` here - but safer to rely on the c
 
 A few things I noticed in std niggled me slightly
 
-#### No clippy lint must_use_try
+#### No clippy lint `must_use_try`
 
 `Result` & `ControlFlow` are marked `#[must_use]` for good reason. `Option` is not, but possibly should be. I've added a compiler warning in the derive macro if the type is not `#[must_use]` but this cannot be silenced (yet, todo) and is not _really_ the right approach.
 
@@ -426,6 +426,22 @@ In [proc_macro2_diagnostic](https://crates.io/crates/proc_macro2_diagnostic) I c
 
 This cost me some extra code but implementing `Try` etc. on a `struct` works perfectly fine.
 
+```rust
+pub struct DiagnosticResult<T> {
+    inner: DiagnosticResult_<T>,
+}
+
+impl<T> std::ops::Try for DiagnosticResult<T> {
+    type Output = T;
+
+    type Residual = DiagnosticResult<!>;
+
+    fn from_output(output: Self::Output) -> Self {
+        Self { inner: Ok_(output) }
+    }
+...
+```
+
 ### ? with side-effects
 
 Let me start by offering an unrequested opinion: global state is inherently evil, hidden side-effects are inherently evil and usually rely on global state.
@@ -441,9 +457,27 @@ And yet ... also in [proc_macro2_diagnostic](https://crates.io/crates/proc_macro
 pub struct DiagnosticResult<T> {
     inner: DiagnosticResult_<T>,
 }
+
+impl<T> std::ops::Try for DiagnosticResult<T> {
+    type Output = T;
+
+    type Residual = DiagnosticResult<!>;
+
+    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
+        match self.inner {
+            Ok_(t) => std::ops::ControlFlow::Continue(t),
+            Warning(t, d) => {
+                d.emit();
+                std::ops::ControlFlow::Continue(t)
+            }
+            Error(d) => std::ops::ControlFlow::Break(DiagnosticResult { inner: Error(d) }),
+        }
+    }
+...
+}
 ```
 
-I'd consider the pattern both inherently dangerous and invaluable in select cases:
+I'd consider this pattern both **inherently dangerous** and **invaluable in select cases**:
 
 - `LoggedResult` (near the top of my todo list)
 
@@ -459,7 +493,7 @@ I'd consider the pattern both inherently dangerous and invaluable in select case
     }
     ```
 
-- Async cases, not so easily lib-ified, e.g. for handling paged responses to a query:
+- Async cases, e.g. for handling paged responses to a query:
 
   ```rust
     /// Calling ?:
