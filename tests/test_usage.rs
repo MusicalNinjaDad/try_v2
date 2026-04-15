@@ -459,7 +459,7 @@ mod methods {
     }
 
     #[test]
-    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: ValidationFailed(2)")]
+    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: Invalid")]
     fn unwrap_panic_unit() {
         let y: Validated<i32, String> = Validated::Invalid;
         y.unwrap();
