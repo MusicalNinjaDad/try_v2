@@ -299,7 +299,7 @@ where
 2 reasons:
 
 1. Otherwise you cannot create a non-conflicting implementation to allow for functions returning `Result<T, MyTry<!>>` to be ?-ed in functions returning `MyTry<U>`
-2. It stops accidentally returning a `Result::Err(TestResult::Ok)` ([Poka-Yoke](https://en.wikipedia.org/wiki/Poka-yoke) again). If you actually want this ... don't derive as you probably need specific logic to handle this edge.
+2. It stops people from accidentally returning a `Result::Err(TestResult::Ok)` ([Poka-Yoke](https://en.wikipedia.org/wiki/Poka-yoke) again). If you actually want this ... don't derive as you probably need specific logic to handle this case.
 
 Effectively that allows using your type in any trait function where a `Result` is expected. Here's the `TryFrom` example from the integration tests. The subtle point to note: `let n = Even::try_from(num)?;` uses `?` to provide an `Even`, in a function that aims to return `Eightball<String>`, not `Eightball<Even>`
 
@@ -377,10 +377,12 @@ Current task in progress is to derive equivalent methods named according to the 
 
 ### Gotcha!s -> Derive
 
-There are a few "gotcha!s" with even the simple implementation which can be easily avoided.
+There are a few "gotcha!s" with even the simple implementation which can be easily avoided by careful documentation, reading & thinking ... or deriving.
 
-- Interconversion with Result, overlapping Into impls. This one bit me in the ass when using my own macros - while it may feel slightly awkward to require conversion to & from Result<_, MyResidual> anything else can trip you up later and be a pig to work out why (See [PR #50: fix Result Me bang (e.g. in TryFrom)](https://github.com/MusicalNinjaDad/try_v2/pull/50)).
-- When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm. It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
+- Interconversion with Result: overlapping `Into` impls.
+    This one bit me in the ass when using my own macros - while it may feel slightly awkward to require conversion to & from Result<_, MyResidual> anything else can trip you up later and be a pig to work out why (See [PR #50: fix Result Me bang (e.g. in TryFrom)](https://github.com/MusicalNinjaDad/try_v2/pull/50)).
+- When working with references the compiler does not recognise `Foo::Ok(&!)` as an impossible variant and requires a match arm.
+    It is all too tempting to use `unreachable!()` here - but safer to rely on the compiler either via `Ok(&t) => match {}` (safest) or `Ok(t) => *t` (slightly less safe)
 
 ### Std inconsistencies & niggles
 
