@@ -231,7 +231,7 @@ While technically, the generic ordering requirement could be relaxed with slight
 For the following case (based upon the usage in [pt](https://github.com/MusicalNinjaDad/pt))
 
 ```rust
-#[derive(Try, Try_ConvertResult)]
+#[derive(Try, Try_ConvertResult, Try_Iterator, Try_Methods)]
 enum TestResult<T, E> {
     Ok(T),
     TestsFailed,
@@ -273,7 +273,7 @@ impl<T, E> Residual<T> for TestResult<!, E> {
 
 ### Macro `Try_ConvertResult`: derives bidirectional `FromResidual` with `Result`
 
-will generate
+adds
 
 ```rust
 
