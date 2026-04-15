@@ -202,9 +202,134 @@ fn main() {
 }
 ```
 
-### Boilerplate -> Derive
+## Boilerplate & Gotchas -> Derive
 
-While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and
+While the above is really easy to create, use and reason about, manually implementing Try for this comes with a chunk of boilerplate code and a few gotchas. Getting the same ergonomics that are available from Option, Try & Control-Flow adds even more boilerplate. As such the pay off was never there for me personally, until I was _forced_ to put a minimal implementation in place for [exit_safely](https://crates.io/crates/exit_safely). In true [pass-the-salt](https://xkcd.com/974/) style I went ahead and created the derive macros in [try_v2](https://crates.io/crates/try_v2).
+
+### Derivable case
+
+The simple case described above is derivable (as in the examples) and is probably the most (numerically) common expected usage of Try. To be able to guarantee the `Foo<!>` pattern for the `Residual` and algorithmically generate arms for `branch()`, `from_residual()` etc. the macro enforces a few invariants on the annotated type:
+
+- must be an `enum`
+- must have _at least one_ generic type
+- the _first_ generic type must be the `Output` type (produced when not short-circuiting)
+- the output variant (does not short-circuit) must be the _first_ variant and store the output type as the _only unnamed_ field
+- no other variant can store the Output type (TODO #72 add a nice error message)
+
+While technically, the generic ordering requirement could be relaxed with slightly more complex logic, it is [deliberately tight](https://en.wikipedia.org/wiki/Poka-yoke) - to avoid accidental and hard to spot mistakes caused by switching generics.
+
+### Derivable code
+
+For the following case
+
+```rust
+#[derive(Try, Try_ConvertResult)]
+enum TestResult<T, E> {
+    Ok(T),
+    TestsFailed,
+    OtherError(E)
+}
+```
+
+#### Macro `Try`: derives `Try`, `FromResidual` and `Residual`
+
+will result in code of the shape:
+
+```rust
+impl<T,E> Try for TestResult<T, E> {
+    type Output = T;
+    type Residual = TestResult<!,E>;
+
+    fn from_output(output: T) -> Self {
+        Self::Ok(output)
+    }
+
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        Self::Ok(t) => Continue(t),
+        ... each failing variant => Break(failing variant) ...   
+    }
+}
+
+impl<T, E> FromResidual<TestResult<!,E>> for TestResult<T, E> {
+    fn from_residual(residual: TestResult<!,E>) -> Self {
+        match residual {
+            ... each failing variant => itself ...              
+        }
+    }
+}
+
+impl<T, E> Residual<T> for TestResult<!, E> {
+    type TryType = TestResult<T, E>;
+}
+```
+
+#### Macro `Try_ConvertResult`: derives bidirection `FromResidual` with `Result`
+
+will generate
+
+```rust
+
+impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
+where
+    RE: Into<TestResult<!,E>>
+
+... which calls Result::Err(e) => e.into(), ...
+```
+
+and
+
+```rust
+impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
+where
+    RE: From<TestResult<!,E>>
+
+... which calls Result::Err(residual.into()) ...
+```
+
+Why require `From/Into Foo<!>` and not `Foo<_>`? 2 reasons:
+
+1. Otherwise you cannot create a non-conflicting implementation to allow for functions returning `Result<T, MyTry<!>>` to be ?-ed in functions returning `MyTry<U>`
+2. It stops accidentally returning a `Result::Err(TestResult::Ok)` ([Poka-Yoke](https://en.wikipedia.org/wiki/Poka-yoke) again). If you actually want this ... don't derive as you probably need specific logic to handle this edge.
+
+Effectively that allows using your type in any trait function where a `Result` is expected. Here's the `TryFrom` example from the integration tests. The subtle point to note: `let n = Even::try_from(num)?;` uses `?` to provide an `Even`, in a function that aims to return `Eightball<String>`, not `Eightball<Even>`
+
+```rust
+#![feature(never_type)]
+#![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
+
+use try_v2::{Try, Try_ConvertResult};
+
+#[derive(Try, Try_ConvertResult)]
+#[must_use]
+enum Eightball<Y> {
+    Yes(Y),
+    No,
+}
+
+struct Even(i32);
+
+impl TryFrom<i32> for Even {
+    type Error = Eightball<!>;
+
+    fn try_from(num: i32) -> Result<Even, Eightball<!>> {
+        if num % 2 == 0 {
+            Result::Ok(Even(num))
+        } else {
+            Result::Err(Eightball::No)
+        }
+    }
+}
+
+fn even_string(num: i32) -> Eightball<String> {
+    let n = Even::try_from(num)?;
+    let s = format!("{}", n.0);
+    Eightball::Yes(s)
+}
+
+assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
+assert!(matches!(even_string(1), Eightball::No));
+```
 
 - traits themselves
 - all the nice functions that std lib have in common
@@ -214,6 +339,7 @@ While the above is really easy to create, use and reason about, manually impleme
 - choice of residual
 - interconversion with result, overlapping Into impls
 - &! not infallible
+- Interconversion with Option
 
 ### Std inconsistencies & niggles
 
