@@ -450,4 +450,18 @@ mod methods {
         let x: Validated<_, String> = Validated::Valid(2);
         assert_eq!(x.unwrap(), 2);
     }
+
+    #[test]
+    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: ValidationFailed(2)")]
+    fn unwrap_panic_fields() {
+        let x: Validated<i32, _> = Validated::ValidationFailed(2);
+        assert_eq!(x.unwrap(), 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: ValidationFailed(2)")]
+    fn unwrap_panic_unit() {
+        let y: Validated<i32, String> = Validated::Invalid;
+        y.unwrap();
+    }
 }

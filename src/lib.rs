@@ -118,7 +118,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::prelude::*;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, TypeParamBound, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -474,12 +474,24 @@ fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
         where_clause,
     ) = tryenum.split_for_impl();
 
+    //let (debug_impl_generics, debug_ty_generics, debug_where_clause)
+    let debug: TypeParamBound = parse_quote!(std::fmt::Debug);
+    let debug_generics = tryenum.generics(|g| {
+        for param in g.type_params_mut() {
+            if param.bounds.iter().find(|b| b == &&debug).is_none() {
+                param.bounds.push(debug.clone());
+            }
+        }
+    });
+    let (debug_impl_generics, debug_ty_generics, debug_where_clause) =
+        debug_generics.split_for_impl();
+
     // TODO: Better error message: needs where ... Debug
     let impl_extraction = quote! {
-        impl #impl_generics #name #ty_generics #where_clause {
+        impl #debug_impl_generics #name #debug_ty_generics #debug_where_clause {
             pub fn unwrap(self) -> #output_type {
                 let #name::#output_variant_name(val) = self else {
-                    panic!();
+                    panic!("called `unwrap()` on a short-circuiting value: {:?}", self);
                 };
                 val
             }
