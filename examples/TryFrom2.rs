@@ -102,6 +102,21 @@ fn even_string3_via_result(num: i32) -> Eightball<String> {
     Eightball::Yes(s)
 }
 
+struct TryFromIntError; // Cannot instantiate a std::num::TryFromIntError
+
+/// Non-breaking: this is identical (text) to std impl
+impl TryFrom3<i8> for u8 {
+    type Error = TryFromIntError;
+
+    fn try_from3(u: i8) -> Result<Self, Self::Error> {
+        if u >= 0 {
+            Ok(u as Self)
+        } else {
+            Err(TryFromIntError)
+        }
+    }
+}
+
 fn main() {
     assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string(1), Eightball::No));
@@ -114,4 +129,7 @@ fn main() {
 
     assert!(matches!(even_string3_via_result(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string3_via_result(1), Eightball::No));
+
+    assert!(matches!(u8::try_from3(5), Ok(5)));
+    assert!(matches!(u8::try_from3(-1), Err(TryFromIntError)));
 }
