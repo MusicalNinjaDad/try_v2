@@ -93,6 +93,22 @@ fn unsigned(num: i8) -> Result<String, TryFromIntError> {
     Ok(s)
 }
 
+struct ThirdWord(String);
+
+/// Could even return an Option
+impl TryFrom2<&str> for ThirdWord {
+    type Error = ();
+
+    type Return = Option<Self>;
+
+    fn try_from2(input: &str) -> Self::Return {
+        input
+            .split_whitespace()
+            .nth(3)
+            .map(|s| ThirdWord(s.to_string()))
+    }
+}
+
 fn main() {
     assert!(matches!(even_string_own_try_type(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string_own_try_type(1), Eightball::No));
@@ -102,4 +118,7 @@ fn main() {
 
     assert!(matches!(unsigned(5), Ok(s) if s == "5"));
     assert!(matches!(unsigned(-1), Err(TryFromIntError)));
+
+    assert!(matches!(ThirdWord::try_from2("a lot of words"), Some(s) if s.0 == "of"));
+    assert!(ThirdWord::try_from2("two words").is_none());
 }
