@@ -504,8 +504,8 @@ fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
 #[proc_macro_derive(Try_Iterator)]
 /// Derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`.
 ///
-/// - Vec<TryEnum>::collect() -> TryEnum<Vec>.
-/// - TryEnum.into_iter() -> yields _one_ value if Ok, else empty.
+/// - `Vec<TryEnum>::collect()` -> `TryEnum<Vec>`.
+/// - `TryEnum.into_iter()` -> yields _one_ value if Ok, else empty.
 ///
 /// ## Example
 /// ```
