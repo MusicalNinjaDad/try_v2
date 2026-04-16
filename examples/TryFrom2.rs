@@ -5,6 +5,17 @@
 
 use try_v2::{Try, Try_ConvertResult};
 
+/// Make TryFrom able to return arbitrary Try types
+trait TryFrom2<T>: std::marker::Sized {
+    /// Must keep, otherwise would be a breaking change
+    type Error;
+    /// The specific Try-type to return
+    /// Defaults to Result, to make this a non-breaking change
+    type Return: std::ops::Try = Result<Self, Self::Error>;
+
+    fn try_from2(value: T) -> Self::Return;
+}
+
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
 enum Eightball<Y> {
@@ -14,16 +25,9 @@ enum Eightball<Y> {
 
 struct Even(i32);
 
-struct Even2(i32);
-
-trait TryFrom2<T>: std::marker::Sized {
-    type Error;
-    type Return: std::ops::Try = Result<Self, Self::Error>;
-
-    fn try_from2(value: T) -> Self::Return;
-}
-
+/// Uses new API to return a _custom_ TryType
 impl TryFrom2<i32> for Even {
+    /// Can always be set to `()` if irrelevant
     type Error = ();
     type Return = Eightball<Self>;
 
@@ -36,6 +40,9 @@ impl TryFrom2<i32> for Even {
     }
 }
 
+struct Even2(i32);
+
+/// Uses _current hack_ of wrapping custom Try-type's Residual in a Result
 impl TryFrom2<i32> for Even2 {
     type Error = Eightball<!>;
 
@@ -48,21 +55,10 @@ impl TryFrom2<i32> for Even2 {
     }
 }
 
-fn even_string_own_try_type(num: i32) -> Eightball<String> {
-    let n = Even::try_from2(num)?;
-    let s = format!("{}", n.0);
-    Eightball::Yes(s)
-}
+// Cannot instantiate a std::num::TryFromIntError
+struct TryFromIntError;
 
-fn even_string_via_result(num: i32) -> Eightball<String> {
-    let n = Even2::try_from2(num)?;
-    let s = format!("{}", n.0);
-    Eightball::Yes(s)
-}
-
-struct TryFromIntError; // Cannot instantiate a std::num::TryFromIntError
-
-/// Non-breaking: this is identical (text) to std impl
+/// Shows this is **non-breaking change**: this is identical (text) to std impl
 impl TryFrom2<i8> for u8 {
     type Error = TryFromIntError;
 
@@ -75,6 +71,28 @@ impl TryFrom2<i8> for u8 {
     }
 }
 
+/// Can call try_from in a function returning same try type, with different generics
+fn even_string_own_try_type(num: i32) -> Eightball<String> {
+    let n = Even::try_from2(num)?;
+    let s = format!("{}", n.0);
+    Eightball::Yes(s)
+}
+
+/// Can call try_from in a function returning a _different_ try type (this goes via Result)
+/// as long as a suitable FromResidual implementation exists
+fn even_string_via_result(num: i32) -> Eightball<String> {
+    let n = Even2::try_from2(num)?;
+    let s = format!("{}", n.0);
+    Eightball::Yes(s)
+}
+
+/// Current case not broken
+fn unsigned(num: i8) -> Result<String, TryFromIntError> {
+    let n = u8::try_from2(num)?;
+    let s = format!("{}", n);
+    Ok(s)
+}
+
 fn main() {
     assert!(matches!(even_string_own_try_type(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string_own_try_type(1), Eightball::No));
@@ -82,6 +100,6 @@ fn main() {
     assert!(matches!(even_string_via_result(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string_via_result(1), Eightball::No));
 
-    assert!(matches!(u8::try_from2(5), Ok(5)));
-    assert!(matches!(u8::try_from2(-1), Err(TryFromIntError)));
+    assert!(matches!(unsigned(5), Ok(s) if s == "5"));
+    assert!(matches!(unsigned(-1), Err(TryFromIntError)));
 }
