@@ -104,7 +104,7 @@ impl TryFrom2<&str> for ThirdWord {
     fn try_from2(input: &str) -> Self::Return {
         input
             .split_whitespace()
-            .nth(3)
+            .nth(2)
             .map(|s| ThirdWord(s.to_string()))
     }
 }
