@@ -31,7 +31,34 @@ fn even_string(num: i32) -> Eightball<String> {
     Eightball::Yes(s)
 }
 
+trait TryFrom2<T> {
+    type Return: std::ops::Try;
+
+    fn try_from2(value: T) -> Self::Return;
+}
+
+impl TryFrom2<i32> for Even {
+    type Return = Eightball<Self>;
+    
+    fn try_from2(num: i32) -> Self::Return {
+        if num % 2 == 0 {
+            Eightball::Yes(Even(num))
+        } else {
+            Eightball::No
+        }
+    }
+}
+
+fn even_string2(num: i32) -> Eightball<String> {
+    let n = Even::try_from2(num)?;
+    let s = format!("{}", n.0);
+    Eightball::Yes(s)
+}
+
 fn main() {
     assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
     assert!(matches!(even_string(1), Eightball::No));
+
+    assert!(matches!(even_string2(2), Eightball::Yes(s) if s == "2"));
+    assert!(matches!(even_string2(1), Eightball::No));
 }
