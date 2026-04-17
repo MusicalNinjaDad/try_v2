@@ -58,7 +58,7 @@ impl TryFrom2<i32> for Even2 {
 // Cannot instantiate a std::num::TryFromIntError
 struct TryFromIntError;
 
-/// Shows this is **non-breaking change**: this is identical (text) to std impl
+/// This is identical (text) to std impl
 impl TryFrom2<i8> for u8 {
     type Error = TryFromIntError;
 
@@ -91,6 +91,47 @@ fn unsigned(num: i8) -> Result<String, TryFromIntError> {
     let n = u8::try_from2(num)?;
     let s = format!("{}", n);
     Ok(s)
+}
+
+#[cfg(false)]
+mod broken {
+    use super::*;
+
+    fn annotated_type<N>(num: N) -> Result<String, TryFromIntError>
+    where
+        u8: TryFrom2<N>,
+    {
+        let n: Result<_, _> = u8::try_from2(num);
+        let s = format!("{}", n?);
+        Ok(s)
+    }
+    //     error[E0308]: mismatched types
+    //    --> examples/TryFrom2.rs:103:31
+    //     |
+    // 103 |         let n: Result<_, _> = u8::try_from2(num);
+    //     |                ------------   ^^^^^^^^^^^^^^^^^^ expected `Result<_, _>`, found associated type
+    //     |                |
+    //     |                expected due to this
+    //     |
+    //     = note:         expected enum `std::result::Result<_, _>`
+    //             found associated type `<u8 as TryFrom2<N>>::Return`
+    //     = help: consider constraining the associated type `<u8 as TryFrom2<N>>::Return` to `std::result::Result<_, _>`
+    //     = note: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
+    // help: try wrapping the expression in a variant of `std::result::Result`
+    //     |
+    // 103 |         let n: Result<_, _> = Ok(u8::try_from2(num));
+    //     |                               +++                  +
+    // 103 |         let n: Result<_, _> = Err(u8::try_from2(num));
+    //     |                               ++++                  +
+
+    fn assumes_methods<T: TryFrom2<i32>>(x: i32) -> Option<T> {
+        T::try_from2(x).ok()
+    }
+    // error[E0599]: no method named `ok` found for associated type `<T as TryFrom2<i32>>::Return` in the current scope
+    //    --> examples/TryFrom2.rs:127:25
+    //     |
+    // 127 |         T::try_from2(x).ok()
+    //     |                         ^^ method not found in `<T as TryFrom2<i32>>::Return`
 }
 
 struct ThirdWord(String);
