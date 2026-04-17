@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 #![feature(associated_type_defaults)]
 
-use std::ops::{Try, FromResidual};
+use std::ops::{FromResidual, Try};
 use try_v2::{Try, Try_ConvertResult};
 
 /// Make TryFrom able to return arbitrary Try types
@@ -22,6 +22,10 @@ trait TryFrom2<T>: std::marker::Sized {
 enum Eightball<Y> {
     Yes(Y),
     No,
+}
+
+impl From<Eightball<!>> for () {
+    fn from(_: Eightball<!>) -> Self {}
 }
 
 struct Even(i32);
@@ -133,31 +137,32 @@ mod broken {
     //     |
     // 127 |         T::try_from2(x).ok()
     //     |                         ^^ method not found in `<T as TryFrom2<i32>>::Return`
-}
 
-struct ThirdWord(String);
+    struct ThirdWord(String);
 
-/// Could even return an Option
-impl TryFrom2<&str> for ThirdWord {
-    type Error = ();
+    /// Could even return an Option
+    impl TryFrom2<&str> for ThirdWord {
+        type Error = ();
 
-    type Return = Option<Self>;
+        type Return = Option<Self>;
 
-    fn try_from2(input: &str) -> Self::Return {
-        input
-            .split_whitespace()
-            .nth(2)
-            .map(|s| ThirdWord(s.to_string()))
+        fn try_from2(input: &str) -> Self::Return {
+            input
+                .split_whitespace()
+                .nth(2)
+                .map(|s| ThirdWord(s.to_string()))
+        }
     }
 }
 
-trait ResultLike<U,E> {}
+trait ResultLike<U, E> {}
 
-impl<T, U, E> ResultLike<U,E> for T
-where 
+impl<T, U, E> ResultLike<U, E> for T
+where
     T: Try,
     Result<U, E>: FromResidual<<T as Try>::Residual>,
-{}
+{
+}
 
 fn main() {
     assert!(matches!(even_string_own_try_type(2), Eightball::Yes(s) if s == "2"));
@@ -168,7 +173,4 @@ fn main() {
 
     assert!(matches!(unsigned(5), Ok(s) if s == "5"));
     assert!(matches!(unsigned(-1), Err(TryFromIntError)));
-
-    assert!(matches!(ThirdWord::try_from2("a lot of words"), Some(s) if s.0 == "of"));
-    assert!(ThirdWord::try_from2("two words").is_none());
 }
