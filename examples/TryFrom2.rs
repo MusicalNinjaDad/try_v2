@@ -12,7 +12,7 @@ trait TryFrom2<T>: std::marker::Sized {
     type Error;
     /// The specific Try-type to return
     /// Defaults to Result, to make this a non-breaking change
-    type Return: std::ops::Try = Result<Self, Self::Error>;
+    type Return: Try + ResultLike<Self, Self::Error> = Result<Self, Self::Error>;
 
     fn try_from2(value: T) -> Self::Return;
 }
