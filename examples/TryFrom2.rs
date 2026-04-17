@@ -3,6 +3,7 @@
 #![feature(try_trait_v2_residual)]
 #![feature(associated_type_defaults)]
 
+use std::ops::{Try, FromResidual};
 use try_v2::{Try, Try_ConvertResult};
 
 /// Make TryFrom able to return arbitrary Try types
@@ -149,6 +150,14 @@ impl TryFrom2<&str> for ThirdWord {
             .map(|s| ThirdWord(s.to_string()))
     }
 }
+
+trait ResultLike<U,E> {}
+
+impl<T, U, E> ResultLike<U,E> for T
+where 
+    T: Try,
+    Result<U, E>: FromResidual<<T as Try>::Residual>,
+{}
 
 fn main() {
     assert!(matches!(even_string_own_try_type(2), Eightball::Yes(s) if s == "2"));
