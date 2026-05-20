@@ -5,13 +5,13 @@ on:
     paths: 
     - "**.rs"
     - "Cargo.toml"
+    - "rust-toolchain.toml"
     - ".github/workflows/rust.yml"
   pull_request:
   workflow_call:
 
 env:
     CARGO_TERM_COLOR: always
-    RUSTC_BOOTSTRAP: 1
 
 jobs:
 
@@ -64,10 +64,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      RUSTC_BOOTSTRAP: 1
+
     steps:
     - uses: actions/checkout@v6
     - name: install cargo-msrv
-      uses: taiki-e/install-action@v2.79.2
+      uses: taiki-e/install-action@v2.75.27
       with:
         tool: cargo-msrv
     - name: check MSRV

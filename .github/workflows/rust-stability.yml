@@ -1,19 +1,17 @@
 name: Monthly stability checks
 
 on:
-  workflow_dispatch:
-  workflow_call:
   pull_request:
+  push:
+    paths:
+      - ".github/workflows/rust-stability.yml"
   schedule:
     - cron: '0 3 6 * *'
-
-permissions:
-  contents: read
-  issues: write
+  workflow_dispatch:
+  workflow_call:
 
 env:
     CARGO_TERM_COLOR: always
-    RUSTC_BOOTSTRAP: 1
 
 jobs:
 
@@ -26,9 +24,11 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup set profile default && rustup update && rustup default ${{ matrix.channel }}
+      run: rustup set profile default && rustup install ${{ matrix.channel }}
+    - name: Set bootstrap
+      run: test "${{ matrix.channel }}" != "nightly"  && echo "RUSTC_BOOTSTRAP=1" >> $GITHUB_ENV || true
     - name: Run tests
-      run: cargo test --no-fail-fast
+      run: cargo "+${{ matrix.channel }}" test --no-fail-fast
 
   lint:
     strategy:
@@ -39,14 +39,19 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: update rust
-      run: rustup set profile default && rustup update && rustup default ${{ matrix.channel }}
+      run: rustup set profile default && rustup install ${{ matrix.channel }}
+    - name: Set bootstrap
+      run: test "${{ matrix.channel }}" != "nightly"  && echo "RUSTC_BOOTSTRAP=1" >> $GITHUB_ENV  || true
     - name: clippy
-      run: cargo clippy -- --deny warnings
+      run: cargo +${{ matrix.channel }} clippy -- --deny warnings
 
   report:
     if: ${{ always() }}
     needs: [test, lint]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
     - uses: actions/checkout@v6
     - name: Create issue on failure
