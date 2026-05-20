@@ -1,9 +1,12 @@
 version: 2
 updates:
 - package-ecosystem: "cargo"
-  directory: "/"
+  directories:
+    - "/"
   schedule:
     interval: "daily"
+  cooldown:
+    default-days: 10
 - package-ecosystem: "docker"
   directory: "/.devcontainer"
   schedule:
@@ -16,3 +19,5 @@ updates:
   directory: "/"
   schedule:
     interval: "daily"
+  cooldown:
+    default-days: 10
