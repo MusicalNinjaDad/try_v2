@@ -3,15 +3,18 @@
 use std::ops::{ControlFlow, Try};
 
 #[allow(dead_code)]
-trait Transpose<U>
+trait Transpose<U, O>
 where
     Self: Try,
+    Self::Output: Try<Output = O, Residual = U::Residual>,
+    U: Try,
+    U::Output: Try<Output = O, Residual = Self::Residual>,
 {
     fn transpose2(self) -> U;
 }
 
 impl<T: Try<Output = TO, Residual = TR>, TO, TR, U: Try<Output = UO, Residual = UR>, UO, UR, O>
-    Transpose<U> for T
+    Transpose<U, O> for T
 where
     TO: Try<Output = O, Residual = UR>,
     UO: Try<Output = O, Residual = TR>,
