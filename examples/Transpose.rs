@@ -1,7 +1,6 @@
 #![feature(try_trait_v2)]
-#![allow(clippy::disallowed_names)]
 
-use std::ops::{FromResidual, Try};
+use std::ops::{ControlFlow, Try};
 
 #[allow(dead_code)]
 trait Transpose<U>
@@ -18,25 +17,17 @@ where
     UO: Try<Output = O, Residual = TR>,
 {
     fn transpose2(self) -> U {
-        // type T = Result<Option<u32>, String>;
-        // type TR = <T as Try>::Residual; // Result<!, String>
-        // type U = Option<Result<u32, String>>;
-        // type UO = <U as Try>::Output; // Result<u32, String>
-        // type UR = <U as Try>::Residual; // Option<!>
-        let opt_or_err = self.branch();
-        match opt_or_err {
-            std::ops::ControlFlow::Continue(opt) => match opt.branch() {
-                std::ops::ControlFlow::Continue(val) => {
-                    let inner_result = UO::from_output(val);
-                    U::from_output(inner_result)
+        match self.branch() {
+            ControlFlow::Continue(inner_u) => match inner_u.branch() {
+                ControlFlow::Continue(val) => {
+                    let inner_t = UO::from_output(val);
+                    U::from_output(inner_t)
                 }
-                std::ops::ControlFlow::Break(opt_residual) => {
-                    <U as FromResidual<UR>>::from_residual(opt_residual)
-                }
+                ControlFlow::Break(u_residual) => U::from_residual(u_residual),
             },
-            std::ops::ControlFlow::Break(err) => {
-                let inner_result = <UO as FromResidual<TR>>::from_residual(err);
-                U::from_output(inner_result)
+            ControlFlow::Break(t_residual) => {
+                let inner_t = UO::from_residual(t_residual);
+                U::from_output(inner_t)
             }
         }
     }
@@ -49,7 +40,6 @@ fn ok_some() {
     let custom: Option<Result<u32, String>> = ok_some.transpose2();
     assert_eq!(stdlib, custom)
 }
-
 
 #[test]
 fn ok_none() {
@@ -67,10 +57,9 @@ fn err() {
     assert_eq!(stdlib, custom)
 }
 
-
 #[test]
 fn some_ok() {
-    let some_ok: Option<Result<u32, String>> =Some(Ok(5));
+    let some_ok: Option<Result<u32, String>> = Some(Ok(5));
     let stdlib: Result<Option<u32>, String> = some_ok.clone().transpose();
     let custom: Result<Option<u32>, String> = some_ok.transpose2();
     assert_eq!(stdlib, custom)
