@@ -3,7 +3,7 @@
 
 use std::ops::{FromResidual, Try};
 
-#[expect(dead_code)]
+#[allow(dead_code)]
 trait Transpose<U>
 where
     Self: Try,
@@ -35,6 +35,14 @@ impl Transpose<Option<Result<u32, String>>> for Result<Option<u32>, String> {
             }
         }
     }
+}
+
+#[test]
+fn ok_some() {
+    let ok_some: Result<Option<u32>, String> = Ok(Some(5));
+    let stdlib: Option<Result<u32, String>> = ok_some.clone().transpose();
+    let custom: Option<Result<u32, String>> = ok_some.transpose2();
+    assert_eq!(stdlib, custom)
 }
 
 fn main() {}
