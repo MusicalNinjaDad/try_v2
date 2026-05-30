@@ -6,15 +6,15 @@
 use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
 trait Foo: Iterator {
-    fn try_reduce2<F, R>(
+    fn try_reduce2<F, Rtn>(
         &mut self,
         f: F,
-    ) -> <<R as Try>::Residual as Residual<Option<<R as Try>::Output>>>::TryType
+    ) -> <<Rtn as Try>::Residual as Residual<Option<<Rtn as Try>::Output>>>::TryType
     where
         Self: Sized,
-        F: FnMut(Self::Item, Self::Item) -> R,
-        R: Try<Output = Self::Item>,
-        <R as Try>::Residual: Residual<Option<Self::Item>>,
+        F: FnMut(Self::Item, Self::Item) -> Rtn,
+        Rtn: Try<Output = Self::Item>,
+        <Rtn as Try>::Residual: Residual<Option<Self::Item>>,
     {
         let first = match self.next() {
             Some(i) => i,
