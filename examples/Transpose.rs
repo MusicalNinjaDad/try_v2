@@ -11,13 +11,18 @@ where
     fn transpose2(self) -> U;
 }
 
-impl Transpose<Option<Result<u32, String>>> for Result<Option<u32>, String> {
-    fn transpose2(self) -> Option<Result<u32, String>> {
-        type T = Result<Option<u32>, String>;
-        type TR = <T as Try>::Residual; // Result<!, String>
-        type U = Option<Result<u32, String>>;
-        type UO = <U as Try>::Output; // Result<u32, String>
-        type UR = <U as Try>::Residual; // Option<!>
+impl<T: Try<Output = TO, Residual = TR>, TO, TR, U: Try<Output = UO, Residual = UR>, UO, UR, O>
+    Transpose<U> for T
+where
+    TO: Try<Output = O, Residual = UR>,
+    UO: Try<Output = O, Residual = TR>,
+{
+    fn transpose2(self) -> U {
+        // type T = Result<Option<u32>, String>;
+        // type TR = <T as Try>::Residual; // Result<!, String>
+        // type U = Option<Result<u32, String>>;
+        // type UO = <U as Try>::Output; // Result<u32, String>
+        // type UR = <U as Try>::Residual; // Option<!>
         let opt_or_err = self.branch();
         match opt_or_err {
             std::ops::ControlFlow::Continue(opt) => match opt.branch() {
