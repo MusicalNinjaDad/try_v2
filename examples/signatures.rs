@@ -6,12 +6,13 @@
 use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
 trait Foo: Iterator {
-    fn try_reduce2<R>(
+    fn try_reduce2<F, R>(
         &mut self,
-        f: impl FnMut(Self::Item, Self::Item) -> R,
+        f: F,
     ) -> <<R as Try>::Residual as Residual<Option<<R as Try>::Output>>>::TryType
     where
         Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> R,
         R: Try<Output = Self::Item>,
         <R as Try>::Residual: Residual<Option<Self::Item>>,
     {
