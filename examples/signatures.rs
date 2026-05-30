@@ -3,19 +3,28 @@
 #![allow(dead_code)]
 #![allow(clippy::disallowed_names)]
 
-use std::ops::{Residual, Try};
+use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
-trait Foo {
-    type Item;
-
-    fn try_reduce<R>(
+trait Foo: Iterator {
+    fn try_reduce2<R>(
         &mut self,
         f: impl FnMut(Self::Item, Self::Item) -> R,
     ) -> <<R as Try>::Residual as Residual<Option<<R as Try>::Output>>>::TryType
     where
         Self: Sized,
         R: Try<Output = Self::Item>,
-        <R as Try>::Residual: Residual<Option<Self::Item>>;
+        <R as Try>::Residual: Residual<Option<Self::Item>>,
+    {
+        let first = match self.next() {
+            Some(i) => i,
+            None => return Try::from_output(None),
+        };
+
+        match self.try_fold(first, f).branch() {
+            ControlFlow::Break(r) => FromResidual::from_residual(r),
+            ControlFlow::Continue(i) => Try::from_output(Some(i)),
+        }
+    }
 }
 
 fn main() {}
