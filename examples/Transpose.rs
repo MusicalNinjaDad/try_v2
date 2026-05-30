@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 #![allow(clippy::disallowed_names)]
 
-use std::ops::Try;
+use std::ops::{FromResidual, Try};
 
 trait Transpose<U>
 where
@@ -15,19 +15,22 @@ where
 impl Transpose<Option<Result<u32, String>>> for Result<Option<u32>, String> {
     fn transpose2(self) -> Option<Result<u32, String>> {
         type U = Option<Result<u32, String>>;
+        type UR = <U as Try>::Residual;
         let opt_or_err = self.branch();
         match opt_or_err {
             std::ops::ControlFlow::Continue(opt) => match opt.branch() {
                 std::ops::ControlFlow::Continue(val) => {
                     let inner_result = <U as Try>::Output::from_output(val);
                     U::from_output(inner_result)
-                },
-                std::ops::ControlFlow::Break(opt_residual) => todo!(),
+                }
+                std::ops::ControlFlow::Break(opt_residual) => {
+                    <U as FromResidual<UR>>::from_residual(opt_residual)
+                }
             },
             std::ops::ControlFlow::Break(err) => {
                 let Err(err) = err;
                 Some(Err(err))
-            },
+            }
         }
     }
 }
