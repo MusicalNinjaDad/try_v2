@@ -14,11 +14,15 @@ where
 
 impl Transpose<Option<Result<u32, String>>> for Result<Option<u32>, String> {
     fn transpose2(self) -> Option<Result<u32, String>> {
+        type U = Option<Result<u32, String>>;
         let opt_or_err = self.branch();
         match opt_or_err {
-            std::ops::ControlFlow::Continue(opt) => match opt {
-                Some(val) => Some(Ok(val)),
-                None => None,
+            std::ops::ControlFlow::Continue(opt) => match opt.branch() {
+                std::ops::ControlFlow::Continue(val) => {
+                    let inner_result = <U as Try>::Output::from_output(val);
+                    U::from_output(inner_result)
+                },
+                std::ops::ControlFlow::Break(opt_residual) => todo!(),
             },
             std::ops::ControlFlow::Break(err) => {
                 let Err(err) = err;
