@@ -3,6 +3,15 @@
 use std::ops::{ControlFlow, Try};
 
 #[allow(dead_code)]
+/// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+///
+/// The blanket impl provides e.g. `Result<Option<T>,E>` <-> `Option<Result<T,E>>`
+/// which are currently hand-rolled in the stdlib along with equivalent functionality for
+/// *all* `Try` types.
+///
+/// The blanket impl means that no custom impl is possible. This trait, if in scope, applies
+/// automatically to all possible cases.
+/// (But is borken for `Poll` due to the wonky `Try` implementation)
 trait Transpose<U, O>
 where
     Self: Try,
@@ -13,10 +22,10 @@ where
     fn transpose2(self) -> U;
 }
 
-impl<T: Try, U: Try<Output = UO>, UO, O>
-    Transpose<U, O> for T
+impl<T: Try, U: Try<Output = UO>, UO, O> Transpose<U, O> for T
 where
     T::Output: Try<Output = O, Residual = U::Residual>,
+    // named to allow for UO::from_output() / UO::from_residual()
     UO: Try<Output = O, Residual = T::Residual>,
 {
     fn transpose2(self) -> U {
