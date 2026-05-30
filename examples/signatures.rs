@@ -1,0 +1,21 @@
+#![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
+#![allow(dead_code)]
+#![allow(clippy::disallowed_names)]
+
+use std::ops::{Residual, Try};
+
+trait Foo {
+    type Item;
+
+    fn try_reduce<R>(
+        &mut self,
+        f: impl FnMut(Self::Item, Self::Item) -> R,
+    ) -> <<R as Try>::Residual as Residual<Option<<R as Try>::Output>>>::TryType
+    where
+        Self: Sized,
+        R: Try<Output = Self::Item>,
+        <R as Try>::Residual: Residual<Option<Self::Item>>;
+}
+
+fn main() {}
