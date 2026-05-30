@@ -50,4 +50,12 @@ fn ok_some() {
     assert_eq!(stdlib, custom)
 }
 
+#[test]
+fn some_ok() {
+    let some_ok: Option<Result<u32, String>> =Some(Ok(5));
+    let stdlib: Result<Option<u32>, String> = some_ok.clone().transpose();
+    let custom: Result<Option<u32>, String> = some_ok.transpose2();
+    assert_eq!(stdlib, custom)
+}
+
 fn main() {}
