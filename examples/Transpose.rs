@@ -1,6 +1,6 @@
 #![feature(try_trait_v2)]
 
-use std::ops::{ControlFlow, Try};
+use std::ops::{ControlFlow, FromResidual, Try};
 
 #[allow(dead_code)]
 /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
@@ -22,23 +22,24 @@ where
     fn transpose2(self) -> U;
 }
 
-impl<T: Try, U: Try<Output = UO>, UO, O> Transpose<U, O> for T
+impl<T, U, O> Transpose<U, O> for T
 where
-    T::Output: Try<Output = O, Residual = U::Residual>,
-    // named to allow for UO::from_output() / UO::from_residual()
-    UO: Try<Output = O, Residual = T::Residual>,
+    Self: Try,
+    Self::Output: Try<Output = O, Residual = U::Residual>,
+    U: Try,
+    U::Output: Try<Output = O, Residual = Self::Residual>,
 {
     fn transpose2(self) -> U {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
                 ControlFlow::Continue(val) => {
-                    let inner_t = UO::from_output(val);
+                    let inner_t = Try::from_output(val);
                     U::from_output(inner_t)
                 }
                 ControlFlow::Break(u_residual) => U::from_residual(u_residual),
             },
             ControlFlow::Break(t_residual) => {
-                let inner_t = UO::from_residual(t_residual);
+                let inner_t = FromResidual::from_residual(t_residual);
                 U::from_output(inner_t)
             }
         }
