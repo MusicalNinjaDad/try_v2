@@ -13,11 +13,11 @@ where
     fn transpose2(self) -> U;
 }
 
-impl<T: Try<Output = TO, Residual = TR>, TO, TR, U: Try<Output = UO, Residual = UR>, UO, UR, O>
+impl<T: Try, U: Try<Output = UO>, UO, O>
     Transpose<U, O> for T
 where
-    TO: Try<Output = O, Residual = UR>,
-    UO: Try<Output = O, Residual = TR>,
+    T::Output: Try<Output = O, Residual = U::Residual>,
+    UO: Try<Output = O, Residual = T::Residual>,
 {
     fn transpose2(self) -> U {
         match self.branch() {
