@@ -2,27 +2,27 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
-enum TooManyOutputs<T, E> {
-    Ok(T, E),
-    Err,
+enum Owned<T, E> {
+    Ok(E),
+    Err(T),
 }
 
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
-enum TooManyOutputsBorrowed<'t, 'e, T, E> {
-    Ok(&'t T, &'e E),
-    Err,
+enum Borrowed<'t, 'e, T, E> {
+    Ok(&'e E),
+    Err(&'t T),
 }
 
 #[derive(Try, Try_ConvertResult)]
 #[must_use]
-enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
-    Ok(&'e E, &'t T),
-    Err,
+enum MultipleBorrowed<'t, 'e, 'f, T, E, F> {
+    Ok(&'e E, &'f F),
+    Err(&'t T),
 }
 
 fn main() {}

@@ -4,7 +4,7 @@
 
 //! Tests to ensure that lifetimes are correctly passed through and live as long as expected.
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 // Basic result with T & E borrowed
 #[must_use]

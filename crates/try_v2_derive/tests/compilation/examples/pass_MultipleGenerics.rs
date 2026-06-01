@@ -2,14 +2,14 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)]
 #[must_use]
-enum MultipleFields<T> {
+enum Exit<T, E> {
     Ok(T),
-    OtherError(String, String, i32),
+    TestsFailed,
+    OtherError(E),
 }
 
 fn main() {}

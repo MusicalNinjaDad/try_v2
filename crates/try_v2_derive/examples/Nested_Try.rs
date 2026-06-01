@@ -5,7 +5,7 @@
 
 use std::{error::Error, io};
 
-use try_v2::Try;
+use try_v2_derive::Try;
 
 use DuplicateData::Duplicate;
 

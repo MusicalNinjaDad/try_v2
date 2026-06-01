@@ -6,7 +6,7 @@
 use log::info;
 use std::{fmt::Display, ops::Add};
 
-use try_v2::Try;
+use try_v2_derive::Try;
 
 use Counter::Count;
 

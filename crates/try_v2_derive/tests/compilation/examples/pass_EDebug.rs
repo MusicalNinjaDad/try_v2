@@ -5,7 +5,7 @@
 
 use std::fmt::Debug;
 
-use try_v2::{Try, Try_Methods};
+use try_v2_derive::{Try, Try_Methods};
 
 #[derive(Debug, Try, Try_Methods)]
 #[must_use]

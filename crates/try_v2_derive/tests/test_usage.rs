@@ -4,7 +4,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2::{Try, Try_ConvertResult, Try_Methods};
+use try_v2_derive::{Try, Try_ConvertResult, Try_Methods};
 
 #[cfg(assert_matches_in_module)]
 use std::assert_matches::assert_matches;
@@ -141,7 +141,7 @@ mod multiple_generics {
 }
 
 mod iter {
-    use try_v2::Try_Iterator;
+    use try_v2_derive::Try_Iterator;
 
     use super::*;
 

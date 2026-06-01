@@ -4,14 +4,14 @@
 
 use std::process::Termination;
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
-#[must_use]
 #[allow(unused)] // If it compiles then it already passes
-enum NoFieldResiduals<T: Termination> {
+#[must_use]
+enum NoUnitResiduals<T: Termination> {
     Ok(T),
-    TestsFailed,
+    OtherError(String),
 }
 
 fn main() {}

@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 #![feature(associated_type_defaults)]
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 /// Make TryFrom able to return arbitrary Try types
 trait TryFrom2<T>: std::marker::Sized {

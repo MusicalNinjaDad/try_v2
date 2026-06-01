@@ -4,7 +4,7 @@
 
 //! Tests that conversion between custom enum and std::result::Result requires correct lifetime bounds.
 
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
 #[must_use]

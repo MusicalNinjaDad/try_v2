@@ -2,15 +2,13 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use std::process::Termination;
-
-use try_v2::{Try, Try_ConvertResult};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[derive(Debug, Try, Try_ConvertResult)]
-#[allow(unused)] // If it compiles then it already passes
 #[must_use]
-enum NoUnitResiduals<T: Termination> {
-    Ok(T),
+enum ExitE<E> {
+    Ok(E),
+    TestsFailed,
     OtherError(String),
 }
 
