@@ -45,6 +45,17 @@ where
         }
     }
 
+    fn map_or_else<U, D, F>(self, default: D, f: F) -> U
+    where
+        D: FnOnce() -> U,
+        F: FnOnce(Self::Output) -> U,
+    {
+        match self.branch() {
+            ControlFlow::Continue(val) => f(val),
+            ControlFlow::Break(_) => default(),
+        }
+    }
+
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     fn transpose<U, T>(self) -> U
     where
@@ -129,6 +140,22 @@ mod tests {
             let some_5: Option<u32> = None;
             let stdlib = some_5.map_or(0, |x| x + 1);
             let custom = Transform::map_or(some_5, 0, |x| x + 1);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn map_or_else_some() {
+            let some_5 = Some(5);
+            let stdlib = some_5.map_or_else(|| 1 + 1, |x| x + 1);
+            let custom = Transform::map_or_else(some_5, || 1 + 1, |x| x + 1);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn map_or_else_none() {
+            let some_5: Option<u32> = None;
+            let stdlib = some_5.map_or_else(|| 1 + 1, |x| x + 1);
+            let custom = Transform::map_or_else(some_5, || 1 + 1, |x| x + 1);
             assert_eq!(stdlib, custom);
         }
     }
