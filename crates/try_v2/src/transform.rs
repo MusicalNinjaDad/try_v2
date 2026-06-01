@@ -4,7 +4,7 @@ pub trait Transform
 where
     Self: Try + Sized,
 {
-    /// removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
+    /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
     /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
     fn flatten<U>(self) -> U
     where
@@ -14,7 +14,17 @@ where
         self?
     }
 
-    /// converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+    /// Calls a function with a reference to the contained value. Returns the original Self
+    fn inspect<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&Self::Output),
+    {
+        let val = self?;
+        f(&val);
+        Try::from_output(val)
+    }
+
+    /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     fn transpose<U, T>(self) -> U
     where
         Self::Output: Try<Output = T>,
@@ -54,6 +64,23 @@ mod tests {
             let stdlib = some_5.flatten();
             let custom = Transform::flatten(some_5);
             assert_eq!(stdlib, custom)
+        }
+    }
+
+    mod inspect {
+        use super::*;
+        use std::fmt::Write;
+
+        #[test]
+        fn some_5() {
+            let some_5 = Some(5);
+            let mut text = String::new();
+            some_5.inspect(|x| write!(text, "{x}").expect("failed to write {x} to text"));
+            assert_eq!(text, "5");
+            Transform::inspect(some_5, |x| {
+                write!(text, "{x}").expect("failed to write {x} to text")
+            });
+            assert_eq!(text, "55");
         }
     }
 
