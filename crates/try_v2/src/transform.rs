@@ -35,6 +35,16 @@ where
         Try::from_output(mapped)
     }
 
+    fn map_or<U, F>(self, default: U, f: F) -> U
+    where
+        F: FnOnce(Self::Output) -> U,
+    {
+        match self.branch() {
+            ControlFlow::Continue(val) => f(val),
+            ControlFlow::Break(_) => default,
+        }
+    }
+
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     fn transpose<U, T>(self) -> U
     where
@@ -99,10 +109,18 @@ mod tests {
         use super::*;
 
         #[test]
-        fn some_5() {
+        fn map() {
             let some_5 = Some(5);
             let stdlib = some_5.map(|x| x + 1);
             let custom = Transform::map(some_5, |x| x + 1);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn map_or_some() {
+            let some_5 = Some(5);
+            let stdlib = some_5.map_or(0, |x| x + 1);
+            let custom = Transform::map_or(some_5, 0, |x| x + 1);
             assert_eq!(stdlib, custom);
         }
     }
