@@ -1,3 +1,2 @@
 [alias]
-x = "run --package try_v2_xtasks --"
-stage = "run --package try_v2_xtasks -- add"
+stage = "ninja stage"
