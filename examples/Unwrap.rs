@@ -19,7 +19,9 @@ where
     fn unwrap2(self) -> Self::Output {
         match self.branch() {
             ControlFlow::Continue(output) => output,
-            ControlFlow::Break(residual) => panic!("called unwrap on a residual value: {residual:?}"),
+            ControlFlow::Break(residual) => {
+                panic!("called unwrap on a residual value: {residual:?}")
+            }
         }
     }
 
