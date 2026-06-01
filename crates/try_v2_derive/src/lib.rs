@@ -14,7 +14,14 @@ use parse::TryEnum;
 #[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
-/// See the [crate level documentation](crate) for restrictions and detailed examples
+/// ## Limitations on the annotated type
+///
+///   - must be an `enum`
+///   - must have _at least one_ generic type
+///   - the _first_ generic type must be the `Output` type (produced when not short-circuiting)
+///   - the output variant (does not short-circuit) must be the _first_ variant and store the output
+///     type as the _only unnamed_ field
+///   - no other variant can store the Output type (TODO #72 add a nice error message)
 ///
 /// ## Derived code
 /// ```
