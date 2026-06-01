@@ -5,7 +5,7 @@
 
 # Traits `Try`, `FromResidual`, `Residual`
 
-- [Overview]()
+- [Overview](traits.md)
 - [Implementing Try]()
   -[Derive]()
   -[Manually implementing]()
