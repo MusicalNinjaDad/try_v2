@@ -27,11 +27,10 @@ log = "0.4.29"
 trybuild = "1.0.116"
 
 [build-dependencies]
-autocfg = {workspace = true }
+autocfg = "1.5.1"
 
 [workspace]
-members = ["tests/compilation", "xtask"]
+members = ["tests/compilation"]
 
 [workspace.dependencies]
 try_v2 = { path = "."}
-autocfg = "1.5.0"
