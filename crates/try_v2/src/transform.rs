@@ -20,6 +20,7 @@ where
         Self::Output: Try<Output = T>,
         U: Try + FromResidual<<Self::Output as Try>::Residual>,
         U::Output: Try<Output = T> + FromResidual<Self::Residual>,
+        // TODO: Consider ambiguity risk analog try_reduce
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
