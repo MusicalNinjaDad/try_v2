@@ -78,6 +78,18 @@ where
             }
         }
     }
+
+    fn zip<U, Z>(self, other: U) -> Z
+    where
+        U: Try,
+        Z: Try<Output = (Self::Output, U::Output)>
+            + FromResidual<Self::Residual>
+            + FromResidual<U::Residual>,
+    {
+        let v1 = self?;
+        let v2 = other?;
+        Try::from_output((v1, v2))
+    }
 }
 
 #[cfg(test)]
@@ -208,6 +220,19 @@ mod tests {
             let stdlib = none.clone().transpose();
             let custom = Transform::transpose(none);
             assert_eq!(stdlib, custom)
+        }
+    }
+
+    mod zip {
+        use super::*;
+
+        #[test]
+        fn some_some() {
+            let some_1 = Some(1);
+            let some_x = Some("x");
+            let stdlib: Option<(i32, &str)> = some_1.zip(some_x);
+            let custom: Option<(i32, &str)> = Transform::zip(some_1, some_x);
+            assert_eq!(stdlib, custom);
         }
     }
 }
