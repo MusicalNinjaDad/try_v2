@@ -123,6 +123,14 @@ mod tests {
             let custom = Transform::map_or(some_5, 0, |x| x + 1);
             assert_eq!(stdlib, custom);
         }
+
+        #[test]
+        fn map_or_none() {
+            let some_5: Option<u32> = None;
+            let stdlib = some_5.map_or(0, |x| x + 1);
+            let custom = Transform::map_or(some_5, 0, |x| x + 1);
+            assert_eq!(stdlib, custom);
+        }
     }
 
     mod transpose {
