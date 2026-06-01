@@ -6,7 +6,7 @@
 # Traits `Try`, `FromResidual`, `Residual`
 
 - [Overview](traits.md)
-- [Implementing Try]()
+- [Implementing Try](implementing/intro.md)
   -[Derive]()
   -[Manually implementing]()
 - [Using Try as a trait bound]()
