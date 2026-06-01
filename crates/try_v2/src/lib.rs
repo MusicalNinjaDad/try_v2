@@ -1,3 +1,5 @@
+#![feature(try_trait_v2)]
+
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
 //! `FromIterator` analog to how `Result` & `Option` do this.
@@ -113,3 +115,7 @@
 
 #[doc(inline)]
 pub use try_v2_derive::*;
+
+mod transform;
+#[doc(inline)]
+pub use transform::Transform;
