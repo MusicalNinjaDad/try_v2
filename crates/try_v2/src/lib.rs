@@ -1,4 +1,5 @@
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from

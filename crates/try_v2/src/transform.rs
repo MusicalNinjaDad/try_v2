@@ -1,4 +1,4 @@
-use std::ops::{ControlFlow, FromResidual, Try};
+use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
 pub trait Transform
 where
@@ -85,6 +85,7 @@ where
         Z: Try<Output = (Self::Output, U::Output)>
             + FromResidual<Self::Residual>
             + FromResidual<U::Residual>,
+        Self::Residual: Residual<Z::Output, TryType = Z>,
     {
         let v1 = self?;
         let v2 = other?;
@@ -230,8 +231,8 @@ mod tests {
         fn some_some() {
             let some_1 = Some(1);
             let some_x = Some("x");
-            let stdlib: Option<(i32, &str)> = some_1.zip(some_x);
-            let custom: Option<(i32, &str)> = Transform::zip(some_1, some_x);
+            let stdlib = some_1.zip(some_x);
+            let custom = Transform::zip(some_1, some_x);
             assert_eq!(stdlib, custom);
         }
     }
