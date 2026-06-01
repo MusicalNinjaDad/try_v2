@@ -4,7 +4,17 @@ pub trait Transform
 where
     Self: Try + Sized,
 {
-    /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+    /// removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
+    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
+    fn flatten<U>(self) -> U
+    where
+        Self: Try<Output = U>,
+        U: FromResidual<Self::Residual>,
+    {
+        self?
+    }
+
+    /// converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     fn transpose<U, O>(self) -> U
     where
         Self::Output: Try<Output = O, Residual = U::Residual>,
@@ -33,6 +43,18 @@ mod tests {
 
     impl<T> Transform for Option<T> {}
     impl<T, E> Transform for Result<T, E> {}
+
+    mod flatten {
+        use super::*;
+
+        #[test]
+        fn some_some() {
+            let some_5 = Some(Some(5));
+            let stdlib = some_5.flatten();
+            let custom = Transform::flatten(some_5);
+            assert_eq!(stdlib, custom)
+        }
+    }
 
     mod transpose {
         use super::*;
