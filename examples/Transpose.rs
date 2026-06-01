@@ -24,10 +24,10 @@ where
 
 impl<T, U, O> Transpose<U, O> for T
 where
-    Self: Try,
-    Self::Output: Try<Output = O, Residual = U::Residual>,
+    T: Try,
+    T::Output: Try<Output = O, Residual = U::Residual>,
     U: Try,
-    U::Output: Try<Output = O, Residual = Self::Residual>,
+    U::Output: Try<Output = O, Residual = T::Residual>,
 {
     fn transpose2(self) -> U {
         match self.branch() {
