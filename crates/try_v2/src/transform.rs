@@ -24,6 +24,17 @@ where
         Try::from_output(val)
     }
 
+    /// Applys a function to the contained value
+    fn map<U, F>(self, f: F) -> U
+    where
+        U: Try + FromResidual<Self::Residual>,
+        F: FnOnce(Self::Output) -> U::Output,
+    {
+        let val = self?;
+        let mapped = f(val);
+        Try::from_output(mapped)
+    }
+
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     fn transpose<U, T>(self) -> U
     where
@@ -81,6 +92,18 @@ mod tests {
                 write!(text, "{x}").expect("failed to write {x} to text")
             });
             assert_eq!(text, "55");
+        }
+    }
+
+    mod map {
+        use super::*;
+
+        #[test]
+        fn some_5() {
+            let some_5 = Some(5);
+            let stdlib = some_5.map(|x| x + 1);
+            let custom = Transform::map(some_5, |x| x + 1);
+            assert_eq!(stdlib, custom);
         }
     }
 
