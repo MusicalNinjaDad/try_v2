@@ -63,6 +63,13 @@ jobs:
     if: needs.skip_check.outputs.should_skip != 'true'
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crate: ["try_v2", "try_v2_derive"]
+    
+    defaults:
+      run:
+        working-directory: crates/${{ matrix.crate }}
 
     env:
       RUSTC_BOOTSTRAP: 1
