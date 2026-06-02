@@ -9,18 +9,26 @@ use std::ops::{ControlFlow, FromResidual, Residual, Try};
 ///   naming. E.g. we provide a `.map()` but not a `.map_err()` equivalent as multiple such
 ///   methods may be needed and no standardised naming makes sense.
 /// - Methods which act on the contained value will extract a value of type `Output` and return the
-///   *canonical TryType* for the new Output. This is usually the expected behaviour but can lead to
-///   a different value type or resulting TryType where `Try` is not implemented symmetrically.
+///   *canonical TryType* for the new Output. This is identifiable by the generic type `X` in the
+///   method signature. This is usually the expected behaviour but can lead to a different value
+///   type or resulting TryType where `Try` is not implemented symmetrically.
+/// - Generic type conventions used in signatures (in standard order):
+///     - `X` the *canonical TryType* returned
+///     - `T` the `Output` type for `Self`
+///     - `U` the primary *other* type.
+///     - `F` a function/closure passed as a parameter
+///     - `G` the return type of `F`
+///     - `R` *never used* to avoid confusion with "Residual".
 pub trait Transform
 where
     Self: Try + Sized,
 {
     /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
     /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
-    fn flatten<U>(self) -> U
+    fn flatten<X>(self) -> X
     where
-        Self: Try<Output = U>,
-        U: FromResidual<Self::Residual>,
+        Self: Try<Output = X>,
+        X: FromResidual<Self::Residual>,
     {
         self?
     }
@@ -85,20 +93,20 @@ where
     /// # Note
     ///
     /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
-    fn transpose<U, V, T>(self) -> U
+    fn transpose<X, T, U>(self) -> X
     where
         // Foo<Bar<T>>
-        Self: Try<Output = V>,
+        Self: Try<Output = U>,
         // Bar<T>
-        V: Try<Output = T>,
+        U: Try<Output = T>,
         // Bar<Foo<T>>
-        U: Try + FromResidual<<Self::Output as Try>::Residual>,
+        X: Try + FromResidual<<Self::Output as Try>::Residual>,
         // Foo<T>
-        U::Output: Try<Output = T> + FromResidual<Self::Residual>,
+        X::Output: Try<Output = T> + FromResidual<Self::Residual>,
         // U *is* the canonical TryType for `Bar<Output=Foo<T>>`
-        V::Residual: Residual<U::Output, TryType = U>,
+        U::Residual: Residual<X::Output, TryType = X>,
         // U *wraps* the canonical TryType for `Foo<Output=T>`
-        Self::Residual: Residual<T, TryType = U::Output>,
+        Self::Residual: Residual<T, TryType = X::Output>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
@@ -117,13 +125,13 @@ where
 
     /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
-    fn zip<U, Z>(self, other: U) -> Z
+    fn zip<X, U>(self, other: U) -> X
     where
         U: Try,
-        Z: Try<Output = (Self::Output, U::Output)>
+        X: Try<Output = (Self::Output, U::Output)>
             + FromResidual<Self::Residual>
             + FromResidual<U::Residual>,
-        Self::Residual: Residual<Z::Output, TryType = Z>,
+        Self::Residual: Residual<X::Output, TryType = X>,
     {
         let v1 = self?;
         let v2 = other?;
@@ -134,12 +142,12 @@ where
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
     ///
     /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
-    fn zip_with<U, F, R, Z>(self, other: U, f: F) -> Z
+    fn zip_with<X, U, F, G>(self, other: U, f: F) -> X
     where
         U: Try,
-        Z: Try<Output = R> + FromResidual<Self::Residual> + FromResidual<U::Residual>,
-        Self::Residual: Residual<R, TryType = Z>,
-        F: FnOnce(Self::Output, U::Output) -> R,
+        X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<U::Residual>,
+        Self::Residual: Residual<G, TryType = X>,
+        F: FnOnce(Self::Output, U::Output) -> G,
     {
         let v1 = self?;
         let v2 = other?;
