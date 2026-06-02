@@ -92,6 +92,8 @@ where
         }
     }
 
+    /// Combines a Foo<T> with a Bar<U> into a Foo<(T,U)> where residual interconversion
+    /// is available from Bar->Foo. Returns the canonical TryType.
     fn zip<U, Z>(self, other: U) -> Z
     where
         U: Try,
