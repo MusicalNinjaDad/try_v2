@@ -146,9 +146,9 @@ where
     fn zip_with<X, Y, F, G>(self, other: Y, f: F) -> X
     where
         Y: Try,
+        F: FnOnce(Self::Output, Y::Output) -> G,
         X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
         Self::Residual: Residual<G, TryType = X>,
-        F: FnOnce(Self::Output, Y::Output) -> G,
     {
         let v1 = self?;
         let v2 = other?;
