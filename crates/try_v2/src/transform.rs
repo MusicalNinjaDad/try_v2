@@ -14,8 +14,9 @@ use std::ops::{ControlFlow, FromResidual, Residual, Try};
 ///   type or resulting TryType where `Try` is not implemented symmetrically.
 /// - Generic type conventions used in signatures (in standard order):
 ///     - `X` the *canonical TryType* returned
+///     - `V` the other TryType
 ///     - `T` the `Output` type for `Self`
-///     - `U` the primary *other* type.
+///     - `U` the other `Output` type
 ///     - `F` a function/closure passed as a parameter
 ///     - `G` the return type of `F`
 ///     - `R` *never used* to avoid confusion with "Residual".
@@ -93,18 +94,18 @@ where
     /// # Note
     ///
     /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
-    fn transpose<X, T, U>(self) -> X
+    fn transpose<X, V, T>(self) -> X
     where
         // Foo<Bar<T>>
-        Self: Try<Output = U>,
+        Self: Try<Output = V>,
         // Bar<T>
-        U: Try<Output = T>,
+        V: Try<Output = T>,
         // Bar<Foo<T>>
         X: Try + FromResidual<<Self::Output as Try>::Residual>,
         // Foo<T>
         X::Output: Try<Output = T> + FromResidual<Self::Residual>,
         // U *is* the canonical TryType for `Bar<Output=Foo<T>>`
-        U::Residual: Residual<X::Output, TryType = X>,
+        V::Residual: Residual<X::Output, TryType = X>,
         // U *wraps* the canonical TryType for `Foo<Output=T>`
         Self::Residual: Residual<T, TryType = X::Output>,
     {
@@ -125,12 +126,12 @@ where
 
     /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
-    fn zip<X, U>(self, other: U) -> X
+    fn zip<X, V>(self, other: V) -> X
     where
-        U: Try,
-        X: Try<Output = (Self::Output, U::Output)>
+        V: Try,
+        X: Try<Output = (Self::Output, V::Output)>
             + FromResidual<Self::Residual>
-            + FromResidual<U::Residual>,
+            + FromResidual<V::Residual>,
         Self::Residual: Residual<X::Output, TryType = X>,
     {
         let v1 = self?;
@@ -142,12 +143,12 @@ where
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
     ///
     /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
-    fn zip_with<X, U, F, G>(self, other: U, f: F) -> X
+    fn zip_with<X, V, F, G>(self, other: V, f: F) -> X
     where
-        U: Try,
-        X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<U::Residual>,
+        V: Try,
+        X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<V::Residual>,
         Self::Residual: Residual<G, TryType = X>,
-        F: FnOnce(Self::Output, U::Output) -> G,
+        F: FnOnce(Self::Output, V::Output) -> G,
     {
         let v1 = self?;
         let v2 = other?;
