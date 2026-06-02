@@ -319,5 +319,14 @@ mod tests {
             let custom = Transform::zip_with(some_1, some_2, |x, y| x + i32::from(y));
             assert_eq!(stdlib, custom);
         }
+
+        #[test]
+        // https://rust-lang.zulipchat.com/#narrow/channel/605325-t-lang.2Ftry/topic/Type.20inference.20is.20one-way/near/599375356
+        fn reverse_infer() {
+            let some_1 = Some(-1_i32);
+            let some_2 = Some(2_u16);
+            let custom: Option<()> = Transform::zip_with(some_1, some_2, |_, _| Default::default());
+            assert_eq!(custom, Some(()));
+        }
     }
 }
