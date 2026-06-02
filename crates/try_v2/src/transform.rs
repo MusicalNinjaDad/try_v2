@@ -65,6 +65,7 @@ where
         BART: Try<Output = T>,
         FOOT: Try<Output = T> + FromResidual<Self::Residual>,
         U: Try<Output = FOOT> + FromResidual<BART::Residual>,
+        BART::Residual: Residual<FOOT, TryType = U>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
