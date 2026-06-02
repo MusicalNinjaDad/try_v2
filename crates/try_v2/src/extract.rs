@@ -1,4 +1,7 @@
-use std::ops::{ControlFlow, Try};
+use std::{
+    fmt::Debug,
+    ops::{ControlFlow, Try},
+};
 
 /// Methods for extracting the wrapped value
 pub trait Extract
@@ -15,6 +18,23 @@ where
         match self.branch() {
             ControlFlow::Continue(val) => Some(val),
             ControlFlow::Break(_) => None,
+        }
+    }
+
+    /// Return the contained value or panic with a generic message.
+    ///
+    /// In general you should prefer `expect()` for panic situations or `output()` for non-panic
+    fn unwrap<T>(self) -> T
+    where
+        Self: Try<Output = T>,
+        Self::Residual: Debug,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => v,
+            #[cfg(not(panic = "immediate-abort"))]
+            ControlFlow::Break(r) => panic!("called `unwrap()` on a residual: {r:?}"),
+            #[cfg(panic = "immediate-abort")]
+            ControlFlow::Break(_) => panic!(),
         }
     }
 }
