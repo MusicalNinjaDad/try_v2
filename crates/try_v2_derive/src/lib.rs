@@ -6,7 +6,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::prelude::*;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, TypeParamBound, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -342,57 +342,6 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
         }
     });
     Ok(impl_convert)
-}
-
-#[proc_macro_derive(Try_Methods)]
-/// Derives std methods:
-///
-/// ## Extracting the contained value
-/// - `unwrap()` return the value contained in the Output variant - or *panics* with a generic message
-pub fn try_methods(input: TokenStream1) -> TokenStream1 {
-    impl_try_methods(input.into()).into()
-}
-
-fn impl_try_methods(input: TokenStream2) -> DiagnosticStream {
-    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
-
-    let tryenum = TryEnum::parse(&ast)?;
-    #[allow(unused_variables)]
-    let (
-        name,
-        output_variant_name,
-        output_type,
-        residual_type_name,
-        residual_type,
-        impl_generics,
-        ty_generics,
-        where_clause,
-    ) = tryenum.split_for_impl();
-
-    //let (debug_impl_generics, debug_ty_generics, debug_where_clause)
-    let debug: TypeParamBound = parse_quote!(std::fmt::Debug);
-    let debug_generics = tryenum.generics(|g| {
-        for param in g.type_params_mut() {
-            if param.bounds.iter().find(|b| b == &&debug).is_none() {
-                param.bounds.push(debug.clone());
-            }
-        }
-    });
-    let (debug_impl_generics, debug_ty_generics, debug_where_clause) =
-        debug_generics.split_for_impl();
-
-    let impl_extraction = quote! {
-        impl #debug_impl_generics #name #debug_ty_generics #debug_where_clause {
-            pub fn unwrap(self) -> #output_type {
-                let #name::#output_variant_name(val) = self else {
-                    panic!("called `unwrap()` on a short-circuiting value: {:?}", self);
-                };
-                val
-            }
-        }
-    };
-
-    Ok(impl_extraction)
 }
 
 #[proc_macro_derive(Try_Iterator)]

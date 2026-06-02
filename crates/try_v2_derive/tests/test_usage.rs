@@ -4,7 +4,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2_derive::{Try, Try_ConvertResult, Try_Methods};
+use try_v2_derive::{Try, Try_ConvertResult};
 
 #[cfg(assert_matches_in_module)]
 use std::assert_matches::assert_matches;
@@ -429,39 +429,5 @@ mod lifetime_duration {
         assert_matches!(restricted_lifetimes(&0, &1), BorrowedResult::Ok(&0));
         assert_matches!(restricted_lifetimes(&0, &5), BorrowedResult::Err(&5));
         assert_matches!(restricted_lifetimes(&0, &7), BorrowedResult::Err(&7));
-    }
-}
-
-/// Validate that the derived methods work
-mod methods {
-
-    use super::*;
-
-    #[derive(Debug, Try, Try_Methods)]
-    #[must_use]
-    enum Validated<T, E> {
-        Valid(T),
-        Invalid,
-        ValidationFailed(E),
-    }
-
-    #[test]
-    fn unwrap() {
-        let x: Validated<_, String> = Validated::Valid(2);
-        assert_eq!(x.unwrap(), 2);
-    }
-
-    #[test]
-    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: ValidationFailed(2)")]
-    fn unwrap_panic_fields() {
-        let x: Validated<i32, _> = Validated::ValidationFailed(2);
-        assert_eq!(x.unwrap(), 2);
-    }
-
-    #[test]
-    #[should_panic(expected = "called `unwrap()` on a short-circuiting value: Invalid")]
-    fn unwrap_panic_unit() {
-        let y: Validated<i32, String> = Validated::Invalid;
-        y.unwrap();
     }
 }

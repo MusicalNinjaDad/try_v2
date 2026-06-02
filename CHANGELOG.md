@@ -6,6 +6,10 @@
 
 - Add `trait Transform` (Forces move of derive macros to own crate & re-export)
 
+### Breaking changes
+
+- Removed derive `Try_Methods` in favour of trait-based implementation
+
 ## [v0.4.2]
 
 ### Bugfixes
