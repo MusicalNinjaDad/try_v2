@@ -1,5 +1,16 @@
 use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
+/// Methods for transforming TryTypes. Inspired by the methods provided on `Option` & `Result`
+///
+/// ## Note
+///
+/// - Methods which act on the contained value are only available for the Output case. TryTypes
+///   are recommended to directly implement equivalent methods for Residual cases with suitable
+///   naming. E.g. we provide a `.map()` but not a `.map_err()` equivalent as multiple such
+///   methods may be needed and no standardised naming makes sense.
+/// - Methods which act on the contained value will extract a value of type `Output`and return the
+///   canonical TryType for the new Output. This is usually the expected behaviour but can lead to
+///   a different value type or resulting TryType where Try is not implemented symmetrically.
 pub trait Transform
 where
     Self: Try + Sized,
