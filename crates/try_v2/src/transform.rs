@@ -66,6 +66,7 @@ where
         FOOT: Try<Output = T> + FromResidual<Self::Residual>,
         U: Try<Output = FOOT> + FromResidual<BART::Residual>,
         BART::Residual: Residual<FOOT, TryType = U>,
+        Self::Residual: Residual<T, TryType = FOOT>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
@@ -191,7 +192,7 @@ mod tests {
             let ok_none: Result<Option<u32>, String> = Ok(None);
             let stdlib = ok_none.clone().transpose();
             let custom = Transform::transpose(ok_none);
-            // assert_eq!(stdlib, custom)
+            assert_eq!(stdlib, custom)
         }
 
         #[test]
