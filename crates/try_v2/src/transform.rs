@@ -55,7 +55,7 @@ where
         }
     }
 
-    /// Applys a function to the contained value converting `T` -> `U` then
+    /// Applies a function to the contained value converting `T` -> `U` then
     /// returns the canonical TryType for `Self` with Output `U`
     fn map<X, U, F>(self, f: F) -> X
     where
