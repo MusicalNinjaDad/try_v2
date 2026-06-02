@@ -93,7 +93,7 @@ where
     }
 
     /// Combines a Foo<T> with a Bar<U> into a Foo<(T,U)> where residual interconversion
-    /// is available from Bar->Foo. Returns the canonical TryType.
+    /// is available from Bar->Foo. Returns the canonical TryType based upon Foo.
     fn zip<U, Z>(self, other: U) -> Z
     where
         U: Try,
@@ -105,6 +105,22 @@ where
         let v1 = self?;
         let v2 = other?;
         Try::from_output((v1, v2))
+    }
+
+    /// Applies function `f` to the values inside Foo<T> & Bar<U> where residual interconversion
+    /// is available from Bar->Foo. Returns the canonical TryType based upon Foo.
+    ///
+    /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
+    fn zip_with<U, F, R, Z>(self, other: U, f: F) -> Z
+    where
+        U: Try,
+        Z: Try<Output = R> + FromResidual<Self::Residual> + FromResidual<U::Residual>,
+        Self::Residual: Residual<R, TryType = Z>,
+        F: FnOnce(Self::Output, U::Output) -> R,
+    {
+        let v1 = self?;
+        let v2 = other?;
+        Try::from_output(f(v1, v2))
     }
 }
 
@@ -248,6 +264,15 @@ mod tests {
             let some_x = Some("x");
             let stdlib = some_1.zip(some_x);
             let custom = Transform::zip(some_1, some_x);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn some_some_with() {
+            let some_1 = Some(-1_i32);
+            let some_2 = Some(2_u16);
+            let stdlib = some_1.zip_with(some_2, |x, y| x + i32::from(y));
+            let custom = Transform::zip_with(some_1, some_2, |x, y| x + i32::from(y));
             assert_eq!(stdlib, custom);
         }
     }
