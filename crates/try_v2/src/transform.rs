@@ -44,17 +44,6 @@ where
         Try::from_output(val)
     }
 
-    /// Extracts the contained value `v` returning `Some(v)`, or `None` in the case of a Residual
-    fn output<T>(self) -> Option<T>
-    where
-        Self: Try<Output = T>,
-    {
-        match self.branch() {
-            ControlFlow::Continue(val) => Some(val),
-            ControlFlow::Break(_) => None,
-        }
-    }
-
     /// Applies a function to the contained value converting `T` -> `U` then
     /// returns the canonical TryType for `Self` with Output `U`
     fn map<X, U, F>(self, f: F) -> X
@@ -189,18 +178,6 @@ mod tests {
                 write!(text, "{x}").expect("failed to write {x} to text")
             });
             assert_eq!(text, "55");
-        }
-    }
-
-    mod output {
-        use super::*;
-
-        #[test]
-        fn ok() {
-            let ok_5: Result<_, ()> = Ok(5);
-            let stdlib = ok_5.ok();
-            let custom = ok_5.output();
-            assert_eq!(stdlib, custom);
         }
     }
 
