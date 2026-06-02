@@ -37,6 +37,20 @@ where
             ControlFlow::Break(_) => panic!(),
         }
     }
+
+    /// Return the contained value or panic with a custom message.
+    ///
+    /// In general you should prefer `output()` or `?` which do not panic.
+    fn expect<T>(self, msg: &str) -> T
+    where
+        Self: Try<Output = T>,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => v,
+            #[cfg(not(panic = "immediate-abort"))]
+            ControlFlow::Break(_) => panic!("{msg}"),
+        }
+    }
 }
 
 #[cfg(test)]
