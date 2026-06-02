@@ -89,25 +89,25 @@ where
         }
     }
 
-    /// Converts from a `Foo<Bar<U>>` to a `Bar<Foo<U>>` where both `Foo` & `Bar` are `Try`.
+    /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
     ///
     /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
-    fn transpose<X, Y, U>(self) -> X
+    fn transpose<X, Y>(self) -> X
     where
         // Foo<Bar<T>>
         Self: Try<Output = Y>,
         // Bar<T>
-        Y: Try<Output = U>,
+        Y: Try,
         // Bar<Foo<T>>
         X: Try + FromResidual<<Self::Output as Try>::Residual>,
-        // Foo<T>
-        X::Output: Try<Output = U> + FromResidual<Self::Residual>,
+        // Foo<T>: Try<Output = T>         + FromResidual<Foo<!>>
+        X::Output: Try<Output = Y::Output> + FromResidual<Self::Residual>,
         // X *is* the canonical TryType for `Bar<Output=Foo<T>>`
         Y::Residual: Residual<X::Output, TryType = X>,
         // X *wraps* the canonical TryType for `Foo<Output=T>`
-        Self::Residual: Residual<U, TryType = X::Output>,
+        Self::Residual: Residual<Y::Output, TryType = X::Output>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
@@ -126,10 +126,10 @@ where
 
     /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
-    fn zip<X, Y, U>(self, other: Y) -> X
+    fn zip<X, Y>(self, other: Y) -> X
     where
-        Y: Try<Output = U>,
-        X: Try<Output = (Self::Output, U)>
+        Y: Try,
+        X: Try<Output = (Self::Output, Y::Output)>
             + FromResidual<Self::Residual>
             + FromResidual<Y::Residual>,
         Self::Residual: Residual<X::Output, TryType = X>,
