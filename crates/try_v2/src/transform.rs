@@ -26,10 +26,10 @@ where
 {
     /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
     /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
-    fn flatten<X>(self) -> X
+    fn flatten<V>(self) -> V
     where
-        Self: Try<Output = X>,
-        X: FromResidual<Self::Residual>,
+        Self: Try<Output = V>,
+        V: FromResidual<Self::Residual>,
     {
         self?
     }
@@ -89,25 +89,25 @@ where
         }
     }
 
-    /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+    /// Converts from a `Foo<Bar<U>>` to a `Bar<Foo<U>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
     ///
     /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
-    fn transpose<X, V, T>(self) -> X
+    fn transpose<X, V, U>(self) -> X
     where
         // Foo<Bar<T>>
         Self: Try<Output = V>,
         // Bar<T>
-        V: Try<Output = T>,
+        V: Try<Output = U>,
         // Bar<Foo<T>>
         X: Try + FromResidual<<Self::Output as Try>::Residual>,
         // Foo<T>
-        X::Output: Try<Output = T> + FromResidual<Self::Residual>,
+        X::Output: Try<Output = U> + FromResidual<Self::Residual>,
         // U *is* the canonical TryType for `Bar<Output=Foo<T>>`
         V::Residual: Residual<X::Output, TryType = X>,
         // U *wraps* the canonical TryType for `Foo<Output=T>`
-        Self::Residual: Residual<T, TryType = X::Output>,
+        Self::Residual: Residual<U, TryType = X::Output>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
@@ -126,10 +126,10 @@ where
 
     /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
     /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
-    fn zip<X, V>(self, other: V) -> X
+    fn zip<X, V, U>(self, other: V) -> X
     where
-        V: Try,
-        X: Try<Output = (Self::Output, V::Output)>
+        V: Try<Output = U>,
+        X: Try<Output = (Self::Output, U)>
             + FromResidual<Self::Residual>
             + FromResidual<V::Residual>,
         Self::Residual: Residual<X::Output, TryType = X>,
