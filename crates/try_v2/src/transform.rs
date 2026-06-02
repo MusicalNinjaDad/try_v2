@@ -59,13 +59,22 @@ where
     }
 
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+    ///
+    /// ## Note
+    /// Return types are canonical TryTypes, for asymetrical cases this may not be `Bar` & `Foo`
     fn transpose<U, V, T>(self) -> U
     where
+        // Foo<Bar<T>>
         Self: Try<Output = V>,
+        // Bar<T>
         V: Try<Output = T>,
-        V::Residual: Residual<U::Output, TryType = U>,
+        // Bar<Foo<T>>
         U: Try + FromResidual<<Self::Output as Try>::Residual>,
+        // Foo<T>
         U::Output: Try<Output = T> + FromResidual<Self::Residual>,
+        // U *is* the canonical TryType for `Bar<Output=Foo<T>>`
+        V::Residual: Residual<U::Output, TryType = U>,
+        // U *wraps* the canonical TryType for `Foo<Output=T>`
         Self::Residual: Residual<T, TryType = U::Output>,
     {
         match self.branch() {
