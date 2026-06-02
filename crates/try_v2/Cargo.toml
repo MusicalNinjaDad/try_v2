@@ -1,0 +1,23 @@
+[package]
+name = "try_v2"
+version = "0.5.0"
+edition = "2024"
+readme = "README.md"
+description = "Provides a derive macro & helper traits for `Try`"
+authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
+keywords = ["derive", "Try", "try_trait_v2"]
+homepage = "https://github.com/MusicalNinjaDad/try_v2"
+repository = "https://github.com/MusicalNinjaDad/try_v2"
+categories = ["development-tools"]
+license = "MIT"
+rust-version = "1.85.1"
+exclude = [".github", ".devcontainer"]
+
+[lib]
+
+[dependencies]
+try_v2_derive = { workspace = true }
+
+[dev-dependencies]
+
+[build-dependencies]
