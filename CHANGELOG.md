@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.5.1]
+
+### Bugfixes
+
+- Simplify `transpose()` signature (`where` clause)
+
 ## [v0.5.0]
 
 ### New features
