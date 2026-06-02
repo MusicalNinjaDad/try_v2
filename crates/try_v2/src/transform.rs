@@ -24,11 +24,13 @@ where
         Try::from_output(val)
     }
 
-    /// Applys a function to the contained value
-    fn map<U, F>(self, f: F) -> U
+    /// Applys a function to the contained value converting `T` -> `U` then
+    /// returns the canonical TryType for Self with Output `U`
+    fn map<X, U, F>(self, f: F) -> X
     where
-        U: Try + FromResidual<Self::Residual>,
-        F: FnOnce(Self::Output) -> U::Output,
+        F: FnOnce(Self::Output) -> U,
+        X: Try<Output = U> + FromResidual<Self::Residual>,
+        Self::Residual: Residual<U, TryType = X>,
     {
         let val = self?;
         let mapped = f(val);
