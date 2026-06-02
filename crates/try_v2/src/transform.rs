@@ -101,7 +101,7 @@ where
         // Bar<T>
         Y: Try,
         // Bar<Foo<T>>
-        X: Try + FromResidual<<Self::Output as Try>::Residual>,
+        X: Try + FromResidual<Y::Residual>,
         // Foo<T>: Try<Output = T>         + FromResidual<Foo<!>>
         X::Output: Try<Output = Y::Output> + FromResidual<Self::Residual>,
         // X *is* the canonical TryType for `Bar<Output=Foo<T>>`
