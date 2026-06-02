@@ -59,10 +59,11 @@ where
     }
 
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
-    fn transpose<U, T>(self) -> U
+    fn transpose<U, V, T>(self) -> U
     where
-        Self::Output: Try<Output = T>,
-        <Self::Output as Try>::Residual: Residual<U::Output, TryType = U>,
+        Self: Try<Output = V>,
+        V: Try<Output = T>,
+        V::Residual: Residual<U::Output, TryType = U>,
         U: Try + FromResidual<<Self::Output as Try>::Residual>,
         U::Output: Try<Output = T> + FromResidual<Self::Residual>,
         Self::Residual: Residual<T, TryType = U::Output>,
