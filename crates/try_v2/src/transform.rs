@@ -59,14 +59,13 @@ where
     }
 
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
-    fn transpose<U, T, BART, FOOT>(self) -> U
+    fn transpose<U, T>(self) -> U
     where
-        Self: Try<Output = BART>,
-        BART: Try<Output = T>,
-        FOOT: Try<Output = T> + FromResidual<Self::Residual>,
-        U: Try<Output = FOOT> + FromResidual<BART::Residual>,
-        BART::Residual: Residual<FOOT, TryType = U>,
-        Self::Residual: Residual<T, TryType = FOOT>,
+        Self::Output: Try<Output = T>,
+        <Self::Output as Try>::Residual: Residual<U::Output, TryType = U>,
+        U: Try + FromResidual<<Self::Output as Try>::Residual>,
+        U::Output: Try<Output = T> + FromResidual<Self::Residual>,
+        Self::Residual: Residual<T, TryType = U::Output>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
