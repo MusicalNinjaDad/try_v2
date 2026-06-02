@@ -4,13 +4,13 @@ use std::ops::{ControlFlow, FromResidual, Residual, Try};
 ///
 /// ## Note
 ///
-/// - Methods which act on the contained value are only available for the Output case. TryTypes
-///   are recommended to directly implement equivalent methods for Residual cases with suitable
+/// - Methods which act on the contained value are only available for the *Output* case. TryTypes
+///   are recommended to directly implement equivalent methods for *Residual* cases with suitable
 ///   naming. E.g. we provide a `.map()` but not a `.map_err()` equivalent as multiple such
 ///   methods may be needed and no standardised naming makes sense.
-/// - Methods which act on the contained value will extract a value of type `Output`and return the
-///   canonical TryType for the new Output. This is usually the expected behaviour but can lead to
-///   a different value type or resulting TryType where Try is not implemented symmetrically.
+/// - Methods which act on the contained value will extract a value of type `Output` and return the
+///   *canonical TryType* for the new Output. This is usually the expected behaviour but can lead to
+///   a different value type or resulting TryType where `Try` is not implemented symmetrically.
 pub trait Transform
 where
     Self: Try + Sized,
@@ -25,7 +25,7 @@ where
         self?
     }
 
-    /// Calls a function with a reference to the contained value. Returns the original Self
+    /// Calls a function with a reference to the contained value. Returns the original `Self`
     fn inspect<F>(self, f: F) -> Self
     where
         F: FnOnce(&Self::Output),
@@ -47,7 +47,7 @@ where
     }
 
     /// Applys a function to the contained value converting `T` -> `U` then
-    /// returns the canonical TryType for Self with Output `U`
+    /// returns the canonical TryType for `Self` with Output `U`
     fn map<X, U, F>(self, f: F) -> X
     where
         F: FnOnce(Self::Output) -> U,
@@ -82,8 +82,9 @@ where
 
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     ///
-    /// ## Note
-    /// Return types are canonical TryTypes, for asymetrical cases this may not be `Bar` & `Foo`
+    /// # Note
+    ///
+    /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
     fn transpose<U, V, T>(self) -> U
     where
         // Foo<Bar<T>>
@@ -114,8 +115,8 @@ where
         }
     }
 
-    /// Combines a Foo<T> with a Bar<U> into a Foo<(T,U)> where residual interconversion
-    /// is available from Bar->Foo. Returns the canonical TryType based upon Foo.
+    /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
+    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
     fn zip<U, Z>(self, other: U) -> Z
     where
         U: Try,
@@ -129,8 +130,8 @@ where
         Try::from_output((v1, v2))
     }
 
-    /// Applies function `f` to the values inside Foo<T> & Bar<U> where residual interconversion
-    /// is available from Bar->Foo. Returns the canonical TryType based upon Foo.
+    /// Applies function `f` to the values inside `Foo<T>` & `Bar<U>` where residual interconversion
+    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
     ///
     /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
     fn zip_with<U, F, R, Z>(self, other: U, f: F) -> Z
