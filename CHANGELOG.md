@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.5.0]
+
+### New features
+
+- Add `trait Transform` (Forces move of derive macros to own crate & re-export)
+
 ## [v0.4.2]
 
 ### Bugfixes
