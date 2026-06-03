@@ -143,6 +143,14 @@ where
         let v2 = other?;
         Try::from_output(f(v1, v2))
     }
+
+    fn and<Y>(self, other: Y) -> Y
+    where
+        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
+    {
+        self?;
+        other
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +159,37 @@ mod tests {
 
     impl<T> Transform for Option<T> {}
     impl<T, E> Transform for Result<T, E> {}
+
+    mod boolean {
+        use super::*;
+
+        #[test]
+        fn and_some_some() {
+            let some_5 = Some(5);
+            let some_6 = Some(6);
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_none_some() {
+            let some_5 = None;
+            let some_6 = Some(6);
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_some_none() {
+            let some_5 = Some(5);
+            let some_6 = None;
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+    }
 
     mod flatten {
         use super::*;
