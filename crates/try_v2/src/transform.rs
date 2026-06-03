@@ -151,6 +151,16 @@ where
         self?;
         other
     }
+
+    fn or<Y>(self, other: Y) -> Y
+    where
+        Y: Try<Output = Self::Output>,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => Try::from_output(v),
+            ControlFlow::Break(_) => other,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -187,6 +197,15 @@ mod tests {
             let some_6 = None;
             let stdlib = some_5.and(some_6);
             let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn or_ok_ok() {
+            let ok_5: Result<_, ()> = Ok(5);
+            let ok_6: Result<_, i32> = Ok(6);
+            let stdlib = ok_5.or(ok_6);
+            let custom = Transform::or(ok_5, ok_6);
             assert_eq!(stdlib, custom);
         }
     }
