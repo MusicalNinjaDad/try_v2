@@ -144,6 +144,7 @@ where
         Try::from_output(f(v1, v2))
     }
 
+    /// This will allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
     fn and<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
@@ -152,6 +153,7 @@ where
         other
     }
 
+    /// This will convert types! - so `Ok(5).or(None) = Some(5)`
     fn or<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = Self::Output>,
@@ -207,6 +209,15 @@ mod tests {
             let stdlib = ok_5.or(ok_6);
             let custom = Transform::or(ok_5, ok_6);
             assert_eq!(stdlib, custom);
+        }
+
+        // TODO document this well
+        #[test]
+        fn or_ok_some() {
+            let ok_5: Result<_, ()> = Ok(5);
+            let some_6 = Some(6);
+            let custom = Transform::or(ok_5, some_6);
+            assert_eq!(custom, Some(5));
         }
     }
 
