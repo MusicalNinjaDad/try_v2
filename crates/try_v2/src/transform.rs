@@ -153,6 +153,14 @@ where
         other
     }
 
+    fn and_then<Y, F>(self, f: F) -> Y
+    where
+        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
+        F: FnOnce(Self::Output) -> Y,
+    {
+        f(self?)
+    }
+
     /// This will convert types! - so `Ok(5).or(None) = Some(5)`
     fn or<Y>(self, other: Y) -> Y
     where
@@ -161,6 +169,19 @@ where
         match self.branch() {
             ControlFlow::Continue(v) => Try::from_output(v),
             ControlFlow::Break(_) => other,
+        }
+    }
+
+    /// closure receives Self::Residual.
+    /// compare to `Option`: `FnOnce(())`, `Result`: `FnOnce(E))`
+    fn or_else<Y, F>(self, f: F) -> Y
+    where
+        Y: Try<Output = Self::Output>,
+        F: FnOnce(Self::Residual) -> Y,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => Try::from_output(v),
+            ControlFlow::Break(r) => f(r),
         }
     }
 }
