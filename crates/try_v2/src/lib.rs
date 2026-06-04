@@ -1,5 +1,6 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
+#![cfg_attr(test, feature(never_type))]
 #![cfg_attr(test, feature(option_zip))]
 
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
