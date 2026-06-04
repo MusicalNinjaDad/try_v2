@@ -125,3 +125,7 @@ pub use transform::Transform;
 mod extract;
 #[doc(inline)]
 pub use extract::Extract;
+
+mod asref;
+#[doc(inline)]
+pub use asref::AsRef;
