@@ -39,38 +39,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use try_v2_derive::Try;
-
     use super::*;
-
-    #[derive(Try)]
-    #[must_use]
-    #[expect(dead_code)]
-    enum YesNo<T, N> {
-        Yes(T),
-        No(N),
-    }
-
-    impl<'s, T, N> AsRef<'s> for YesNo<T, N> {
-        fn as_ref<X>(&'s self) -> X
-        where
-            X: Try<Output = &'s Self::Output> + FromResidual<Self::Residual>,
-            Self::Residual: Residual<&'s Self::Output, TryType = X>,
-        {
-            match *self {
-                YesNo::Yes(ref y) => Try::from_output(y),
-                YesNo::No(_) => todo!(),
-            }
-        }
-
-        fn as_mut<X>(&'s mut self) -> X
-        where
-            X: Try<Output = &'s mut Self::Output> + FromResidual<Self::Residual>,
-            Self::Residual: Residual<&'s mut Self::Output, TryType = X>,
-        {
-            todo!()
-        }
-    }
 
     #[test]
     fn some_asref() {
