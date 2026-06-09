@@ -25,7 +25,7 @@ where
     Self: Try + Sized,
 {
     /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
-    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
+    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual inter-conversion is implemented.
     fn flatten<Y>(self) -> Y
     where
         Self: Try<Output = Y>,
@@ -34,7 +34,8 @@ where
         self?
     }
 
-    /// Calls a function with a reference to the contained value. Returns the original `Self`
+    /// Calls a function with a reference to the contained value in the output case.
+    /// Returns the original `Self`
     fn inspect<F>(self, f: F) -> Self
     where
         F: FnOnce(&Self::Output),
@@ -44,8 +45,9 @@ where
         Try::from_output(val)
     }
 
-    /// Applies a function to the contained value converting `T` -> `U` then
-    /// returns the canonical TryType for `Self` with Output `U`
+    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
+    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
+    /// Output `U`.
     fn map<X, U, F>(self, f: F) -> X
     where
         F: FnOnce(Self::Output) -> U,
@@ -57,6 +59,13 @@ where
         Try::from_output(mapped)
     }
 
+    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
+    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
+    /// Output `U`.
+    /// 
+    /// # Note
+    /// - `default` is eagerly evaluated, prefer [Transform::map_or_else] if passing
+    ///   the result of a function call.
     fn map_or<U, F>(self, default: U, f: F) -> U
     where
         F: FnOnce(Self::Output) -> U,
@@ -66,7 +75,13 @@ where
             ControlFlow::Break(_) => default,
         }
     }
-
+    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
+    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
+    /// Output `U`.
+    /// 
+    /// # Note
+    /// - the closure `default` is lazily evaluated, prefer [Transform::map_or] if
+    ///   passing a simple value.
     fn map_or_else<U, D, F>(self, default: D, f: F) -> U
     where
         D: FnOnce() -> U,
@@ -81,8 +96,7 @@ where
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
-    ///
-    /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
+    /// - Return types are *canonical TryTypes*, for asymmetrical cases this may not be `Bar` & `Foo`
     fn transpose<X, Y>(self) -> X
     where
         // Foo<Bar<T>>
@@ -113,8 +127,9 @@ where
         }
     }
 
-    /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
-    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
+    /// `foo.zip(bar)` combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual
+    /// interconversion is available from `Bar->Foo`. Returns the *canonical TryType* based upon
+    /// `Foo`. Returns a residual if either`Foo` or `Bar` are residuals.
     fn zip<X, Y>(self, other: Y) -> X
     where
         Y: Try,
@@ -128,10 +143,12 @@ where
         Try::from_output((v1, v2))
     }
 
-    /// Applies function `f` to the values inside `Foo<T>` & `Bar<U>` where residual interconversion
-    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
+    /// `foo.zip_with(bar, do_stuff)` applies `do_stuff(foo?, bar?)` to the combined values inside
+    /// `Foo<T>` & `Bar<U>` where residual interconversion is available from `Bar->Foo`.
+    /// Returns the *canonical TryType* based upon `Foo`.
     ///
-    /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
+    /// # Note
+    /// - this is equivalent to [unstable feature `option_zip`](https://github.com/rust-lang/rust/issues/70086)
     fn zip_with<X, Y, F, G>(self, other: Y, f: F) -> X
     where
         Y: Try,
@@ -144,7 +161,10 @@ where
         Try::from_output(f(v1, v2))
     }
 
-    /// This will allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
+    /// `foo.and(bar)` returns `bar` if `foo` is the output case, otherwise returns `foo`.
+    /// 
+    /// # Note
+    /// - Unlike `Result::and()` this will also allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
     fn and<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
@@ -153,6 +173,7 @@ where
         other
     }
 
+    /// `foo.and_then(bar) calls `bar()` if foo is the output case, otherwise returns `foo`.
     fn and_then<Y, F>(self, f: F) -> Y
     where
         Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
@@ -161,7 +182,11 @@ where
         f(self?)
     }
 
-    /// This will convert types! - so `Ok(5).or(None) = Some(5)`
+    /// `foo.or(bar)` will return a `Bar<T>` wrapping the contents of `foo` if `foo` is the output
+    /// case or `bar` if `foo` is a residual.
+    /// 
+    /// # Note
+    /// - This will convert types - so `Ok(5).or(None) = Some(5)`
     fn or<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = Self::Output>,
@@ -172,8 +197,13 @@ where
         }
     }
 
-    /// closure receives Self::Residual.
-    /// compare to `Option`: `FnOnce(())`, `Result`: `FnOnce(E))`
+    /// `foo.or_else(bar)` where bar is a function returing a `Bar<T>` will will return a `Bar<T>`
+    /// wrapping the contents of `foo` if `foo` is the output case or call `bar(foo)` if `foo` is
+    /// a residual.
+    /// 
+    /// # Note
+    /// -  The closure receives `Self::Residual` (unlike `Option::or_else` & `Result::or_else` which
+    ///    are specialised to receive `()` & `E` respectively)
     fn or_else<Y, F>(self, f: F) -> Y
     where
         Y: Try<Output = Self::Output>,
