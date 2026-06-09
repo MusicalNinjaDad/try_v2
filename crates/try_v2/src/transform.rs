@@ -62,7 +62,7 @@ where
     /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
     /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
     /// Output `U`.
-    /// 
+    ///
     /// # Note
     /// - `default` is eagerly evaluated, prefer [Transform::map_or_else] if passing
     ///   the result of a function call.
@@ -78,7 +78,7 @@ where
     /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
     /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
     /// Output `U`.
-    /// 
+    ///
     /// # Note
     /// - the closure `default` is lazily evaluated, prefer [Transform::map_or] if
     ///   passing a simple value.
@@ -162,7 +162,7 @@ where
     }
 
     /// `foo.and(bar)` returns `bar` if `foo` is the output case, otherwise returns `foo`.
-    /// 
+    ///
     /// # Note
     /// - Unlike `Result::and()` this will also allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
     fn and<Y>(self, other: Y) -> Y
@@ -184,7 +184,7 @@ where
 
     /// `foo.or(bar)` will return a `Bar<T>` wrapping the contents of `foo` if `foo` is the output
     /// case or `bar` if `foo` is a residual.
-    /// 
+    ///
     /// # Note
     /// - This will convert types - so `Ok(5).or(None) = Some(5)`
     fn or<Y>(self, other: Y) -> Y
@@ -200,7 +200,7 @@ where
     /// `foo.or_else(bar)` where bar is a function returing a `Bar<T>` will will return a `Bar<T>`
     /// wrapping the contents of `foo` if `foo` is the output case or call `bar(foo)` if `foo` is
     /// a residual.
-    /// 
+    ///
     /// # Note
     /// -  The closure receives `Self::Residual` (unlike `Option::or_else` & `Result::or_else` which
     ///    are specialised to receive `()` & `E` respectively)
