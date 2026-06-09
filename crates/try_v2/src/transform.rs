@@ -59,9 +59,8 @@ where
         Try::from_output(mapped)
     }
 
-    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
-    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
-    /// Output `U`.
+    /// Applies a function to the contained value (in the output case) converting `T` -> `U`,
+    /// or returns the given `default` value.
     ///
     /// # Note
     /// - `default` is eagerly evaluated, prefer [Transform::map_or_else] if passing
@@ -75,9 +74,8 @@ where
             ControlFlow::Break(_) => default,
         }
     }
-    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
-    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
-    /// Output `U`.
+    /// Applies a function to the contained value (in the output case) converting `T` -> `U`,
+    /// or returns the result of `default()`.
     ///
     /// # Note
     /// - the closure `default` is lazily evaluated, prefer [Transform::map_or] if
@@ -173,7 +171,7 @@ where
         other
     }
 
-    /// `foo.and_then(bar) calls `bar()` if foo is the output case, otherwise returns `foo`.
+    /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
     fn and_then<Y, F>(self, f: F) -> Y
     where
         Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
@@ -197,7 +195,7 @@ where
         }
     }
 
-    /// `foo.or_else(bar)` where bar is a function returing a `Bar<T>` will will return a `Bar<T>`
+    /// `foo.or_else(bar)` where `bar` is a function returning a `Bar<T>` will return a `Bar<T>`
     /// wrapping the contents of `foo` if `foo` is the output case or call `bar(foo)` if `foo` is
     /// a residual.
     ///
