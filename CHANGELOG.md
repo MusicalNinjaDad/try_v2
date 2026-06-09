@@ -1,5 +1,16 @@
 # Changelog try_v2
 
+## [v0.6.0]
+
+### New features
+
+- Extend `trait Transform`
+- Add `trait Extract`
+
+### Breaking changes
+
+- Move `output` from `Transform` to `Extract`
+
 ## [v0.5.1]
 
 ### Bugfixes

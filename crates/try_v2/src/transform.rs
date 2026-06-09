@@ -25,7 +25,7 @@ where
     Self: Try + Sized,
 {
     /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
-    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual interconversion is implemented.
+    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual inter-conversion is implemented.
     fn flatten<Y>(self) -> Y
     where
         Self: Try<Output = Y>,
@@ -34,7 +34,8 @@ where
         self?
     }
 
-    /// Calls a function with a reference to the contained value. Returns the original `Self`
+    /// Calls a function with a reference to the contained value in the output case.
+    /// Returns the original `Self`
     fn inspect<F>(self, f: F) -> Self
     where
         F: FnOnce(&Self::Output),
@@ -44,19 +45,9 @@ where
         Try::from_output(val)
     }
 
-    /// Extracts the contained value `v` returning `Some(v)`, or `None` in the case of a Residual
-    fn output<T>(self) -> Option<T>
-    where
-        Self: Try<Output = T>,
-    {
-        match self.branch() {
-            ControlFlow::Continue(val) => Some(val),
-            ControlFlow::Break(_) => None,
-        }
-    }
-
-    /// Applies a function to the contained value converting `T` -> `U` then
-    /// returns the canonical TryType for `Self` with Output `U`
+    /// Applies a function to the contained value (in the ouput case) converting `T` -> `U`,
+    /// leaving residual cases untouched, then returns the canonical TryType for `Self` with
+    /// Output `U`.
     fn map<X, U, F>(self, f: F) -> X
     where
         F: FnOnce(Self::Output) -> U,
@@ -68,6 +59,12 @@ where
         Try::from_output(mapped)
     }
 
+    /// Applies a function to the contained value (in the output case) converting `T` -> `U`,
+    /// or returns the given `default` value.
+    ///
+    /// # Note
+    /// - `default` is eagerly evaluated, prefer [Transform::map_or_else] if passing
+    ///   the result of a function call.
     fn map_or<U, F>(self, default: U, f: F) -> U
     where
         F: FnOnce(Self::Output) -> U,
@@ -77,7 +74,12 @@ where
             ControlFlow::Break(_) => default,
         }
     }
-
+    /// Applies a function to the contained value (in the output case) converting `T` -> `U`,
+    /// or returns the result of `default()`.
+    ///
+    /// # Note
+    /// - the closure `default` is lazily evaluated, prefer [Transform::map_or] if
+    ///   passing a simple value.
     fn map_or_else<U, D, F>(self, default: D, f: F) -> U
     where
         D: FnOnce() -> U,
@@ -92,8 +94,7 @@ where
     /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
-    ///
-    /// - Return types are *canonical TryTypes*, for asymetrical cases this may not be `Bar` & `Foo`
+    /// - Return types are *canonical TryTypes*, for asymmetrical cases this may not be `Bar` & `Foo`
     fn transpose<X, Y>(self) -> X
     where
         // Foo<Bar<T>>
@@ -124,8 +125,9 @@ where
         }
     }
 
-    /// Combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual interconversion
-    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
+    /// `foo.zip(bar)` combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual
+    /// interconversion is available from `Bar->Foo`. Returns the *canonical TryType* based upon
+    /// `Foo`. Returns a residual if either`Foo` or `Bar` are residuals.
     fn zip<X, Y>(self, other: Y) -> X
     where
         Y: Try,
@@ -139,10 +141,12 @@ where
         Try::from_output((v1, v2))
     }
 
-    /// Applies function `f` to the values inside `Foo<T>` & `Bar<U>` where residual interconversion
-    /// is available from `Bar->Foo`. Returns the *canonical TryType* based upon `Foo`.
+    /// `foo.zip_with(bar, do_stuff)` applies `do_stuff(foo?, bar?)` to the combined values inside
+    /// `Foo<T>` & `Bar<U>` where residual interconversion is available from `Bar->Foo`.
+    /// Returns the *canonical TryType* based upon `Foo`.
     ///
-    /// TODO: #[unstable(feature = "option_zip", issue = "70086")]
+    /// # Note
+    /// - this is equivalent to [unstable feature `option_zip`](https://github.com/rust-lang/rust/issues/70086)
     fn zip_with<X, Y, F, G>(self, other: Y, f: F) -> X
     where
         Y: Try,
@@ -154,6 +158,60 @@ where
         let v2 = other?;
         Try::from_output(f(v1, v2))
     }
+
+    /// `foo.and(bar)` returns `bar` if `foo` is the output case, otherwise returns `foo`.
+    ///
+    /// # Note
+    /// - Unlike `Result::and()` this will also allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
+    fn and<Y>(self, other: Y) -> Y
+    where
+        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
+    {
+        self?;
+        other
+    }
+
+    /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
+    fn and_then<Y, F>(self, f: F) -> Y
+    where
+        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
+        F: FnOnce(Self::Output) -> Y,
+    {
+        f(self?)
+    }
+
+    /// `foo.or(bar)` will return a `Bar<T>` wrapping the contents of `foo` if `foo` is the output
+    /// case or `bar` if `foo` is a residual.
+    ///
+    /// # Note
+    /// - This will convert types - so `Ok(5).or(None) = Some(5)`
+    fn or<Y>(self, other: Y) -> Y
+    where
+        Y: Try<Output = Self::Output>,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => Try::from_output(v),
+            ControlFlow::Break(_) => other,
+        }
+    }
+
+    /// `foo.or_else(bar)` where `bar` is a function returning a `Bar<T>` will return a `Bar<T>`
+    /// wrapping the contents of `foo` if `foo` is the output case or call `bar(foo)` if `foo` is
+    /// a residual.
+    ///
+    /// # Note
+    /// -  The closure receives `Self::Residual` (unlike `Option::or_else` & `Result::or_else` which
+    ///    are specialised to receive `()` & `E` respectively)
+    fn or_else<Y, F>(self, f: F) -> Y
+    where
+        Y: Try<Output = Self::Output>,
+        F: FnOnce(Self::Residual) -> Y,
+    {
+        match self.branch() {
+            ControlFlow::Continue(v) => Try::from_output(v),
+            ControlFlow::Break(r) => f(r),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -162,6 +220,55 @@ mod tests {
 
     impl<T> Transform for Option<T> {}
     impl<T, E> Transform for Result<T, E> {}
+
+    mod boolean {
+        use super::*;
+
+        #[test]
+        fn and_some_some() {
+            let some_5 = Some(5);
+            let some_6 = Some(6);
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_none_some() {
+            let some_5 = None;
+            let some_6 = Some(6);
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_some_none() {
+            let some_5 = Some(5);
+            let some_6 = None;
+            let stdlib = some_5.and(some_6);
+            let custom = Transform::and(some_5, some_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn or_ok_ok() {
+            let ok_5: Result<_, ()> = Ok(5);
+            let ok_6: Result<_, i32> = Ok(6);
+            let stdlib = ok_5.or(ok_6);
+            let custom = Transform::or(ok_5, ok_6);
+            assert_eq!(stdlib, custom);
+        }
+
+        // TODO document this well
+        #[test]
+        fn or_ok_some() {
+            let ok_5: Result<_, ()> = Ok(5);
+            let some_6 = Some(6);
+            let custom = Transform::or(ok_5, some_6);
+            assert_eq!(custom, Some(5));
+        }
+    }
 
     mod flatten {
         use super::*;
@@ -189,18 +296,6 @@ mod tests {
                 write!(text, "{x}").expect("failed to write {x} to text")
             });
             assert_eq!(text, "55");
-        }
-    }
-
-    mod output {
-        use super::*;
-
-        #[test]
-        fn ok() {
-            let ok_5: Result<_, ()> = Ok(5);
-            let stdlib = ok_5.ok();
-            let custom = ok_5.output();
-            assert_eq!(stdlib, custom);
         }
     }
 
