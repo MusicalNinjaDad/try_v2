@@ -21,17 +21,15 @@ where
     /// Return the contained value or panic with a generic message.
     ///
     /// In general you should prefer `expect()` for panic situations or `output()` for non-panic
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Extract::expect`]. Implementors should prefer
+    ///   customising `expect` to directly customising `unwrap`.
     fn unwrap(self) -> T
     where
         Self::Residual: Debug,
     {
-        match self.branch() {
-            ControlFlow::Continue(v) => v,
-            #[cfg(not(panic = "immediate-abort"))]
-            ControlFlow::Break(r) => panic!("called `unwrap()` on a residual: {r:?}"),
-            #[cfg(panic = "immediate-abort")]
-            ControlFlow::Break(_) => panic!(),
-        }
+        self.expect("called `unwrap()` on a residual:")
     }
 
     /// Return the contained value or panic with a custom message.
@@ -54,22 +52,24 @@ where
     ///
     /// Arguments passed to unwrap_or are eagerly evaluated; if you are passing the result of a
     /// function call, it is recommended to use unwrap_or_else, which is lazily evaluated.
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Extract::unwrap_or_else`]. Implementors should prefer
+    ///   customising `unwrap_or_else` to directly customising `unwrap_or`.
     fn unwrap_or(self, default: T) -> T {
-        match self.branch() {
-            ControlFlow::Continue(v) => v,
-            ControlFlow::Break(_) => default,
-        }
+        self.unwrap_or_else(|| default)
     }
 
     /// Return the contained value or a default. Requires `T` to implement `Default`
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Extract::unwrap_or_else`]. Implementors should prefer
+    ///   customising `unwrap_or_else` to directly customising `unwrap_or_default`.
     fn unwrap_or_default(self) -> T
     where
         T: Default,
     {
-        match self.branch() {
-            ControlFlow::Continue(v) => v,
-            ControlFlow::Break(_) => Default::default(),
-        }
+        self.unwrap_or_else(Default::default)
     }
 
     /// Return the contained value or a value computed from a closure.
