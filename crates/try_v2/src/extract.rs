@@ -24,7 +24,7 @@ where
     ///
     /// # Note to implementors
     /// - the provided implementation uses [`Extract::expect`]. Implementors should prefer
-    ///   customising `extract` to directly customising `unwrap`.
+    ///   customising `expect` to directly customising `unwrap`.
     fn unwrap(self) -> T
     where
         Self::Residual: Debug,
