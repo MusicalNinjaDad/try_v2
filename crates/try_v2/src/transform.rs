@@ -64,14 +64,15 @@ where
     /// # Note
     /// - `default` is eagerly evaluated, prefer [Transform::map_or_else] if passing
     ///   the result of a function call.
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Transform::map_or_else`]. Implementors should prefer
+    ///   customising `map_or_else` to directly customising `map_or`.
     fn map_or<U, F>(self, default: U, f: F) -> U
     where
         F: FnOnce(T) -> U,
     {
-        match self.branch() {
-            ControlFlow::Continue(val) => f(val),
-            ControlFlow::Break(_) => default,
-        }
+        self.map_or_else(|| default, f)
     }
     /// Applies a function to the contained value (in the output case) converting `T` -> `U`,
     /// or returns the result of `default()`.
@@ -125,15 +126,17 @@ where
     /// `foo.zip(bar)` combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual
     /// interconversion is available from `Bar->Foo`. Returns the *canonical TryType* based upon
     /// `Foo`. Returns a residual if either `Foo` or `Bar` are residuals.
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Transform::zip_with`]. Implementors should prefer
+    ///   customising `zip_with` to directly customising `zip`.
     fn zip<X, Y>(self, other: Y) -> X
     where
         Y: Try,
         X: Try<Output = (T, Y::Output)> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
         Self::Residual: Residual<X::Output, TryType = X>,
     {
-        let v1 = self?;
-        let v2 = other?;
-        Try::from_output((v1, v2))
+        self.zip_with(other, |t, u| (t, u))
     }
 
     /// `foo.zip_with(bar, do_stuff)` applies `do_stuff(foo?, bar?)` to the combined values inside
