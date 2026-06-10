@@ -8,7 +8,7 @@
 
 ### Breaking changes
 
-- Move `<T>` to trait signature for `Extend<T>` and `Transform<T>`
+- Moved `<T>` to trait signature for `Extract<T>` and `Transform<T>`
 
 ## [v0.6.0]
 
