@@ -161,12 +161,15 @@ where
     ///
     /// # Note
     /// - Unlike `Result::and()` this will also allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Transform::and_then`]. Implementors should prefer
+    ///   customising `and_then` to directly customising `and`.
     fn and<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = T> + FromResidual<Self::Residual>,
     {
-        self?;
-        other
+        self.and_then(|_| other)
     }
 
     /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
@@ -183,14 +186,15 @@ where
     ///
     /// # Note
     /// - This will convert types - so `Ok(5).or(None) = Some(5)`
+    ///
+    /// # Note to implementors
+    /// - the provided implementation uses [`Transform::or_else`]. Implementors should prefer
+    ///   customising `or_else` to directly customising `or`.
     fn or<Y>(self, other: Y) -> Y
     where
         Y: Try<Output = T>,
     {
-        match self.branch() {
-            ControlFlow::Continue(v) => Try::from_output(v),
-            ControlFlow::Break(_) => other,
-        }
+        self.or_else(|_| other)
     }
 
     /// `foo.or_else(bar)` where `bar` is a function returning a `Bar<T>` will return a `Bar<T>`
