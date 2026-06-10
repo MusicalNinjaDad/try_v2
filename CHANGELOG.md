@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.7.1]
+
+### New features
+
+- Futher improved ergonomics for overloading overlapping trait methods (e.g. `unwrap` now re-uses `extract`)
+
 ## [v0.7.0]
 
 ### Bugfixes
