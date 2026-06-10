@@ -4,17 +4,14 @@ use std::{
 };
 
 /// Methods for extracting the wrapped value
-pub trait Extract
+pub trait Extract<T>
 where
-    Self: Try + Sized,
+    Self: Try<Output = T> + Sized,
 {
     /// Extracts the contained value `v` returning `Some(v)`, or `None` in the case of a Residual
     ///
     /// Think of this as the non-panicking version of `unwrap()`
-    fn output<T>(self) -> Option<T>
-    where
-        Self: Try<Output = T>,
-    {
+    fn output(self) -> Option<T> {
         match self.branch() {
             ControlFlow::Continue(val) => Some(val),
             ControlFlow::Break(_) => None,
@@ -24,9 +21,8 @@ where
     /// Return the contained value or panic with a generic message.
     ///
     /// In general you should prefer `expect()` for panic situations or `output()` for non-panic
-    fn unwrap<T>(self) -> T
+    fn unwrap(self) -> T
     where
-        Self: Try<Output = T>,
         Self::Residual: Debug,
     {
         match self.branch() {
@@ -41,9 +37,8 @@ where
     /// Return the contained value or panic with a custom message.
     ///
     /// In general you should prefer `output()` or `?` which do not panic.
-    fn expect<T>(self, msg: &str) -> T
+    fn expect(self, msg: &str) -> T
     where
-        Self: Try<Output = T>,
         Self::Residual: Debug,
     {
         match self.branch() {
@@ -59,10 +54,7 @@ where
     ///
     /// Arguments passed to unwrap_or are eagerly evaluated; if you are passing the result of a
     /// function call, it is recommended to use unwrap_or_else, which is lazily evaluated.
-    fn unwrap_or<T>(self, default: T) -> T
-    where
-        Self: Try<Output = T>,
-    {
+    fn unwrap_or(self, default: T) -> T {
         match self.branch() {
             ControlFlow::Continue(v) => v,
             ControlFlow::Break(_) => default,
@@ -70,9 +62,8 @@ where
     }
 
     /// Return the contained value or a default. Requires `T` to implement `Default`
-    fn unwrap_or_default<T>(self) -> T
+    fn unwrap_or_default(self) -> T
     where
-        Self: Try<Output = T>,
         T: Default,
     {
         match self.branch() {
@@ -82,9 +73,8 @@ where
     }
 
     /// Return the contained value or a value computed from a closure.
-    fn unwrap_or_else<T, F>(self, f: F) -> T
+    fn unwrap_or_else<F>(self, f: F) -> T
     where
-        Self: Try<Output = T>,
         F: FnOnce() -> T,
     {
         match self.branch() {
@@ -98,8 +88,8 @@ where
 mod tests {
     use super::*;
 
-    impl<T> Extract for Option<T> {}
-    impl<T, E> Extract for Result<T, E> {}
+    impl<T> Extract<T> for Option<T> {}
+    impl<T, E> Extract<T> for Result<T, E> {}
 
     mod output {
         use super::*;

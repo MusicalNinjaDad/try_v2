@@ -20,16 +20,15 @@ use std::ops::{ControlFlow, FromResidual, Residual, Try};
 ///     - `F` a function/closure passed as a parameter
 ///     - `G` the return type of `F`
 ///     - `R` *never used* to avoid confusion with "Residual".
-pub trait Transform
+pub trait Transform<T>
 where
-    Self: Try + Sized,
+    Self: Try<Output = T> + Sized,
 {
-    /// Removes one level of nesting, converting `Foo<Foo<T>>` to `Foo<T>`
-    /// or from `Foo<Bar<T>>` to `Bar<T>` if suitable residual inter-conversion is implemented.
-    fn flatten<Y>(self) -> Y
+    /// Removes one level of nesting, converting `Foo<Foo<U>>` to `Foo<U>`
+    /// or from `Foo<Bar<U>>` to `Bar<U>` if suitable residual inter-conversion is implemented.
+    fn flatten(self) -> T
     where
-        Self: Try<Output = Y>,
-        Y: FromResidual<Self::Residual>,
+        T: FromResidual<Self::Residual>,
     {
         self?
     }
@@ -38,7 +37,7 @@ where
     /// Returns the original `Self`
     fn inspect<F>(self, f: F) -> Self
     where
-        F: FnOnce(&Self::Output),
+        F: FnOnce(&T),
     {
         let val = self?;
         f(&val);
@@ -50,7 +49,7 @@ where
     /// Output `U`.
     fn map<X, U, F>(self, f: F) -> X
     where
-        F: FnOnce(Self::Output) -> U,
+        F: FnOnce(T) -> U,
         X: Try<Output = U> + FromResidual<Self::Residual>,
         Self::Residual: Residual<U, TryType = X>,
     {
@@ -67,7 +66,7 @@ where
     ///   the result of a function call.
     fn map_or<U, F>(self, default: U, f: F) -> U
     where
-        F: FnOnce(Self::Output) -> U,
+        F: FnOnce(T) -> U,
     {
         match self.branch() {
             ControlFlow::Continue(val) => f(val),
@@ -83,7 +82,7 @@ where
     fn map_or_else<U, D, F>(self, default: D, f: F) -> U
     where
         D: FnOnce() -> U,
-        F: FnOnce(Self::Output) -> U,
+        F: FnOnce(T) -> U,
     {
         match self.branch() {
             ControlFlow::Continue(val) => f(val),
@@ -91,24 +90,22 @@ where
         }
     }
 
-    /// Converts from a `Foo<Bar<T>>` to a `Bar<Foo<T>>` where both `Foo` & `Bar` are `Try`.
+    /// Converts from a `Foo<Bar<U>>` to a `Bar<Foo<U>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
     /// - Return types are *canonical TryTypes*, for asymmetrical cases this may not be `Bar` & `Foo`
-    fn transpose<X, Y>(self) -> X
+    fn transpose<X>(self) -> X
     where
-        // Foo<Bar<T>>
-        Self: Try<Output = Y>,
         // Bar<T>
-        Y: Try,
+        T: Try,
         // Bar<Foo<T>>
-        X: Try + FromResidual<Y::Residual>,
+        X: Try + FromResidual<T::Residual>,
         // Foo<T>: Try<Output = T>         + FromResidual<Foo<!>>
-        X::Output: Try<Output = Y::Output> + FromResidual<Self::Residual>,
+        X::Output: Try<Output = T::Output> + FromResidual<Self::Residual>,
         // X *is* the canonical TryType for `Bar<Output=Foo<T>>`
-        Y::Residual: Residual<X::Output, TryType = X>,
+        T::Residual: Residual<X::Output, TryType = X>,
         // X *wraps* the canonical TryType for `Foo<Output=T>`
-        Self::Residual: Residual<Y::Output, TryType = X::Output>,
+        Self::Residual: Residual<T::Output, TryType = X::Output>,
     {
         match self.branch() {
             ControlFlow::Continue(inner_u) => match inner_u.branch() {
@@ -127,13 +124,11 @@ where
 
     /// `foo.zip(bar)` combines a `Foo<T>` with a `Bar<U>` into a `Foo<(T,U)>` where residual
     /// interconversion is available from `Bar->Foo`. Returns the *canonical TryType* based upon
-    /// `Foo`. Returns a residual if either`Foo` or `Bar` are residuals.
+    /// `Foo`. Returns a residual if either `Foo` or `Bar` are residuals.
     fn zip<X, Y>(self, other: Y) -> X
     where
         Y: Try,
-        X: Try<Output = (Self::Output, Y::Output)>
-            + FromResidual<Self::Residual>
-            + FromResidual<Y::Residual>,
+        X: Try<Output = (T, Y::Output)> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
         Self::Residual: Residual<X::Output, TryType = X>,
     {
         let v1 = self?;
@@ -150,7 +145,7 @@ where
     fn zip_with<X, Y, F, G>(self, other: Y, f: F) -> X
     where
         Y: Try,
-        F: FnOnce(Self::Output, Y::Output) -> G,
+        F: FnOnce(T, Y::Output) -> G,
         X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
         Self::Residual: Residual<G, TryType = X>,
     {
@@ -165,7 +160,7 @@ where
     /// - Unlike `Result::and()` this will also allow `Result<T,E>.and(Result<T,F>)` where `F: From(E)`
     fn and<Y>(self, other: Y) -> Y
     where
-        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
+        Y: Try<Output = T> + FromResidual<Self::Residual>,
     {
         self?;
         other
@@ -174,8 +169,8 @@ where
     /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
     fn and_then<Y, F>(self, f: F) -> Y
     where
-        Y: Try<Output = Self::Output> + FromResidual<Self::Residual>,
-        F: FnOnce(Self::Output) -> Y,
+        Y: Try<Output = T> + FromResidual<Self::Residual>,
+        F: FnOnce(T) -> Y,
     {
         f(self?)
     }
@@ -187,7 +182,7 @@ where
     /// - This will convert types - so `Ok(5).or(None) = Some(5)`
     fn or<Y>(self, other: Y) -> Y
     where
-        Y: Try<Output = Self::Output>,
+        Y: Try<Output = T>,
     {
         match self.branch() {
             ControlFlow::Continue(v) => Try::from_output(v),
@@ -204,7 +199,7 @@ where
     ///    are specialised to receive `()` & `E` respectively)
     fn or_else<Y, F>(self, f: F) -> Y
     where
-        Y: Try<Output = Self::Output>,
+        Y: Try<Output = T>,
         F: FnOnce(Self::Residual) -> Y,
     {
         match self.branch() {
@@ -218,8 +213,8 @@ where
 mod tests {
     use super::*;
 
-    impl<T> Transform for Option<T> {}
-    impl<T, E> Transform for Result<T, E> {}
+    impl<T> Transform<T> for Option<T> {}
+    impl<T, E> Transform<T> for Result<T, E> {}
 
     mod boolean {
         use super::*;

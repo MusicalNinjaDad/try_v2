@@ -1,5 +1,15 @@
 # Changelog try_v2
 
+## [v0.7.0]
+
+### Bugfixes
+
+- Improved ergonomics for overloading provided impls from traits
+
+### Breaking changes
+
+- Moved `<T>` to trait signature for `Extract<T>` and `Transform<T>`
+
 ## [v0.6.0]
 
 ### New features
