@@ -4,7 +4,7 @@
 
 ### New features
 
-- Futher improved ergonomics for overloading overlapping trait methods (e.g. `unwrap` now re-uses `extract`)
+- Further improved ergonomics for overloading overlapping trait methods (e.g. `unwrap` now re-uses `extract`)
 
 ## [v0.7.0]
 
