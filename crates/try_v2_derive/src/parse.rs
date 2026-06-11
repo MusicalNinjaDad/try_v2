@@ -294,10 +294,13 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
         match ty {
             Type::Path(_) => Result::Ok(Self::Owned {
                 name: checked_name(ty).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    )
+                    base_error()
+                        .add_help(
+                            ty.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        )
+                        .diagnostic()
+                        .expect("TryFrom for OutputType: Path with wrong type")
                 })?,
                 ty,
             }),
@@ -307,17 +310,25 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
                 let name = checked_name(tr.elem.as_ref()).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to &{lifetime} {first_generic_type}"),
-                    )
+                    base_error()
+                        .add_help(
+                            ty.span(),
+                            format_args!("change this to &{lifetime} {first_generic_type}"),
+                        )
+                        .diagnostic()
+                        .expect("TryFrom for OutputType: Reference with wrong type")
                 })?;
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }
-            _ => Result::Err(base_error().add_help(
-                ty.span(),
-                format_args!("change this to {first_generic_type}"),
-            )),
+            _ => Result::Err(
+                base_error()
+                    .add_help(
+                        ty.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    )
+                    .diagnostic()
+                    .expect("TryFrom for OutputType: Invalid type"),
+            ),
         }
     }
 }
