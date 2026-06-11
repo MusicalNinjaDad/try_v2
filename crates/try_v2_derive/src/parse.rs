@@ -1,4 +1,4 @@
-use proc_macro2_diagnostic::prelude::*;
+use proc_macro2_diagnostic::{Diagnostic, ToDiagnostic, prelude::*};
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
@@ -30,12 +30,14 @@ impl<'ast> TryEnum<'ast> {
 
         let name: &Ident = &ast.ident;
 
-        let output_variant = enum_data.variants.first().ok_or(
-            error("Try cannot be derived for a zero-field enum").add_help(
+        let output_variant = enum_data
+            .variants
+            .first()
+            .or_error("Try cannot be derived for a zero-field enum")
+            .add_help(
                 enum_data.brace_token.span.span(),
                 "add at least two variants here...",
-            ),
-        )?;
+            )?;
         let output_variant_name: &Ident = &output_variant.ident;
 
         let first_generic_type: &Ident = ast
@@ -43,10 +45,8 @@ impl<'ast> TryEnum<'ast> {
             .type_params()
             .map(|ty| &ty.ident)
             .next()
-            .ok_or(
-                error("Try requires a generic type for `Output`")
-                    .add_help(name.span(), "Add <T> after this..."),
-            )?;
+            .or_error("Try requires a generic type for `Output`")
+            .add_help(name.span(), "Add <T> after this...")?;
 
         let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
             && fields.unnamed.len() == 1
@@ -269,7 +269,7 @@ impl<'ast> OutputType<'ast> {
 }
 
 impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
-    type Error = DiagnosticResult<!>;
+    type Error = Diagnostic;
 
     fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
         let base_error = || -> DiagnosticResult<!> {
@@ -294,10 +294,13 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
         match ty {
             Type::Path(_) => Result::Ok(Self::Owned {
                 name: checked_name(ty).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to {first_generic_type}"),
-                    )
+                    base_error()
+                        .add_help(
+                            ty.span(),
+                            format_args!("change this to {first_generic_type}"),
+                        )
+                        .diagnostic()
+                        .expect("TryFrom for OutputType: Path with wrong type")
                 })?,
                 ty,
             }),
@@ -307,17 +310,25 @@ impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
                     .as_ref()
                     .expect("References in enum definitions require a specified lifetime");
                 let name = checked_name(tr.elem.as_ref()).ok_or_else(|| {
-                    base_error().add_help(
-                        ty.span(),
-                        format_args!("change this to &{lifetime} {first_generic_type}"),
-                    )
+                    base_error()
+                        .add_help(
+                            ty.span(),
+                            format_args!("change this to &{lifetime} {first_generic_type}"),
+                        )
+                        .diagnostic()
+                        .expect("TryFrom for OutputType: Reference with wrong type")
                 })?;
                 Result::Ok(Self::Ref { name, ty, lifetime })
             }
-            _ => Result::Err(base_error().add_help(
-                ty.span(),
-                format_args!("change this to {first_generic_type}"),
-            )),
+            _ => Result::Err(
+                base_error()
+                    .add_help(
+                        ty.span(),
+                        format_args!("change this to {first_generic_type}"),
+                    )
+                    .diagnostic()
+                    .expect("TryFrom for OutputType: Invalid type"),
+            ),
         }
     }
 }

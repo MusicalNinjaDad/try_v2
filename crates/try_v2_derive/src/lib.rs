@@ -4,7 +4,7 @@
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro2_diagnostic::prelude::*;
+use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
 
@@ -117,7 +117,7 @@ use parse::TryEnum;
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    impl_derive(input.into()).into()
+    impl_derive(input.into()).to_tokens()
 }
 
 /// Parses & validates the input then quote!s the impl.  
@@ -283,7 +283,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 /// ```
 ///
 pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
-    impl_convert_result(input.into()).into()
+    impl_convert_result(input.into()).to_tokens()
 }
 
 fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
@@ -385,7 +385,7 @@ fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
 /// # }
 /// ```
 pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
-    impl_iterator_traits(input.into()).into()
+    impl_iterator_traits(input.into()).to_tokens()
 }
 
 fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {

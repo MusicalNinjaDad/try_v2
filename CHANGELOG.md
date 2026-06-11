@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.7.2]
+
+### Bugfix
+
+- Updated to latest `proc_macro2_diagnostic`
+
 ## [v0.7.1]
 
 ### New features
