@@ -28,3 +28,4 @@ trybuild = "1.0.116"
 
 [build-dependencies]
 autocfg = "1.5.1"
+ninja-build_rs = "0.1.1"
