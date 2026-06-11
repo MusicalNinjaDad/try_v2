@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.7.3]
+
+### Bugfix
+
+- Cfg-gate entire crate to `has_try_trait_v2` (& friends) - allows to be a dependency for crates which also need to compile on stable
+
 ## [v0.7.2]
 
 ### Bugfix
