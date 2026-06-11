@@ -1,6 +1,7 @@
+#![cfg(all(has_never_type, has_try_trait_v2, has_try_trait_v2_residual))]
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))]
 #![cfg_attr(unstable_let_chains, feature(let_chains))]
-#![feature(never_type)]
+#![cfg_attr(unstable_never_type, feature(never_type))]
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;

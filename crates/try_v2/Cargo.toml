@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro & helper traits for `Try`"
@@ -21,3 +21,5 @@ try_v2_derive = { workspace = true }
 [dev-dependencies]
 
 [build-dependencies]
+autocfg = { workspace = true }
+ninja-build_rs = { workspace = true }
