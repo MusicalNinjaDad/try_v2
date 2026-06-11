@@ -21,3 +21,5 @@ try_v2_derive = { workspace = true }
 [dev-dependencies]
 
 [build-dependencies]
+autocfg = { workspace = true }
+ninja-build_rs = { workspace = true }

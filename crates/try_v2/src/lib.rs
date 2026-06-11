@@ -1,6 +1,6 @@
-#![feature(try_trait_v2)]
-#![feature(try_trait_v2_residual)]
-#![cfg_attr(test, feature(option_zip))]
+#![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2))]
+#![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2_residual))]
+#![cfg_attr(all(test, unstable_option_zip), feature(option_zip))]
 
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from

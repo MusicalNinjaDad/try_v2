@@ -17,7 +17,7 @@ exclude = [".github", ".devcontainer"]
 proc-macro = true
 
 [dependencies]
-syn = {version = "2.0.117", features = ["full","extra-traits"]}
+syn = { version = "2.0.117", features = ["full", "extra-traits"] }
 proc-macro2 = "1.0.106"
 proc_macro2_diagnostic = "0.6.0"
 quote = "1.0.45"
@@ -27,5 +27,5 @@ log = "0.4.29"
 trybuild = "1.0.116"
 
 [build-dependencies]
-autocfg = "1.5.1"
-ninja-build_rs = "0.1.1"
+autocfg = { workspace = true }
+ninja-build_rs = { workspace = true }

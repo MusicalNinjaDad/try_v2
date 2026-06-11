@@ -6,10 +6,10 @@
 
 use try_v2_derive::{Try, Try_ConvertResult};
 
-#[cfg(assert_matches_location="module")]
+#[cfg(assert_matches_location = "module")]
 use std::assert_matches::assert_matches;
 
-#[cfg(assert_matches_location="root")]
+#[cfg(assert_matches_location = "root")]
 use std::assert_matches;
 
 mod bound_ok_type {
