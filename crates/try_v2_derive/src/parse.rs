@@ -1,4 +1,4 @@
-use proc_macro2_diagnostic::prelude::*;
+use proc_macro2_diagnostic::{Diagnostic, ToDiagnostic, prelude::*};
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
@@ -30,12 +30,14 @@ impl<'ast> TryEnum<'ast> {
 
         let name: &Ident = &ast.ident;
 
-        let output_variant = enum_data.variants.first().ok_or(
-            error("Try cannot be derived for a zero-field enum").add_help(
+        let output_variant = enum_data
+            .variants
+            .first()
+            .or_error("Try cannot be derived for a zero-field enum")
+            .add_help(
                 enum_data.brace_token.span.span(),
                 "add at least two variants here...",
-            ),
-        )?;
+            )?;
         let output_variant_name: &Ident = &output_variant.ident;
 
         let first_generic_type: &Ident = ast
@@ -43,10 +45,8 @@ impl<'ast> TryEnum<'ast> {
             .type_params()
             .map(|ty| &ty.ident)
             .next()
-            .ok_or(
-                error("Try requires a generic type for `Output`")
-                    .add_help(name.span(), "Add <T> after this..."),
-            )?;
+            .or_error("Try requires a generic type for `Output`")
+            .add_help(name.span(), "Add <T> after this...")?;
 
         let output_type = if let Fields::Unnamed(fields) = &output_variant.fields
             && fields.unnamed.len() == 1
@@ -269,7 +269,7 @@ impl<'ast> OutputType<'ast> {
 }
 
 impl<'ast> TryFrom<(&'ast Type, &'ast Ident)> for OutputType<'ast> {
-    type Error = DiagnosticResult<!>;
+    type Error = Diagnostic;
 
     fn try_from((ty, first_generic_type): (&'ast Type, &'ast Ident)) -> Result<Self, Self::Error> {
         let base_error = || -> DiagnosticResult<!> {
