@@ -7,4 +7,4 @@ members = ["crates/*"]
 try_v2_derive = { path = "crates/try_v2_derive", version = "0.7.3" }
 
 autocfg = "1.5.1"
-ninja-build_rs = "0.1.1"
+ninja-build_rs = "0.1.2"
