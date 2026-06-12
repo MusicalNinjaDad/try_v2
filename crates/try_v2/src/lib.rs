@@ -1,7 +1,4 @@
 #![cfg(all(has_try_trait_v2, has_try_trait_v2_residual))]
-#![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2))]
-#![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2_residual))]
-#![cfg_attr(all(test, unstable_option_zip), feature(option_zip))]
 
 //! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
 //! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
@@ -120,10 +117,6 @@
 #[cfg(feature = "derive")]
 pub use try_v2_derive::*;
 
-mod transform;
 #[doc(inline)]
-pub use transform::Transform;
-
-mod extract;
-#[doc(inline)]
-pub use extract::Extract;
+#[cfg(feature = "traits")]
+pub use try_v2_traits::*;
