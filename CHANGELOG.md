@@ -4,7 +4,7 @@
 
 ### Bugfix
 
-- Remove tempory version pin on `proc_macro2_diagnostic`, which was required to publish v0.7.4 without circular dependency
+- Remove temporary version pin on `proc_macro2_diagnostic`, which was required to publish v0.7.4 without circular dependency
 
 ## [v0.7.4]
 
