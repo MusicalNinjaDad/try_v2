@@ -1,8 +1,8 @@
 #![cfg_attr(unstable_assert_matches, feature(assert_matches))]
-#![feature(iterator_try_collect)]
-#![feature(never_type)]
-#![feature(try_trait_v2)]
-#![feature(try_trait_v2_residual)]
+#![cfg_attr(unstable_iterator_try_collect, feature(iterator_try_collect))]
+#![cfg_attr(unstable_never_type, feature(never_type))]
+#![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2))]
+#![cfg_attr(unstable_try_trait_v2_residual, feature(try_trait_v2_residual))]
 
 use try_v2_derive::{Try, Try_ConvertResult};
 
