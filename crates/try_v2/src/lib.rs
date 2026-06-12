@@ -117,6 +117,7 @@
 //!   - storing `Fn`s in variants
 
 #[doc(inline)]
+#[cfg(feature = "derive")]
 pub use try_v2_derive::*;
 
 mod transform;
