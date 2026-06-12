@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.7.4]
+
+### Bugfix
+
+- Made `derive` a (default) feature, to remove circular dependency risk with `proc_macro2_diagnostic`
+
 ## [v0.7.3]
 
 ### Bugfix

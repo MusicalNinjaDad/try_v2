@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.7.3"
+version = "0.7.4"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro & helper traits for `Try`"
@@ -15,8 +15,12 @@ exclude = [".github", ".devcontainer"]
 
 [lib]
 
+[features]
+default = ["derive"]
+derive = ["dep:try_v2_derive"]
+
 [dependencies]
-try_v2_derive = { workspace = true }
+try_v2_derive = { workspace = true, optional = true }
 
 [dev-dependencies]
 
