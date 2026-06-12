@@ -1,5 +1,17 @@
 # Changelog try_v2
 
+## [WIP]
+
+### Bugfix
+
+- Allow downstream crates to depend on both `try_v2` and `proc_macro2_diagnostic`
+
+## [v0.8.0]
+
+### Breaking changes
+
+- Moved traits to feature-gated re-export: feature = `traits` (default); crate: `try_v2_traits`
+
 ## [v0.7.5]
 
 ### Bugfix
