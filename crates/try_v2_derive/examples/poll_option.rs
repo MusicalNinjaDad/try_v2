@@ -3,8 +3,8 @@
 
 use std::task::{Poll, ready};
 
-fn wobble() -> Poll<Option<Result<(),()>>> {
-    let foo: Poll<Option<Result<(),()>>> = Poll::Ready(Some(Ok(())));
+fn wobble() -> Poll<Option<Result<(), ()>>> {
+    let foo: Poll<Option<Result<(), ()>>> = Poll::Ready(Some(Ok(())));
     let bar = ready!(foo?);
     todo!()
 }

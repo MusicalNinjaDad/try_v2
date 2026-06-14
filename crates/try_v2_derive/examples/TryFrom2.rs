@@ -117,6 +117,8 @@ fn main() {
     assert!(matches!(unsigned(5), Ok(s) if s == "5"));
     assert!(matches!(unsigned(-1), Err(TryFromIntError)));
 
-    assert!(matches!(<ThirdWord as TryFrom<&str>>::try_from("a lot of words"), Some(s) if s.0 == "of"));
+    assert!(
+        matches!(<ThirdWord as TryFrom<&str>>::try_from("a lot of words"), Some(s) if s.0 == "of")
+    );
     assert!(<ThirdWord as TryFrom<&str>>::try_from("two words").is_none());
 }
