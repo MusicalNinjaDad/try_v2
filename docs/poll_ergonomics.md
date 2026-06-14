@@ -25,7 +25,7 @@ I find this very confusing in today's rust:
 
 ### Implications for try_fold() etc
 
-Currently, using `try_fold()` on an `impl Iterator<Item=Poll<Result<T,E>>>` requires some interesting gymnastics
+Currently, using `try_fold()` on an `impl Iterator<Item=Poll<Result<T,E>>>` requires some interesting gymnastics (so much that specifying the types seems like a good idea!)
 
 ```rust
 use std::task::Poll;
@@ -42,15 +42,8 @@ fn main() {
         |total: Poll<i32>, n: Poll<Result<i32, i32>>| -> Result<Poll<i32>, i32> {
             let n: Poll<i32> = n?; // <- shorts on Poll::Ready(Err)
             let total: Poll<i32> = match n {
-                Poll::Ready(n) => {
-                    if let Poll::Ready(prev) = total {
-                        Poll::Ready(prev + n)
-                    } else {
-                        unreachable!("we seed with Poll::Ready(0) and ignore Poll::Pending below")
-                    }
-                }
-                // If we prefer to propogate Pending, then above can change to total.map()
-                Poll::Pending => total,
+                Poll::Ready(n) => total.map(|prev| prev + n),
+                Poll::Pending => Poll::Pending,
             };
             Ok(total)
         },
@@ -58,7 +51,24 @@ fn main() {
 }
 ```
 
-### Implications for homogeneity
+A homogeneous implementation would allow for
+
+```rust
+use std::task::Poll;
+
+fn main() {
+    let polls = [
+        Poll::Ready(Ok(0)),
+        Poll::Pending,
+        Poll::Ready(Err(2)),
+        Poll::Ready(Ok(3)),
+    ];
+    let _ = polls
+        .into_iter()
+        .try_fold(0, |total, n| Ready(Ok(total + n??)));
+```
+
+### Wider implications for all future TryTypes
 
 `scottmcm` on [try{}: What does homogeneity mean for Poll?
  #155368](https://github.com/rust-lang/rust/issues/155368)
