@@ -77,7 +77,10 @@ fn main() {
 > 3. Add a bound into the desugaring for `?` or `try {` somehow that would enforce that it's usable only on `Try` types with full homogeneity
 >     - perhaps merge the branch+from_residual into one helper function that calls both but which has some extra `where` bounds
 
-This, for example makes providing a standard implementation of `map` etc. difficult - as it would also act "unusually" on Poll, like `try_fold()` does.
+#### Things which are blocked by this
+
+- Providing a standard implementation of `map` etc. difficult - as it would also act "unusually" on Poll, like `try_fold()` does.
+- Allowing for `?`-chaining out-of-the-box (see below)
 
 ### What would homogeneous `Try for Poll` look like?
 
@@ -206,3 +209,35 @@ fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Sel
     Poll::Ready(Ok(()))
 }
 ```
+
+## Chaining `?`
+
+Currently, chaining `?` relies on TryTypes providing specific implementations of `FromResidual`. To aid with the migration of code if Poll were made homogeneous, I suggested such implementations above.
+
+When `Try` stabilises, we should expect it to be useful and therefore used. As such, we will see new TryTypes provided by crates outside stdlib and therefore more cases of `Foo<Bar<T>>` where `Foo` & `Bar` are both `Try`.
+
+To help with user ergonomics I suggest allowing chaining `?` via one of 2 methods.
+
+### Blanket `FromResidual`
+
+If done now the following implementation in stdlib would provide `?`-chaining simply and easily via
+
+```rust
+impl<T,X,Y> FromResidual<Y::Residual> for X 
+where 
+X: Try<Output = Y>, // `Foo<Bar<T>>`
+Y: Try<Output = T>, // `Bar<T>`
+{
+    fn from_residual(residual: Y::Residual) -> Self {
+        Try::from_output(FromResidual::from_residual(residual))
+    }
+}
+```
+
+Right now, this would collide with `Poll` (see ~~diatribe~~ discussion above)
+
+Doing this would further help with homogeneity as it would forbid non-homogeneous implementations by 3rd party types which would likely be a siginificant source of confusion for users.
+
+### Specific desugaring
+
+The compiler *could* specifically desugar multiple `?`s. But I find it hard to argue why this should happen if a stdlib implementation is possible.
