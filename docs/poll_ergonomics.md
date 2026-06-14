@@ -444,3 +444,7 @@ impl TryFrom<&str> for ThirdWord {
     }
 }
 ```
+
+## Lint `clippy:TryMustUse`
+
+## `Poll<Result<!,E>>`
