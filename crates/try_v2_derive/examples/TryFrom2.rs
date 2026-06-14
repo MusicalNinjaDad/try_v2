@@ -8,7 +8,7 @@ use try_v2_derive::{Try, Try_ConvertResult};
 /// Make TryFrom able to return arbitrary Try types
 trait TryFrom2<T>: std::marker::Sized {
     /// Must keep, otherwise would be a breaking change
-    type Error;
+    type Error = !;
     /// The specific Try-type to return
     /// Defaults to Result, to make this a non-breaking change
     type Return: std::ops::Try = Result<Self, Self::Error>;
@@ -27,8 +27,6 @@ struct Even(i32);
 
 /// Uses new API to return a _custom_ TryType
 impl TryFrom2<i32> for Even {
-    /// Can always be set to `()` if irrelevant
-    type Error = ();
     type Return = Eightball<Self>;
 
     fn try_from2(num: i32) -> Self::Return {
@@ -97,8 +95,6 @@ struct ThirdWord(String);
 
 /// Could even return an Option
 impl TryFrom2<&str> for ThirdWord {
-    type Error = ();
-
     type Return = Option<Self>;
 
     fn try_from2(input: &str) -> Self::Return {
