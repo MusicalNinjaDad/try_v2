@@ -345,3 +345,102 @@ Each of these does what you would expect, if you are used to working with `Optio
 
 1. Returns are always *canonical* TryTypes - this is not an issue where homogeneity is expected (see `Poll`) and is no more of an issue than `try_fold` etc. in those cases.
 1. `or` is more flexible than current implementations as it allows `Ok(5).or(None) == Some(5)`.
+
+## Make TryFrom generic over Try
+
+### Current workaround (hack) - use `Foo::Residual` as `Error`
+
+Currently to use a custom TryType with TryFrom requires a workaround which feels more like a nasty hack.
+
+```rust
+#[derive(Try, Try_ConvertResult)]
+#[must_use]
+enum Eightball<Y, N> {
+    Yes(Y),
+    TryAgain,
+    No(N),
+}
+
+// the derive provides the generally useful:
+impl<N,T,E: From<Eightball<!,N>>> FromResidual<Eightball<!,N>> for Result<T,E> { ... }
+
+// which allows for:
+impl TryFrom<i32> for Even2 {
+    type Error = Eightball<!, Odd>;
+
+    fn try_from(num: i32) -> Result<Even2, Eightball<!, Odd>> {
+        if num % 2 == 0 {
+            Result::Ok(Even2(num))
+        } else {
+            Result::Err(Eightball::No(Odd(num)))
+        }
+    }
+}
+```
+
+### Non-breaking change
+
+A non-breaking change to TryFrom would allow it to return an arbitrary TryType, and leverage `FromResidual` implementations to provide the ability to call from a function returning another TryType, such as a `Result`.
+
+```rust
+pub trait TryFrom<T>: Sized {
+    /// Must keep type, otherwise would be a breaking change
+    type Error = !;
+    /// The specific Try-type to return
+    /// Defaults to Result, to make this a non-breaking change
+    type Return: std::ops::Try = Result<Self, Self::Error>;
+
+    fn try_from(value: T) -> Self::Return;
+}
+```
+
+This would then allow for
+
+```rust
+impl TryFrom<i32> for Even {
+    type Return = Eightball<Self, Odd>;
+
+    fn try_from(num: i32) -> Self::Return {
+        if num % 2 == 0 {
+            Eightball::Yes(Even(num))
+        } else {
+            Eightball::No(Odd(num))
+        }
+    }
+}
+```
+
+as well as the current
+
+```rust
+/// Shows this is **non-breaking change**: this is identical (text) to std impl
+impl TryFrom<i8> for u8 {
+    type Error = TryFromIntError;
+
+    fn try_from(u: i8) -> Result<Self, Self::Error> {
+        if u >= 0 {
+            Ok(u as Self)
+        } else {
+            Err(TryFromIntError)
+        }
+    }
+}
+```
+
+and even the following, which feels like it makes more sense than using a `PhraseTooShortError`
+
+```rust
+struct ThirdWord(String);
+
+/// Could even return an Option
+impl TryFrom<&str> for ThirdWord {
+    type Return = Option<Self>;
+
+    fn try_from(input: &str) -> Self::Return {
+        input
+            .split_whitespace()
+            .nth(2)
+            .map(|s| ThirdWord(s.to_string()))
+    }
+}
+```
