@@ -447,4 +447,8 @@ impl TryFrom<&str> for ThirdWord {
 
 ## Lint `clippy:TryMustUse`
 
+`Result` (& `Poll`) are both annotated `#[must_use]` to ensure that residual cases are handled, or explicitly ignored. Arguably `Option` should also be `#[must_use]`, although it is not currently annotated as such.
+
+As custom TryTypes begin to appear in 3rd-party crates, adding a (default warn) lint to recommend adding the `#[must_use]` annotation would save on downstream bug risks. It should be expected, that functions which return any TryType do so because of the risk of a residual, which should not be easily forgotten.
+
 ## `Poll<Result<!,E>>`
