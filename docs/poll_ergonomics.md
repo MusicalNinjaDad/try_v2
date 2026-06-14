@@ -241,3 +241,97 @@ Doing this would further help with homogeneity as it would forbid non-homogeneou
 ### Specific desugaring
 
 The compiler *could* specifically desugar multiple `?`s. But I find it hard to argue why this should happen if a stdlib implementation is possible.
+
+## Additional methods for TryTypes - e.g. map()
+
+Working with custom TryTypes has highlighted the value of the wide range of methods for transforming, extracting and working with the contained values. While TryTypes are generally very unique in their Residual, both type and semantics, they all provide a single `Output`. Generic versions of most of the functions common to `Option` & `Result` are possible in so far as they relate to the output case.
+
+### Usages blocked by missing implementations
+
+If such implementations are missing this blocks usage in two general cases
+
+1. Using a `?` on a `Foo<T>` in a function that returns `Foo<U>` (without also using `try {...}` which is likely to remain experimental after `trait Try` is stabilised)
+1. Being generic over `Try` without being able to rely on the existance of `map` & friends.
+
+### Implementing the methods
+
+Expecting authors of custom TryTypes to identify and correctly implement the required signatures individually is probably unfair.
+
+Generic type conventions used in signatures (in standard order):
+
+- `X` the *canonical* TryType returned
+- `Y` the other TryType
+- `T` the `Output` type for `Self`
+- `U` the other `Output` type
+- `F` a function/closure passed as a parameter
+- `G` the return type of `F`
+- `R` never used to avoid confusion with “Residual”.
+
+[Signatures from `try_v2::Transform`](https://docs.rs/try_v2/latest/try_v2/trait.Transform.html)
+
+```rust
+pub trait Transform<T>: Sized + Try<Output = T> {
+    // Provided methods
+    fn flatten(self) -> T
+       where T: FromResidual<Self::Residual> { ... }
+    fn inspect<F>(self, f: F) -> Self
+       where F: FnOnce(&T) { ... }
+    fn map<X, U, F>(self, f: F) -> X
+       where F: FnOnce(T) -> U,
+             X: Try<Output = U> + FromResidual<Self::Residual>,
+             Self::Residual: Residual<U, TryType = X> { ... }
+    fn map_or<U, F>(self, default: U, f: F) -> U
+       where F: FnOnce(T) -> U { ... }
+    fn map_or_else<U, D, F>(self, default: D, f: F) -> U
+       where D: FnOnce() -> U,
+             F: FnOnce(T) -> U { ... }
+    fn transpose<X>(self) -> X
+       where T: Try,
+             X: Try + FromResidual<T::Residual>,
+             X::Output: Try<Output = T::Output> + FromResidual<Self::Residual>,
+             T::Residual: Residual<X::Output, TryType = X>,
+             Self::Residual: Residual<T::Output, TryType = X::Output> { ... }
+    fn zip<X, Y>(self, other: Y) -> X
+       where Y: Try,
+             X: Try<Output = (T, Y::Output)> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
+             Self::Residual: Residual<X::Output, TryType = X> { ... }
+    fn zip_with<X, Y, F, G>(self, other: Y, f: F) -> X
+       where Y: Try,
+             F: FnOnce(T, Y::Output) -> G,
+             X: Try<Output = G> + FromResidual<Self::Residual> + FromResidual<Y::Residual>,
+             Self::Residual: Residual<G, TryType = X> { ... }
+    fn and<Y>(self, other: Y) -> Y
+       where Y: Try<Output = T> + FromResidual<Self::Residual> { ... }
+    fn and_then<Y, F>(self, f: F) -> Y
+       where Y: Try<Output = T> + FromResidual<Self::Residual>,
+             F: FnOnce(T) -> Y { ... }
+    fn or<Y>(self, other: Y) -> Y
+       where Y: Try<Output = T> { ... }
+    fn or_else<Y, F>(self, f: F) -> Y
+       where Y: Try<Output = T>,
+             F: FnOnce(Self::Residual) -> Y { ... }
+}
+```
+
+[Signatures from `try_v2::Extract`](https://docs.rs/try_v2/latest/try_v2/trait.Extract.html)
+
+```rust
+pub trait Extract<T>: Sized + Try<Output = T> {
+    // Provided methods
+    fn output(self) -> Option<T> { ... }
+    fn unwrap(self) -> T
+       where Self::Residual: Debug { ... }
+    fn expect(self, msg: &str) -> T
+       where Self::Residual: Debug { ... }
+    fn unwrap_or(self, default: T) -> T { ... }
+    fn unwrap_or_default(self) -> T
+       where T: Default { ... }
+    fn unwrap_or_else<F>(self, f: F) -> T
+       where F: FnOnce() -> T { ... }
+}
+```
+
+Each of these does what you would expect, if you are used to working with `Option` & `Result` with the following caveats:
+
+1. Returns are always *canonical* TryTypes - this is not an issue where homogeneity is expected (see `Poll`) and is no more of an issue than `try_fold` etc. in those cases.
+1. `or` is more flexible than current implementations as it allows `Ok(5).or(None) == Some(5)`.
