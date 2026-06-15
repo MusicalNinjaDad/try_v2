@@ -17,7 +17,7 @@ enum Foo<T> {
     Res,
 }
 
-pub trait Try: FromResidual {
+pub trait Try {
     type Output;
     type Residual;
 
@@ -25,7 +25,7 @@ pub trait Try: FromResidual {
     fn branch(self) -> ControlFlow<Self::Residual, Self::Output>;
 }
 
-pub trait FromResidual<R = <Self as Try>::Residual> {
+pub trait FromResidual<O, R>: Try {
     // Required method
     fn from_residual(residual: R) -> Self;
 }
@@ -47,7 +47,7 @@ impl<T> Try for Foo<T> {
     }
 }
 
-impl<T> FromResidual<Foo<!>> for Foo<T> {
+impl<T> FromResidual<T, Foo<!>> for Foo<T> {
     #[inline]
     #[track_caller]
     default fn from_residual(residual: Foo<!>) -> Self {
@@ -59,17 +59,16 @@ impl<T> Residual<T> for Foo<!> {
     type TryType = Foo<T>;
 }
 
-// // Currently not possible as min_specialization does not consider type parameters, see last e.g.:
-// // https://github.com/rust-lang/rfcs/blob/master/text/1210-impl-specialization.md#extending-hrtbs
-// impl<T,X,Y> FromResidual<Y::Residual> for X 
-// where 
-// X: Try<Output = Y>, // `Foo<Bar<T>>`
-// Y: Try<Output = T>, // `Bar<T>`
-// {
-//     fn from_residual(residual: Y::Residual) -> Self {
-//         Try::from_output(FromResidual::from_residual(residual))
-//     }
-// }
+// Currently not possible as min_specialization does not consider type parameters, see last e.g.:
+// https://github.com/rust-lang/rfcs/blob/master/text/1210-impl-specialization.md#extending-hrtbs
+impl<Y, R, T> FromResidual<Y, R> for Foo<Y>
+where
+    Y: Try<Output = T, Residual = R> + FromResidual<T, R>
+{
+    fn from_residual(residual: Y::Residual) -> Self {
+        Try::from_output(FromResidual::from_residual(residual))
+    }
+}
 
 struct OrdOnly<T: Ord>(T);
 
