@@ -104,9 +104,10 @@ impl<T> Try for Poll<T> {
 }
 
 impl<T> FromResidual<Poll<!>> for Poll<T> { ... }
-impl<T, E, F: From<E>> ops::FromResidual<Result<convert::Infallible, E>> for Poll<Result<T, F>> { ... }
-// Recommended but optional also ...
-impl<T> ops::FromResidual<Option<convert::Infallible>> for Poll<Option<T>> { ... }
+impl<T, E, F: From<E>> FromResidual<Result<!, E>> for Poll<Result<T, F>> { ... }
+impl<T, E, F: From<E>> FromResidual<Result<!, E>> for Poll<Option<Result<T, F>>> { ... }
+// Recommended but optional ...
+impl<T> FromResidual<Option<!>> for Poll<Option<T>> { ... }
 
 impl<T> Residual<T> for Poll<!> {
     TryType = Poll<T>
@@ -127,8 +128,6 @@ impl<T, E> ops::Try for Poll<Option<Result<T, E>>> {
     type Residual = Result<convert::Infallible, E>;
     ...
 }
-
-impl<T, E, F: From<E>> FromResidual<Result<!, E>> for Poll<Option<Result<T, F>>> { ... }
 ```
 
 ### Current usage & breakages
@@ -230,7 +229,7 @@ To help with user ergonomics I suggest allowing chaining `?` via one of 2 method
 
 ### Blanket `FromResidual`
 
-If done now the following implementation in stdlib would provide `?`-chaining simply and easily via
+Providing `?`-chaining through a blanket implementation is currently not possible as it leads to an overlapping implementation for `Self`.
 
 ```rust
 impl<T,X,Y> FromResidual<Y::Residual> for X 
@@ -244,13 +243,23 @@ Y: Try<Output = T>, // `Bar<T>`
 }
 ```
 
-Right now, this would collide with `Poll` (see ~~diatribe~~ discussion above)
-
-Doing this would further help with homogeneity as it would forbid non-homogeneous implementations by 3rd party types which would likely be a siginificant source of confusion for users.
+Min_specialization is not sufficient for this case, as it specifically does not allow for consideration of associated types.
 
 ### Specific desugaring
 
-The compiler *could* specifically desugar multiple `?`s. But I find it hard to argue why this should happen if a stdlib implementation is possible.
+Specifically desugaring multiple `?`s, would be a viable approach allowing for:
+
+```rust
+fn wibble() -> Foo<Bar<Baz<T>>> {
+    let erm: Foo<Bar<Baz<_>>> = ...;
+    let well_wrapped_value = erm???;
+    ...
+}
+```
+
+This leaves open the question of how cases should be handled where a specific `FromResidual<Baz<!>> for Foo<Bar<Baz<T>>>` is in place. I would suggest that chaining takes preference and such impls are used for allowing `?` on an unwrapped `Baz`.
+
+The current common situation for such wrapping is the result of an async Stream which is usually of the form `Poll<Option<io::Result<T>>>`, representing: could still be pending, or exhausted, or have errored.
 
 ## Additional methods for TryTypes - e.g. map()
 
