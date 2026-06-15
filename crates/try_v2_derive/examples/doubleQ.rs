@@ -61,8 +61,8 @@ impl<T> Residual<T> for Foo<!> {
 
 // // Currently not possible as min_specialization does not consider type parameters, see last e.g.:
 // // https://github.com/rust-lang/rfcs/blob/master/text/1210-impl-specialization.md#extending-hrtbs
-// impl<T,X,Y> FromResidual<Y::Residual> for X 
-// where 
+// impl<T,X,Y> FromResidual<Y::Residual> for X
+// where
 // X: Try<Output = Y>, // `Foo<Bar<T>>`
 // Y: Try<Output = T>, // `Bar<T>`
 // {

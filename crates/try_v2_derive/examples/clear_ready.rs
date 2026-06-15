@@ -1,6 +1,10 @@
 #![feature(never_type)]
 #![allow(unused, clippy::disallowed_names)]
-use std::{io, pin::Pin, task::{Context, Poll, ready}};
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll, ready},
+};
 
 struct MySocket;
 trait Stream {
@@ -11,7 +15,7 @@ trait Stream {
 enum Ready {
     Read,
     Write,
-    ReadWrite
+    ReadWrite,
 }
 
 impl Ready {
