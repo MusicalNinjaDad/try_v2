@@ -452,3 +452,46 @@ impl TryFrom<&str> for ThirdWord {
 As custom TryTypes begin to appear in 3rd-party crates, adding a (default warn) lint to recommend adding the `#[must_use]` annotation would save on downstream bug risks. It should be expected, that functions which return any TryType do so because of the risk of a residual, which should not be easily forgotten.
 
 ## `Poll<Result<!,E>>`
+
+A common pattern in lower-level async implementations is to require "reset" functions which convert a `Ready(Err(E))` to `Pending` for a given subset of `E`, often this is for `io::ErrorKind::WouldBlock`.
+
+Semantically such functions should have a signature which makes it clear that they never return on Ok. However ...
+
+```rust
+/// Async polling for a socket
+trait PollableSocket
+where
+    Self: Sized,
+{
+    /// Clear the readiness state of the underlying socket.
+    ///
+    /// **This MUST be called after any failed readiness poll.**
+    ///
+    /// Implementations should attempt to clear the relevant readiness marker of the underlying
+    /// socket and then return:
+    /// - `Poll::Pending` if successful
+    /// - `Poll::Ready(error)` on error, to avoid repeated polling without handling the error
+    fn clear_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<!>>;
+
+    /// Check whether the socket is ready.
+    ///
+    /// ## Note
+    ///
+    /// You **MUST** call self.clear_ready() in the following cases:
+    ///
+    /// - If this fails it may leave the socket in an undefined readiness state.
+    /// - If you do not make use of the readiness it will remain blocked in that state.
+    fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<Ready>>;
+}
+
+impl Stream for MySocket {
+    type Item = io::Result<String>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        match ready!(self.as_mut().poll_ready(cx)) {
+            Ok(readiness) if readiness.contains(Ready::READ) => todo!("read and stream"),
+            _ => self.clear_ready(cx).map_ok(|x| x).map(Some), // <- .map_ok(|x| x) to coerce ! to String
+        }
+    }
+}
+```
