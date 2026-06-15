@@ -66,7 +66,7 @@ impl Stream for MySocket {
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match ready!(self.as_mut().poll_ready(cx)) {
             Ok(readiness) if readiness.is_read() => todo!("read and stream"),
-            _ => self.clear_ready(cx).map_ok(|x| x).map(Some), // <- .map_ok(|x| x) to coerce ! to String
+            _ => ready!(self.clear_ready(cx))?,
         }
     }
 }

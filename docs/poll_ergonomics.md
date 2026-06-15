@@ -464,7 +464,7 @@ As custom TryTypes begin to appear in 3rd-party crates, adding a (default warn) 
 
 A common pattern in lower-level async implementations is to require "reset" functions which convert a `Ready(Err(E))` to `Pending` for a given subset of `E`, often this is for `io::ErrorKind::WouldBlock`.
 
-Semantically such functions should have a signature which makes it clear that they never return on Ok. However ...
+Semantically such functions should have a signature which makes it clear that they never return on Ok. However, drastically reduces the ergonomics of using such a function, requiring a workaround to give the compiler an opportunity to coerce `!` and relying on a specific local method implementation detail of Poll to do so.
 
 ```rust
 /// Async polling for a socket
@@ -500,6 +500,21 @@ impl Stream for MySocket {
         match ready!(self.as_mut().poll_ready(cx)) {
             Ok(readiness) if readiness.contains(Ready::READ) => todo!("read and stream"),
             _ => self.clear_ready(cx).map_ok(|x| x).map(Some), // <- .map_ok(|x| x) to coerce ! to String
+        }
+    }
+}
+```
+
+With homogenous Poll (and given the current FromResidual impls, even without official `?`-chaining), this becomes:
+
+```rust
+impl Stream for MySocket {
+    type Item = io::Result<String>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        match ready!(self.as_mut().poll_ready(cx)) {
+            Ok(readiness) if readiness.contains(Ready::READ) => todo!("read and stream"),
+            _ => self.clear_ready(cx)??,
         }
     }
 }
