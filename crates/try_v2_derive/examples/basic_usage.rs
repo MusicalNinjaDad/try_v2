@@ -4,9 +4,9 @@
 
 use std::{io, process::Termination};
 
-use try_v2_derive::{FromResidual, Try};
+use try_v2_derive::Try;
 
-#[derive(Debug, Try, FromResidual)]
+#[derive(Debug, Try)]
 #[FromResidual(Result)]
 #[must_use]
 enum Exit<T, E> {

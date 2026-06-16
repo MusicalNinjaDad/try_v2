@@ -12,7 +12,7 @@ use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
 mod parse;
 use parse::TryEnum;
 
-#[proc_macro_derive(Try)]
+#[proc_macro_derive(Try, attributes(FromResidual))]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
 /// ## Limitations on the annotated type
@@ -183,6 +183,14 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         impl #impl_generics std::ops::Residual<#output_type> for #residual_type #where_clause {
             type TryType = #name #ty_generics;
         }
+    };
+    let myattr = format_ident!("FromResidual");
+    if let Some(attribute) = ast.attrs.iter().find(|attr| {
+        attr.path()
+            .get_ident()
+            .is_some_and(|ident| ident == &myattr)
+    }) {
+        let _: KnownSource = attribute.parse_args::<Ident>()?.try_into()?;
     };
     Ok(impl_try)
 }
