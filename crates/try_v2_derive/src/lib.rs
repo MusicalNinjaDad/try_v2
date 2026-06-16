@@ -4,7 +4,7 @@
 #![cfg_attr(unstable_never_type, feature(never_type))]
 
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Ident, TokenStream as TokenStream2};
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
@@ -469,6 +469,28 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     });
 
     Ok(impl_traits)
+}
+
+#[proc_macro_derive(FromResidual, attributes(FromResidual))]
+/// Derives ...
+pub fn from_residual(input: TokenStream1) -> TokenStream1 {
+    impl_from_residual(input.into()).to_tokens()
+}
+
+fn impl_from_residual(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+    let myattr = format_ident!("FromResidual");
+    let derive_for: Ident = ast
+        .attrs
+        .iter()
+        .find(|attr| {
+            attr.path()
+                .get_ident()
+                .is_some_and(|ident| ident == &myattr)
+        })
+        .expect("attribute should exist")
+        .parse_args()?;
+    todo!("{derive_for:?}")
 }
 
 #[cfg(test)]

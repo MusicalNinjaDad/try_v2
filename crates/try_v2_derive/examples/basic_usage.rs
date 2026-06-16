@@ -4,7 +4,7 @@
 
 use std::{io, process::Termination};
 
-use try_v2_derive::{Try, FromResidual};
+use try_v2_derive::{FromResidual, Try};
 
 #[derive(Debug, Try, FromResidual)]
 #[FromResidual(Result)]
@@ -16,7 +16,7 @@ enum Exit<T, E> {
     IOError(io::Error),
 }
 
-impl<E> From<io::Error> for Exit<!,E> {
+impl<E> From<io::Error> for Exit<!, E> {
     fn from(err: io::Error) -> Self {
         Self::IOError(err)
     }
