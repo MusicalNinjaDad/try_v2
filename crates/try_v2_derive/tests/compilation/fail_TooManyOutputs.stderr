@@ -1,106 +1,106 @@
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:7:10
+  --> tests/compilation/fail_TooManyOutputs.rs:7:10
    |
  7 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:9:21
+  --> tests/compilation/fail_TooManyOutputs.rs:9:21
    |
  9 | enum TooManyOutputs<T, E> {
    |                     ^
 help: change this to (T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:10:7
+  --> tests/compilation/fail_TooManyOutputs.rs:10:7
    |
 10 |     Ok(T, E),
    |       ^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:7:15
+  --> tests/compilation/fail_TooManyOutputs.rs:7:15
    |
  7 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:9:21
+  --> tests/compilation/fail_TooManyOutputs.rs:9:21
    |
  9 | enum TooManyOutputs<T, E> {
    |                     ^
 help: change this to (T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:10:7
+  --> tests/compilation/fail_TooManyOutputs.rs:10:7
    |
 10 |     Ok(T, E),
    |       ^^^^^^
    = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:14:10
+  --> tests/compilation/fail_TooManyOutputs.rs:14:10
    |
 14 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:16:37
+  --> tests/compilation/fail_TooManyOutputs.rs:16:37
    |
 16 | enum TooManyOutputsBorrowed<'t, 'e, T, E> {
    |                                     ^
 help: change this to (&'t T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:17:7
+  --> tests/compilation/fail_TooManyOutputs.rs:17:7
    |
 17 |     Ok(&'t T, &'e E),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:14:15
+  --> tests/compilation/fail_TooManyOutputs.rs:14:15
    |
 14 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:16:37
+  --> tests/compilation/fail_TooManyOutputs.rs:16:37
    |
 16 | enum TooManyOutputsBorrowed<'t, 'e, T, E> {
    |                                     ^
 help: change this to (&'t T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:17:7
+  --> tests/compilation/fail_TooManyOutputs.rs:17:7
    |
 17 |     Ok(&'t T, &'e E),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:21:10
+  --> tests/compilation/fail_TooManyOutputs.rs:21:10
    |
 21 | #[derive(Try, Try_ConvertResult)]
    |          ^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:23:45
+  --> tests/compilation/fail_TooManyOutputs.rs:23:45
    |
 23 | enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
    |                                             ^
 help: change this to (&'t T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:24:7
+  --> tests/compilation/fail_TooManyOutputs.rs:24:7
    |
 24 |     Ok(&'e E, &'t T),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:21:15
+  --> tests/compilation/fail_TooManyOutputs.rs:21:15
    |
 21 | #[derive(Try, Try_ConvertResult)]
    |               ^^^^^^^^^^^^^^^^^
    |
 help: Output type defined here
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:23:45
+  --> tests/compilation/fail_TooManyOutputs.rs:23:45
    |
 23 | enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
    |                                             ^
 help: change this to (&'t T)
-  --> tests/compilation/examples/fail_TooManyOutputs.rs:24:7
+  --> tests/compilation/fail_TooManyOutputs.rs:24:7
    |
 24 |     Ok(&'e E, &'t T),
    |       ^^^^^^^^^^^^^^

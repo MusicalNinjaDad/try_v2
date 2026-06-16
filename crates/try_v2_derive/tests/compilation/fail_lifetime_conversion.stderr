@@ -1,5 +1,5 @@
 error: lifetime may not live long enough
-  --> tests/compilation/examples/fail_lifetime_conversion.rs:96:5
+  --> tests/compilation/fail_lifetime_conversion.rs:96:5
    |
 84 | fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
    |                                       --      -- lifetime `'o` defined here
@@ -12,7 +12,7 @@ error: lifetime may not live long enough
    = help: consider adding the following bound: `'t: 'o`
 
 error: lifetime may not live long enough
-   --> tests/compilation/examples/fail_lifetime_conversion.rs:108:16
+   --> tests/compilation/fail_lifetime_conversion.rs:108:16
     |
  99 | fn _unrestricted_e_borrowed_to_result_direct<'t, 'e, 'o, 'f>(
     |                                                  --      -- lifetime `'f` defined here
@@ -25,7 +25,7 @@ error: lifetime may not live long enough
     = help: consider adding the following bound: `'e: 'f`
 
 error: lifetime may not live long enough
-   --> tests/compilation/examples/fail_lifetime_conversion.rs:122:16
+   --> tests/compilation/fail_lifetime_conversion.rs:122:16
     |
 113 | fn _unrestricted_e_borrowed_to_result_indirect<'t, 'e, 'o, 'f>(
     |                                                    --      -- lifetime `'f` defined here
@@ -38,7 +38,7 @@ error: lifetime may not live long enough
     = help: consider adding the following bound: `'e: 'f`
 
 error: lifetime may not live long enough
-   --> tests/compilation/examples/fail_lifetime_conversion.rs:139:5
+   --> tests/compilation/fail_lifetime_conversion.rs:139:5
     |
 127 | fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(
     |                                       --      -- lifetime `'t` defined here
@@ -51,7 +51,7 @@ error: lifetime may not live long enough
     = help: consider adding the following bound: `'o: 't`
 
 error: lifetime may not live long enough
-   --> tests/compilation/examples/fail_lifetime_conversion.rs:151:16
+   --> tests/compilation/fail_lifetime_conversion.rs:151:16
     |
 142 | fn _unrestricted_e_result_to_borrowed_direct<'o, 'f, 't, 'e>(
     |                                                  --      -- lifetime `'e` defined here
@@ -64,7 +64,7 @@ error: lifetime may not live long enough
     = help: consider adding the following bound: `'f: 'e`
 
 error: lifetime may not live long enough
-   --> tests/compilation/examples/fail_lifetime_conversion.rs:165:16
+   --> tests/compilation/fail_lifetime_conversion.rs:165:16
     |
 156 | fn _unrestricted_e_result_to_borrowed_indirect<'o, 'f, 't, 'e>(
     |                                                    --      -- lifetime `'e` defined here
