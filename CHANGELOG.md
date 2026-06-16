@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [WIP] v0.9.0
+
+### Breaking changes / New Features
+
+- derive FromResidual replaces Try_ConvertResult, works on any TryType
+
 ## [Main] (v0.8.1)?
 
 ### Bugfix
