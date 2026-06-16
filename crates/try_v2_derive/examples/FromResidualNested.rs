@@ -10,7 +10,7 @@ use try_v2_derive::Try;
 enum EightBall<Y, N> {
     Yes(Y),
     RollAgain,
-    No(N)
+    No(N),
 }
 
 fn main() {}

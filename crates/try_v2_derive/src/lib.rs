@@ -544,7 +544,7 @@ impl TryFrom<Path> for KnownSource {
 
     fn try_from(path: Path) -> Result<Self, Self::Error> {
         if path.is_ident("Result") {
-            return Result::Ok(KnownSource::Result)
+            return Result::Ok(KnownSource::Result);
         }
         todo!("unknown source")
     }
