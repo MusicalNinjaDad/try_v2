@@ -4,15 +4,22 @@
 
 use std::{io, process::Termination};
 
-use try_v2_derive::Try;
+use try_v2_derive::{Try, FromResidual};
 
-#[derive(Debug, Try)]
+#[derive(Debug, Try, FromResidual)]
+#[FromResidual(Result)]
 #[must_use]
 enum Exit<T, E> {
     Ok(T),
     Error(E),
     InvocationError,
     IOError(io::Error),
+}
+
+impl<E> From<io::Error> for Exit<!,E> {
+    fn from(err: io::Error) -> Self {
+        Self::IOError(err)
+    }
 }
 
 fn main() -> Exit<i32, String> {
