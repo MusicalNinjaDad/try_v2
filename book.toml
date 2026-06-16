@@ -1,0 +1,12 @@
+[book]
+title = "The Try book"
+description = "Adventures related to rust's Try trait"
+authors = ["MusicalNinjaDad"]
+language = "en"
+src = "docs"
+
+[rust]
+edition = "2024"
+
+[build]
+build-dir = "target/book"
