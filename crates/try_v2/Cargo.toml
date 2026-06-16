@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro & helper traits for `Try`"
@@ -25,6 +25,7 @@ try_v2_derive = { workspace = true, optional = true }
 try_v2_traits = { workspace = true, optional = true }
 
 [dev-dependencies]
+log = "0.4.29"
 
 [build-dependencies]
 autocfg = { workspace = true }
