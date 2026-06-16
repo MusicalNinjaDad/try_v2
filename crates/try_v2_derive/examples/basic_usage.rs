@@ -22,11 +22,12 @@ impl<E> From<io::Error> for Exit<!, E> {
     }
 }
 
-fn main() -> Exit<i32, String> {
-    todo!()
+fn main() -> Exit<(), String> {
+    Err(io::Error::other("error"))?;
+    Exit::Ok(())
 }
 
-impl Termination for Exit<i32, String> {
+impl Termination for Exit<(), String> {
     fn report(self) -> std::process::ExitCode {
         todo!()
     }
