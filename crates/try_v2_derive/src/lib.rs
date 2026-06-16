@@ -508,9 +508,8 @@ fn impl_from_residual(input: TokenStream2) -> DiagnosticStream {
         .parse_args::<Ident>()?
         .try_into()?;
     match derive_for {
-        KnownSource::Result => todo!("derive for Result"),
+        KnownSource::Result => Ok(TokenStream2::new()),
     }
-    todo!("{derive_for:?}")
 }
 
 #[cfg(test)]
