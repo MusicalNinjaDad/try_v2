@@ -7,7 +7,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -190,7 +190,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             .get_ident()
             .is_some_and(|ident| ident == &myattr)
     }) {
-        let derive_for: KnownSource = attribute.parse_args::<Ident>()?.try_into()?;
+        let derive_for: KnownSource = attribute.parse_args::<Path>()?.try_into()?;
         match derive_for {
             KnownSource::Result => {
                 let result_e = format_ident!("Derive_TryConvert_ResultE");
@@ -539,14 +539,14 @@ enum KnownSource {
     Result,
 }
 
-impl TryFrom<Ident> for KnownSource {
+impl TryFrom<Path> for KnownSource {
     type Error = Diagnostic;
 
-    fn try_from(ident: Ident) -> Result<Self, Self::Error> {
-        match ident.to_string().as_str() {
-            "Result" => Result::Ok(KnownSource::Result),
-            _ => todo!("unknown source"),
+    fn try_from(path: Path) -> Result<Self, Self::Error> {
+        if path.is_ident("Result") {
+            return Result::Ok(KnownSource::Result)
         }
+        todo!("unknown source")
     }
 }
 
