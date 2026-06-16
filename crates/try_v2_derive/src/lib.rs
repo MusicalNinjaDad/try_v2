@@ -5,7 +5,7 @@
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
-use proc_macro2_diagnostic::{ToTokens, prelude::*};
+use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{DeriveInput, GenericParam, parse_quote, spanned::Spanned};
 
@@ -477,10 +477,26 @@ pub fn from_residual(input: TokenStream1) -> TokenStream1 {
     impl_from_residual(input.into()).to_tokens()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KnownSource {
+    Result,
+}
+
+impl TryFrom<Ident> for KnownSource {
+    type Error = Diagnostic;
+
+    fn try_from(ident: Ident) -> Result<Self, Self::Error> {
+        match ident.to_string().as_str() {
+            "Result" => Result::Ok(KnownSource::Result),
+            _ => todo!("unknown source"),
+        }
+    }
+}
+
 fn impl_from_residual(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
     let myattr = format_ident!("FromResidual");
-    let derive_for: Ident = ast
+    let derive_for: KnownSource = ast
         .attrs
         .iter()
         .find(|attr| {
@@ -489,7 +505,11 @@ fn impl_from_residual(input: TokenStream2) -> DiagnosticStream {
                 .is_some_and(|ident| ident == &myattr)
         })
         .expect("attribute should exist")
-        .parse_args()?;
+        .parse_args::<Ident>()?
+        .try_into()?;
+    match derive_for {
+        KnownSource::Result => todo!("derive for Result"),
+    }
     todo!("{derive_for:?}")
 }
 
