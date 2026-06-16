@@ -23,7 +23,6 @@ proc_macro2_diagnostic = "0.6.3"
 quote = "1.0.45"
 
 [dev-dependencies]
-log = "0.4.29"
 trybuild = "1.0.116"
 
 [build-dependencies]

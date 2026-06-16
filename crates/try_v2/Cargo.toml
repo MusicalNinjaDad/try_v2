@@ -25,6 +25,7 @@ try_v2_derive = { workspace = true, optional = true }
 try_v2_traits = { workspace = true, optional = true }
 
 [dev-dependencies]
+log = "0.4.29"
 
 [build-dependencies]
 autocfg = { workspace = true }
