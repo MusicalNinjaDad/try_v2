@@ -207,12 +207,11 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
         where_clause,
     ) = tryenum.split_for_impl();
 
-    let myattr = format_ident!("FromResidual");
-    if let Some(attribute) = ast.attrs.iter().find(|attr| {
-        attr.path()
-            .get_ident()
-            .is_some_and(|ident| ident == &myattr)
-    }) {
+    if let Some(attribute) = ast
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("FromResidual"))
+    {
         let derive_for: KnownSource = attribute.parse_args::<Path>()?.try_into()?;
         match derive_for {
             KnownSource::Result => {
