@@ -12,7 +12,7 @@ use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
 mod parse;
 use parse::TryEnum;
 
-#[proc_macro_derive(Try, attributes(FromResidual))]
+#[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
 /// ## Limitations on the annotated type
@@ -151,7 +151,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
     let (branch_arms, residual_arms) = tryenum.generate_arms();
 
-    let mut impl_try = quote! {
+    let impl_try = quote! {
         impl #impl_generics std::ops::Try for #name #ty_generics #where_clause {
             type Output = #output_type;
 
@@ -184,6 +184,29 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
+    Ok(impl_try)
+}
+
+#[proc_macro_derive(FromResidual, attributes(FromResidual))]
+pub fn from_residual(input: TokenStream1) -> TokenStream1 {
+    derive_from_residual(input.into()).to_tokens()
+}
+
+fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+
+    let tryenum = TryEnum::parse(&ast)?;
+    let (
+        name,
+        output_variant_name,
+        output_type,
+        output_type_name,
+        residual_type,
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = tryenum.split_for_impl();
+
     let myattr = format_ident!("FromResidual");
     if let Some(attribute) = ast.attrs.iter().find(|attr| {
         attr.path()
@@ -243,11 +266,11 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                         }
                     }
                 });
-                impl_try.extend(impl_convert);
+                return Ok(impl_convert);
             }
         }
     };
-    Ok(impl_try)
+    Ok(TokenStream2::new())
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
