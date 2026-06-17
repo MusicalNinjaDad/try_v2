@@ -4,7 +4,7 @@
 #![cfg_attr(unstable_never_type, feature(never_type))]
 
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::{Ident, TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
