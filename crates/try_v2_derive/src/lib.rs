@@ -7,7 +7,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Path, parse::Parse, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -570,12 +570,22 @@ impl TryFrom<Path> for KnownSource {
         if path.is_ident("Result") {
             return Result::Ok(KnownSource::Result);
         }
+        if let syn::PathArguments::AngleBracketed(ref wrapped) =
+            path.segments.last().expect("last segment").arguments
+        && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
+            wrapped.args.first().expect("first generic arg")
+        && wrapped.path.is_ident("Self")
+        {
+            return Result::Ok(KnownSource::WrappedSelf(path));
+        }
         todo!("unknown source")
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use syn::Attribute;
 
     use super::*;
@@ -590,8 +600,8 @@ mod tests {
             .expect("my attribute");
         let arg = attr.parse_args::<Path>().expect("a path");
         dbg!(&arg);
-        let arg: KnownSource = arg.try_into().expect("try into");
-        assert_eq!(arg, KnownSource::Result);
+        let wrapped: KnownSource = arg.try_into().expect("try into");
+        assert_eq!(wrapped, KnownSource::Result);
     }
 
     #[test]
@@ -604,19 +614,9 @@ mod tests {
             .expect("my attribute");
         let arg = attr.parse_args::<Path>().expect("a path");
         dbg!(&arg);
-        let syn::PathArguments::AngleBracketed(ref wrapped) =
-            arg.segments.last().expect("last segment").arguments
-        else {
-            panic!("not AngleBracketed")
-        };
-        dbg!(wrapped);
-        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
-            wrapped.args.first().expect("first generic arg")
-        else {
-            panic!("not a path")
-        };
-        dbg!(wrapped);
-        assert!(wrapped.path.is_ident("Self"));
+        let wrapped: KnownSource = arg.try_into().expect("try into");
+        dbg!(&wrapped);
+        assert_matches!(wrapped, KnownSource::WrappedSelf(_));
     }
 
     #[test]
