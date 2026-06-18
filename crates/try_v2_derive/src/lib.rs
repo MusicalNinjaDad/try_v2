@@ -3,7 +3,6 @@
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
 #![feature(try_blocks)]
-#![feature(try_blocks_heterogeneous)]
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
@@ -572,9 +571,8 @@ impl TryFrom<Path> for KnownSource {
         if path.is_ident("Result") {
             return Result::Ok(KnownSource::Result);
         }
-        try bikeshed Option<()> {
-            if let syn::PathArguments::AngleBracketed(ref wrapped) =
-                path.segments.last()?.arguments
+        try {
+            if let syn::PathArguments::AngleBracketed(ref wrapped) = path.segments.last()?.arguments
                 && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
                     wrapped.args.first()?
                 && wrapped.path.is_ident("Self")
