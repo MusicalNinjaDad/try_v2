@@ -288,7 +288,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 };
                 *wrapped = parse_quote!(#name #ty_generics);
                 let impl_convert = quote! {
-                    impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for Option<#name #ty_generics> {
+                    impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
                         #[inline]
                         #[track_caller]
                         fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
