@@ -592,6 +592,31 @@ mod tests {
     }
 
     #[test]
+    fn parse_from_residual_option_self() {
+        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
+        dbg!(&attr);
+        let attr = attr
+            .iter()
+            .find(|attr| attr.path().is_ident("FromResidual"))
+            .expect("my attribute");
+        let arg = attr.parse_args::<Path>().expect("a path");
+        dbg!(&arg);
+        let syn::PathArguments::AngleBracketed(ref wrapped) =
+            arg.segments.last().expect("last segment").arguments
+        else {
+            panic!("not AngleBracketed")
+        };
+        dbg!(wrapped);
+        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
+            wrapped.args.first().expect("first generic arg")
+        else {
+            panic!("not a path")
+        };
+        dbg!(wrapped);
+        assert!(wrapped.path.is_ident("Self"));
+    }
+
+    #[test]
     fn derive() {
         let original: TokenStream2 = quote! {
             #[derive(Try)]
