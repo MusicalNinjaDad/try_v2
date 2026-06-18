@@ -574,7 +574,22 @@ impl TryFrom<Path> for KnownSource {
 
 #[cfg(test)]
 mod tests {
+    use syn::Attribute;
+
     use super::*;
+
+    #[test]
+    fn parse_from_residual_result() {
+        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result)]};
+        dbg!(&attr);
+        let attr = attr
+            .iter()
+            .find(|attr| attr.path().is_ident("FromResidual"))
+            .expect("my attribute");
+        let arg = attr.parse_args::<Path>().expect("a path");
+        dbg!(&arg);
+        assert!(arg.is_ident("Result"));
+    }
 
     #[test]
     fn derive() {
