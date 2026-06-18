@@ -268,7 +268,19 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
-            KnownSource::WrappedSelf(_path) => (),
+            KnownSource::WrappedSelf(_path) => {
+                let impl_convert = quote! {
+                    impl<Y, N> std::ops::FromResidual<EightBall<!,N>> for Option<EightBall<Y,N>> {
+                        #[inline]
+                        #[track_caller]
+                        fn from_residual(residual: EightBall<!,N>) -> Self {
+                            let eightball = std::ops::FromResidual::from_residual(residual);
+                            Some(eightball)
+                        }
+                    }
+                };
+                return Ok(impl_convert);
+            },
         }
     };
     Ok(TokenStream2::new())

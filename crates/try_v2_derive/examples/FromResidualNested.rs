@@ -4,7 +4,7 @@
 
 use try_v2_derive::{Try, FromResidual};
 
-#[derive(Debug, Try, FromResidual)]
+#[derive(Debug, Try, FromResidual, PartialEq)]
 #[FromResidual(Option<Self>)]
 #[must_use]
 enum EightBall<Y, N> {
@@ -19,6 +19,10 @@ fn maybe_eightball() -> Option<EightBall<(),()>> {
     None
 }
 
-
+#[test]
+fn test_maybe_eightball() {
+    let ret = maybe_eightball();
+    assert_eq!(ret, Some(EightBall::RollAgain));
+}
 
 fn main() {}
