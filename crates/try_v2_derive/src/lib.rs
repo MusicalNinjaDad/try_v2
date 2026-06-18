@@ -615,7 +615,7 @@ impl KnownSource {
                 && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
                     wrapped.args.first()?
             {
-                wrapped.path.is_ident("Self")
+                wrapped.path.is_ident("Self") || KnownSource::wraps_self(&wrapped.path)
             } else {
                 false
             }
@@ -661,7 +661,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "not yet implemented: unknown source")]
     fn parse_from_residual_poll_option_self() {
         let path: Path = parse_quote! {Poll<Option<Self>>};
         let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Poll<Option<Self>>)]};
