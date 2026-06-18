@@ -8,7 +8,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, Path, TypePath, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -269,24 +269,8 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 return Ok(impl_convert);
             }
             KnownSource::WrappedSelf(mut path) => {
-                let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
-                    .segments
-                    .iter_mut()
-                    .next_back()
-                    .expect("at least one segment")
-                    .arguments
-                else {
-                    unreachable!()
-                };
-                let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-                    .args
-                    .iter_mut()
-                    .next()
-                    .expect("this should be `Self`")
-                else {
-                    unreachable!()
-                };
-                *wrapped = parse_quote!(#name #ty_generics);
+                let this = parse_quote!(#name #ty_generics);
+                KnownSource::replace_self(&mut path, this);
                 let impl_convert = quote! {
                     impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
                         #[inline]
@@ -620,6 +604,27 @@ impl KnownSource {
             }
         }
         .unwrap_or(false)
+    }
+
+    fn replace_self(path: &mut Path, this: TypePath) {
+        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+            .segments
+            .iter_mut()
+            .next_back()
+            .expect("at least one segment")
+            .arguments
+        else {
+            unreachable!()
+        };
+        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+            .args
+            .iter_mut()
+            .next()
+            .expect("this should be `Self`")
+        else {
+            unreachable!()
+        };
+        *wrapped = this;
     }
 }
 
