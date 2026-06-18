@@ -130,7 +130,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         name,
         output_variant_name,
         output_type,
-        output_type_name,
+        _output_type_name,
         residual_type,
         impl_generics,
         ty_generics,
@@ -198,11 +198,11 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     let tryenum = TryEnum::parse(&ast)?;
     let (
         name,
-        output_variant_name,
-        output_type,
+        _output_variant_name,
+        _output_type,
         output_type_name,
         residual_type,
-        impl_generics,
+        _impl_generics,
         ty_generics,
         where_clause,
     ) = tryenum.split_for_impl();
