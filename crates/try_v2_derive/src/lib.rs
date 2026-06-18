@@ -268,10 +268,11 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
-            KnownSource::WrappedSelf(mut path) => {
+            KnownSource::WrappedSelf(path) => {
                 let this = parse_quote!(#name #ty_generics);
-                KnownSource::replace_self(&mut path, this);
-                let impl_convert = quote! {
+                let mut impl_convert = TokenStream2::new();
+                for path in KnownSource::iter_paths(path, this) {
+                    impl_convert.extend(quote! {
                     impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
                         #[inline]
                         #[track_caller]
@@ -279,7 +280,8 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                             std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                         }
                     }
-                };
+                });
+                }
                 return Ok(impl_convert);
             }
         }
@@ -625,6 +627,34 @@ impl KnownSource {
             unreachable!()
         };
         *wrapped = this;
+    }
+
+    fn iter_paths(mut path: Path, this: TypePath) -> Vec<Path> {
+        let mut first_path = path.clone();
+        KnownSource::replace_self(&mut first_path, this);
+        let paths = vec![first_path];
+        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+            .segments
+            .iter_mut()
+            .next_back()
+            .expect("at least one segment2")
+            .arguments
+        else {
+            unreachable!()
+        };
+        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+            .args
+            .iter_mut()
+            .next()
+            .expect("this should be something")
+        else {
+            unreachable!()
+        };
+        if wrapped.path.is_ident("Self") {
+            paths
+        } else {
+            todo!("iterate {wrapped:?}")
+        }
     }
 }
 
