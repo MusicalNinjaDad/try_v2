@@ -633,6 +633,23 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "not yet implemented: unknown source")]
+    fn parse_from_residual_poll_option_self() {
+        let path: Path = parse_quote! {Poll<Option<Self>>};
+        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Poll<Option<Self>>)]};
+        dbg!(&attr);
+        let attr = attr
+            .iter()
+            .find(|attr| attr.path().is_ident("FromResidual"))
+            .expect("my attribute");
+        let arg = attr.parse_args::<Path>().expect("a path");
+        dbg!(&arg);
+        let wrapped: KnownSource = arg.try_into().expect("try into");
+        dbg!(&wrapped);
+        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
+    }
+
+    #[test]
     fn derive() {
         let original: TokenStream2 = quote! {
             #[derive(Try)]
