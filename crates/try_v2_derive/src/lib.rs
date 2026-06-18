@@ -203,7 +203,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
         _output_type,
         output_type_name,
         residual_type,
-        _impl_generics,
+        impl_generics,
         ty_generics,
         where_clause,
     ) = tryenum.split_for_impl();
@@ -270,17 +270,17 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
             }
             KnownSource::WrappedSelf(_path) => {
                 let impl_convert = quote! {
-                    impl<Y, N> std::ops::FromResidual<EightBall<!,N>> for Option<EightBall<Y,N>> {
+                    impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for Option<#name #ty_generics> {
                         #[inline]
                         #[track_caller]
-                        fn from_residual(residual: EightBall<!,N>) -> Self {
+                        fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
                             let eightball = std::ops::FromResidual::from_residual(residual);
                             Some(eightball)
                         }
                     }
                 };
                 return Ok(impl_convert);
-            },
+            }
         }
     };
     Ok(TokenStream2::new())

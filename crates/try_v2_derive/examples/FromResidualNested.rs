@@ -2,7 +2,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2_derive::{Try, FromResidual};
+use try_v2_derive::{FromResidual, Try};
 
 #[derive(Debug, Try, FromResidual, PartialEq)]
 #[FromResidual(Option<Self>)]
@@ -13,7 +13,8 @@ enum EightBall<Y, N> {
     No(N),
 }
 
-fn maybe_eightball() -> Option<EightBall<(),()>> {
+#[allow(dead_code)]
+fn maybe_eightball() -> Option<EightBall<(), ()>> {
     let _ = EightBall::RollAgain?;
     let _ = Some(EightBall::RollAgain)??;
     None
