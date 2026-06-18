@@ -632,7 +632,7 @@ impl KnownSource {
     fn iter_paths(mut path: Path, this: TypePath) -> Vec<Path> {
         let mut first_path = path.clone();
         KnownSource::replace_self(&mut first_path, this);
-        let paths = vec![first_path];
+        let mut paths = vec![first_path];
         let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
             .segments
             .iter_mut()
@@ -653,7 +653,8 @@ impl KnownSource {
         if wrapped.path.is_ident("Self") {
             paths
         } else {
-            todo!("iterate {wrapped:?}")
+            paths.push(wrapped.path.clone());
+            todo!("iterate {paths:#?}")
         }
     }
 }
