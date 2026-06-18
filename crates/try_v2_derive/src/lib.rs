@@ -292,8 +292,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                         #[inline]
                         #[track_caller]
                         fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
-                            let eightball = std::ops::FromResidual::from_residual(residual);
-                            Some(eightball)
+                            std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                         }
                     }
                 };
