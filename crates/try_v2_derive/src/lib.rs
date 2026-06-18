@@ -601,16 +601,26 @@ impl TryFrom<Path> for KnownSource {
         if path.is_ident("Result") {
             return Result::Ok(KnownSource::Result);
         }
+        if KnownSource::wraps_self(&path) {
+            return Result::Ok(KnownSource::WrappedSelf(path));
+        };
+        todo!("unknown source")
+    }
+}
+
+impl KnownSource {
+    fn wraps_self(path: &Path) -> bool {
         try {
             if let syn::PathArguments::AngleBracketed(ref wrapped) = path.segments.last()?.arguments
                 && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
                     wrapped.args.first()?
-                && wrapped.path.is_ident("Self")
             {
-                return Result::Ok(KnownSource::WrappedSelf(path));
-            };
-        };
-        todo!("unknown source")
+                wrapped.path.is_ident("Self")
+            } else {
+                false
+            }
+        }
+        .unwrap_or(false)
     }
 }
 
