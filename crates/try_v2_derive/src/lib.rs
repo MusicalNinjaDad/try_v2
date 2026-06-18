@@ -268,7 +268,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
-            KnownSource::WrappedSelf(_path) => todo!(),
+            KnownSource::WrappedSelf(_path) => (),
         }
     };
     Ok(TokenStream2::new())
