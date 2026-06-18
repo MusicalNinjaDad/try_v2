@@ -572,9 +572,9 @@ impl TryFrom<Path> for KnownSource {
         }
         if let syn::PathArguments::AngleBracketed(ref wrapped) =
             path.segments.last().expect("last segment").arguments
-        && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
-            wrapped.args.first().expect("first generic arg")
-        && wrapped.path.is_ident("Self")
+            && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
+                wrapped.args.first().expect("first generic arg")
+            && wrapped.path.is_ident("Self")
         {
             return Result::Ok(KnownSource::WrappedSelf(path));
         }
@@ -584,8 +584,6 @@ impl TryFrom<Path> for KnownSource {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches;
-
     use syn::Attribute;
 
     use super::*;
@@ -606,6 +604,7 @@ mod tests {
 
     #[test]
     fn parse_from_residual_option_self() {
+        let path: Path = parse_quote! {std::option::Option<Self>};
         let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
         dbg!(&attr);
         let attr = attr
@@ -616,7 +615,7 @@ mod tests {
         dbg!(&arg);
         let wrapped: KnownSource = arg.try_into().expect("try into");
         dbg!(&wrapped);
-        assert_matches!(wrapped, KnownSource::WrappedSelf(_));
+        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
     }
 
     #[test]
