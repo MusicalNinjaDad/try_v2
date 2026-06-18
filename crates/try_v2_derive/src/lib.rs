@@ -7,7 +7,7 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, Path, parse::Parse, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -267,6 +267,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
+            KnownSource::WrappedSelf(_path) => todo!(),
         }
     };
     Ok(TokenStream2::new())
@@ -556,9 +557,10 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_traits)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum KnownSource {
     Result,
+    WrappedSelf(Path),
 }
 
 impl TryFrom<Path> for KnownSource {
@@ -588,7 +590,8 @@ mod tests {
             .expect("my attribute");
         let arg = attr.parse_args::<Path>().expect("a path");
         dbg!(&arg);
-        assert!(arg.is_ident("Result"));
+        let arg: KnownSource = arg.try_into().expect("try into");
+        assert_eq!(arg, KnownSource::Result);
     }
 
     #[test]
