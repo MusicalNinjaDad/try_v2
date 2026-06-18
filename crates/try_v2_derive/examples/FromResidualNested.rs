@@ -13,4 +13,12 @@ enum EightBall<Y, N> {
     No(N),
 }
 
+fn maybe_eightball() -> Option<EightBall<(),()>> {
+    let _ = EightBall::RollAgain?;
+    let _ = Some(EightBall::RollAgain)??;
+    None
+}
+
+
+
 fn main() {}
