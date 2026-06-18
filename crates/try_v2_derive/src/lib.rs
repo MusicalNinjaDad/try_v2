@@ -268,7 +268,25 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
-            KnownSource::WrappedSelf(_path) => {
+            KnownSource::WrappedSelf(mut path) => {
+                let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+                    .segments
+                    .iter_mut()
+                    .next_back()
+                    .expect("at least one segment")
+                    .arguments
+                else {
+                    unreachable!()
+                };
+                let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+                    .args
+                    .iter_mut()
+                    .next()
+                    .expect("this should be `Self`")
+                else {
+                    unreachable!()
+                };
+                *wrapped = parse_quote!(#name #ty_generics);
                 let impl_convert = quote! {
                     impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for Option<#name #ty_generics> {
                         #[inline]
