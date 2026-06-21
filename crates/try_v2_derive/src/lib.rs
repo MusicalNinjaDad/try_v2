@@ -5,10 +5,13 @@
 #![feature(try_blocks)]
 
 use proc_macro::TokenStream as TokenStream1;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Ident, TokenStream as TokenStream2};
 use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Path, TypePath, parse_quote, spanned::Spanned};
+use syn::{
+    DeriveInput, GenericParam, Generics, ImplGenerics, Path, TypeGenerics, TypePath, WhereClause,
+    parse_quote, spanned::Spanned,
+};
 
 mod parse;
 use parse::TryEnum;
@@ -571,6 +574,47 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_traits)
 }
 
+#[derive(Debug, Clone)]
+struct FRStructThingy<'ast> {
+    name: &'ast Ident,
+    impl_generics: ImplGenerics<'ast>,
+    ty_generics: TypeGenerics<'ast>,
+    where_clause: Option<&'ast WhereClause>,
+    kind: FRKind,
+    path: Path,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum FRKind {
+    ResultErr,
+}
+
+impl<'ast> FRStructThingy<'ast> {
+    fn parse(
+        path: Path,
+        name: &'ast Ident,
+        impl_generics: ImplGenerics<'ast>,
+        ty_generics: TypeGenerics<'ast>,
+        where_clause: Option<&'ast WhereClause>,
+    ) -> Self {
+        let checking_for: Path = parse_quote! {Result<!,E>};
+        if path == checking_for {
+            return Self {
+                name,
+                impl_generics,
+                ty_generics,
+                where_clause,
+                kind: FRKind::ResultErr,
+                path,
+            };
+        };
+        todo!("unknown source")
+    }
+    fn kind(&self) -> FRKind {
+        self.kind
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum KnownSource {
     Result,
@@ -636,7 +680,10 @@ mod tests {
 
     #[test]
     fn parse_from_residual_result() {
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result)]};
+        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result<!,E>)]};
+        let ty: DeriveInput = parse_quote! {struct Foo<T>;};
+        let name = ty.ident;
+        let (impl_generics, ty_generics, where_clause) = ty.generics.split_for_impl();
         dbg!(&attr);
         let attr = attr
             .iter()
@@ -644,8 +691,8 @@ mod tests {
             .expect("my attribute");
         let arg = attr.parse_args::<Path>().expect("a path");
         dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
-        assert_eq!(wrapped, KnownSource::Result);
+        let wrapped = FRStructThingy::parse(arg, &name, impl_generics, ty_generics, where_clause);
+        assert_eq!(wrapped.kind(), FRKind::ResultErr);
     }
 
     #[test]
