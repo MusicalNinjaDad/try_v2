@@ -268,11 +268,10 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                 });
                 return Ok(impl_convert);
             }
-            KnownSource::WrappedSelf(path) => {
+            KnownSource::WrappedSelf(mut path) => {
                 let this = parse_quote!(#name #ty_generics);
-                let mut impl_convert = TokenStream2::new();
-                for path in KnownSource::iter_paths(path, this) {
-                    impl_convert.extend(quote! {
+                KnownSource::replace_self(&mut path, this);
+                let impl_convert = quote! {
                     impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
                         #[inline]
                         #[track_caller]
@@ -280,8 +279,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
                             std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                         }
                     }
-                });
-                }
+                };
                 return Ok(impl_convert);
             }
         }
@@ -600,7 +598,7 @@ impl KnownSource {
                 && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
                     wrapped.args.first()?
             {
-                wrapped.path.is_ident("Self") || KnownSource::wraps_self(&wrapped.path)
+                wrapped.path.is_ident("Self")
             } else {
                 false
             }
@@ -628,35 +626,6 @@ impl KnownSource {
         };
         *wrapped = this;
     }
-
-    fn iter_paths(mut path: Path, this: TypePath) -> Vec<Path> {
-        let mut first_path = path.clone();
-        KnownSource::replace_self(&mut first_path, this);
-        let mut paths = vec![first_path];
-        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
-            .segments
-            .iter_mut()
-            .next_back()
-            .expect("at least one segment2")
-            .arguments
-        else {
-            unreachable!()
-        };
-        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-            .args
-            .iter_mut()
-            .next()
-            .expect("this should be something")
-        else {
-            unreachable!()
-        };
-        if wrapped.path.is_ident("Self") {
-            paths
-        } else {
-            paths.push(wrapped.path.clone());
-            todo!("iterate {paths:#?}")
-        }
-    }
 }
 
 #[cfg(test)]
@@ -683,22 +652,6 @@ mod tests {
     fn parse_from_residual_option_self() {
         let path: Path = parse_quote! {std::option::Option<Self>};
         let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let arg = attr.parse_args::<Path>().expect("a path");
-        dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
-        dbg!(&wrapped);
-        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
-    }
-
-    #[test]
-    fn parse_from_residual_poll_option_self() {
-        let path: Path = parse_quote! {Poll<Option<Self>>};
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Poll<Option<Self>>)]};
         dbg!(&attr);
         let attr = attr
             .iter()
