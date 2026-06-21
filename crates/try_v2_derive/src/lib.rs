@@ -587,18 +587,19 @@ struct FRStructThingy<'ast> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum FRKind {
     ResultErr,
+    WrappedSelf,
 }
 
 impl<'ast> FRStructThingy<'ast> {
     fn parse(
-        path: Path,
+        mut path: Path,
         name: &'ast Ident,
         impl_generics: ImplGenerics<'ast>,
         ty_generics: TypeGenerics<'ast>,
         where_clause: Option<&'ast WhereClause>,
     ) -> Self {
-        let checking_for: Path = parse_quote! {Result<!,E>};
-        if path == checking_for {
+        let result_err: Path = parse_quote! {Result<!,E>};
+        if path == result_err {
             return Self {
                 name,
                 impl_generics,
@@ -608,8 +609,28 @@ impl<'ast> FRStructThingy<'ast> {
                 path,
             };
         };
+        let this = parse_quote! {#name #ty_generics};
+        try {
+            if let syn::PathArguments::AngleBracketed(ref mut wrapped) =
+                path.segments.iter_mut().next_back()?.arguments
+                && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
+                    wrapped.args.iter_mut().next()?
+                && wrapped.path.is_ident("Self")
+            {
+                *wrapped = this;
+                return Self {
+                    name,
+                    impl_generics,
+                    ty_generics,
+                    where_clause,
+                    kind: FRKind::WrappedSelf,
+                    path,
+                };
+            }
+        };
         todo!("unknown source")
     }
+
     fn kind(&self) -> FRKind {
         self.kind
     }
@@ -697,8 +718,11 @@ mod tests {
 
     #[test]
     fn parse_from_residual_option_self() {
-        let path: Path = parse_quote! {std::option::Option<Self>};
+        let path: Path = parse_quote! {std::option::Option<Foo<T>>};
         let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
+        let ty: DeriveInput = parse_quote! {struct Foo<T>;};
+        let name = ty.ident;
+        let (impl_generics, ty_generics, where_clause) = ty.generics.split_for_impl();
         dbg!(&attr);
         let attr = attr
             .iter()
@@ -706,9 +730,9 @@ mod tests {
             .expect("my attribute");
         let arg = attr.parse_args::<Path>().expect("a path");
         dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
-        dbg!(&wrapped);
-        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
+        let wrapped = FRStructThingy::parse(arg, &name, impl_generics, ty_generics, where_clause);
+        assert_eq!(wrapped.kind(), FRKind::WrappedSelf);
+        assert_eq!(wrapped.path, path);
     }
 
     #[test]
