@@ -20,7 +20,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v6.0.3
     - name: install tools
       uses: taiki-e/install-action@v2.81.10
       with:
@@ -44,7 +44,7 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v6.0.3
     # Install manually as different crates may have custom toolchains defined
     - name: install rust
       run: rustup set profile default && rustup install
@@ -68,7 +68,7 @@ jobs:
       - publish_lib
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: install tools
         uses: taiki-e/install-action@v2.81.10
         with:
