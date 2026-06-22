@@ -34,7 +34,7 @@ jobs:
       name: parse changelog
       run: |
         echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "$(parse-changelog parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }})" >> $GITHUB_OUTPUT
+        echo "$(parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }})" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
     - name: see outputs
       run: |
@@ -77,4 +77,4 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: publish release
-        run: gh release create ${{ needs.version.outputs.version }} --notes ${{ needs.version.outputs.changelog }}
+        run: gh release create ${{ needs.version.outputs.version }} --draft --notes "${{ needs.version.outputs.changelog }}"
