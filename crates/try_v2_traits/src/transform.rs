@@ -19,7 +19,7 @@ use std::ops::{ControlFlow, FromResidual, Residual, Try};
 ///     - `U` the other `Output` type
 ///     - `F` a function/closure passed as a parameter
 ///     - `G` the return type of `F`
-///     - `R` *never used* to avoid confusion with "Residual".
+///     - `R` *never used* to avoid confusion with "Return" vs. "Residual".
 pub trait Transform<T>
 where
     Self: Try<Output = T> + Sized,
@@ -91,11 +91,44 @@ where
         }
     }
 
-    fn map_residual<F, X, R>(self, f: F) -> X
+    /// Applies a function to the residual leaving output values untouched, then returns the
+    /// canonical TryType for the residual returned by the function with Output `T`.
+    ///
+    /// # Note:
+    /// - This allows for interconversion between TryTypes if F returns a different residual
+    /// - F takes the Residual and returns a Residual, not any values potentially wrapped by the
+    ///   Residual. This is different from the specialised Result::map_err() which works on the
+    ///   wrapped error value.
+    ///
+    /// # Examples:
+    ///
+    /// ```ignore impl_for_foreign_type
+    /// # use try_v2_traits::Transform;
+    /// # impl<T, E> Transform<T> for Result<T, E> {}
+    /// let err_5: Result<String, i32> = Err(5);
+    /// let stdlib = err_5.clone().map_err(|e| format!("{e}"));
+    /// let custom = err_5.map_residual(|e| match e {
+    ///     Err(e) => Err(format!("{e}")),
+    /// });
+    /// assert_eq!(stdlib, custom);
+    /// ```
+    ///
+    /// ```ignore impl_for_foreign_type
+    /// # use try_v2_traits::Transform;
+    /// # use std::ops::ControlFlow;
+    /// # impl<T, E> Transform<T> for Result<T, E> {}
+    /// # impl<B, C> Transform<C> for ControlFlow<B, C> {}
+    /// let err_5: Result<String, i32> = Err(5);
+    /// let custom = err_5.map_residual(|e| match e {
+    ///     Err(e) => ControlFlow::Break(e),
+    /// });
+    /// assert_eq!(custom, ControlFlow::Break(5))
+    /// ```
+    fn map_residual<F, X, G>(self, f: F) -> X
     where
-        F: FnOnce(Self::Residual) -> R,
-        R: Residual<T, TryType = X>,
-        X: Try<Output = T> + FromResidual<R>,
+        F: FnOnce(Self::Residual) -> G,
+        G: Residual<T, TryType = X>,
+        X: Try<Output = T> + FromResidual<G>,
     {
         match self.branch() {
             ControlFlow::Continue(val) => X::from_output(val),
