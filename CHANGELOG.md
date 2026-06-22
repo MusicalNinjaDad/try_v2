@@ -1,6 +1,10 @@
 # Changelog try_v2
 
-## [Main] (v0.8.1)?
+## [v0.8.1]
+
+### New features
+
+- Added `map_residual` to `trait Transform`
 
 ### Bugfix
 
