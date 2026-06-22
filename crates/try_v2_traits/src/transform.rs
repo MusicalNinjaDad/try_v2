@@ -234,6 +234,7 @@ mod tests {
 
     impl<T> Transform<T> for Option<T> {}
     impl<T, E> Transform<T> for Result<T, E> {}
+    impl<B, C> Transform<C> for ControlFlow<B, C> {}
 
     mod boolean {
         use super::*;
@@ -314,6 +315,8 @@ mod tests {
     }
 
     mod map {
+        use std::ops::ControlFlow::Break;
+
         use super::*;
 
         #[test]
@@ -364,6 +367,15 @@ mod tests {
                 Err(e) => Err(format!("{e}")),
             });
             assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn map_residual_conversion() {
+            let err_5: Result<String, i32> = Err(5);
+            let custom = Transform::map_residual(err_5, |e| match e {
+                Err(e) => Break(e),
+            });
+            assert_eq!(custom, ControlFlow::Break(5))
         }
     }
 
