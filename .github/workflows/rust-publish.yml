@@ -21,7 +21,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
     - uses: actions/checkout@v6
-    - name: install jaq
+    - name: install tools
       uses: taiki-e/install-action@v2.81.7
       with:
         tool: |
@@ -31,15 +31,8 @@ jobs:
       name: get version
       run: echo "version=v$(jaq -cr .package.version Cargo.toml)" >> $GITHUB_OUTPUT
     - id: changelog
-      name: parse changelog
-      run: |
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "$(parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }})" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-    - name: see outputs
-      run: |
-        echo "$GITHUB_OUTPUT"
-        cat "$GITHUB_OUTPUT"
+      name: validate changelog
+      run: parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }}
 
   publish_lib:
     needs:
@@ -76,5 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: install tools
+        uses: taiki-e/install-action@v2.81.7
+        with:
+          tool: parse-changelog
       - name: publish release
-        run: gh release create ${{ needs.version.outputs.version }} --draft --notes "${{ needs.version.outputs.changelog }}"
+        run: parse-changelog CHANGELOG.md ${{ needs.version.outputs.version }} | gh release create ${{ needs.version.outputs.version }} --notes-file -
