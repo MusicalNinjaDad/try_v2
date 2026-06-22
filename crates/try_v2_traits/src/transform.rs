@@ -91,6 +91,18 @@ where
         }
     }
 
+    fn map_residual<F, X, R>(self, f: F) -> X
+    where
+        F: FnOnce(Self::Residual) -> R,
+        R: Residual<T, TryType = X>,
+        X: Try<Output = T> + FromResidual<R>,
+    {
+        match self.branch() {
+            ControlFlow::Continue(val) => X::from_output(val),
+            ControlFlow::Break(residual) => X::from_residual(f(residual)),
+        }
+    }
+
     /// Converts from a `Foo<Bar<U>>` to a `Bar<Foo<U>>` where both `Foo` & `Bar` are `Try`.
     ///
     /// # Note
@@ -341,6 +353,16 @@ mod tests {
             let some_5: Option<u32> = None;
             let stdlib = some_5.map_or_else(|| 1 + 1, |x| x + 1);
             let custom = Transform::map_or_else(some_5, || 1 + 1, |x| x + 1);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn map_residual() {
+            let err_5: Result<String, i32> = Err(5);
+            let stdlib = err_5.clone().map_err(|e| format!("{e}"));
+            let custom = Transform::map_residual(err_5, |e| match e {
+                Err(e) => Err(format!("{e}")),
+            });
             assert_eq!(stdlib, custom);
         }
     }
