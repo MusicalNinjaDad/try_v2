@@ -8,10 +8,9 @@ impl<B, C> Transform<C> for ControlFlow<B, C> {}
 ///
 /// ## Note
 ///
-/// - Methods which act on the contained value are only available for the *Output* case. TryTypes
-///   are recommended to directly implement equivalent methods for *Residual* cases with suitable
-///   naming. E.g. we provide a `.map()` but not a `.map_err()` equivalent as multiple such
-///   methods may be needed and no standardised naming makes sense.
+/// - TryTypes are recommended to directly implement specific `map_xxx` methods for *Residual* cases
+///   with suitable where this makes sense. `map_residual()` provides for the cases where generic
+///   naming is acceptable, and/or for implementations generic over `Try + Transform`
 /// - Methods which act on the contained value will extract a value of type `Output` and return the
 ///   *canonical TryType* for the new Output. This is identifiable by the generic type `X` in the
 ///   method signature. This is usually the expected behaviour but can lead to a different value
