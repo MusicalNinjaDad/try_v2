@@ -103,9 +103,8 @@ where
     ///   Residual. This is different from the specialised `Result::map_err()` which works on the
     ///   wrapped error value.
     ///
-    /// ```ignore impl_for_foreign_type
+    /// ```
     /// # use try_v2_traits::Transform;
-    /// # impl<T, E> Transform<T> for Result<T, E> {}
     /// let err_5: Result<String, i32> = Err(5);
     ///
     /// // Err(e).map_err() operates directly on e
@@ -113,18 +112,16 @@ where
     ///
     /// // Err(e).map_residual() operates on Err(e)
     /// // With only one residual variant direct destructuring is possible
-    /// let custom = err_5.map_residual(err_5.map_residual(|Err(e)| Err(format!("{e}")));
+    /// let custom = err_5.map_residual(|Err(e)| Err(format!("{e}")));
     ///
     /// assert_eq!(stdlib, custom);
     /// ```
     ///
     /// - This allows for interconversion between TryTypes if F returns a different residual:
     ///
-    /// ```ignore impl_for_foreign_type
+    /// ```
     /// # use try_v2_traits::Transform;
     /// # use std::ops::ControlFlow;
-    /// # impl<T, E> Transform<T> for Result<T, E> {}
-    /// # impl<B, C> Transform<C> for ControlFlow<B, C> {}
     /// let err_5: Result<String, i32> = Err(5);
     ///
     /// // With only one residual variant direct destructuring is possible
