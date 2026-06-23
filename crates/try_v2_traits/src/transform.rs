@@ -122,10 +122,7 @@ where
     /// # use try_v2_traits::Transform;
     /// # use std::ops::ControlFlow;
     /// let err_5: Result<String, i32> = Err(5);
-    ///
-    /// // With only one residual variant direct destructuring is possible
     /// let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
-    ///
     /// assert_eq!(custom, ControlFlow::Break(5))
     /// ```
     fn map_residual<F, X, G>(self, f: F) -> X
