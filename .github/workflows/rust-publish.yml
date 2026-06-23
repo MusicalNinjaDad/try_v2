@@ -28,7 +28,12 @@ jobs:
           parse-changelog
     - id: version
       name: get version
-      run: echo "version=v$(jaq -cr .package.version Cargo.toml)" >> $GITHUB_OUTPUT
+      run: |
+        v="$(jaq -cr .package.version crates/try_v2/Cargo.toml)"
+        echo "$v"
+        [[ "$(jaq -cr .workspace.dependencies.try_v2_derive.version Cargo.toml)" == "$v" ]]
+        [[ "$(jaq -cr .workspace.dependencies.try_v2_traits.version Cargo.toml)" == "$v" ]]
+        echo "version=v$v" >> $GITHUB_OUTPUT
     - id: changelog
       name: validate changelog
       run: parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }}
