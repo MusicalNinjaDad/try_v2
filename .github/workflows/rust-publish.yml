@@ -46,9 +46,12 @@ jobs:
         }
         
         echo "version=$v" >> $GITHUB_OUTPUT
+        echo "# version $v" >> $GITHUB_STEP_SUMMARY
     - id: changelog
       name: validate changelog
-      run: parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }}
+      run: | 
+        echo "## Changelog entry" >> $GITHUB_STEP_SUMMARY
+        echo "$(parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
 
   publish_lib:
     needs:
