@@ -1,13 +1,16 @@
 use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
+impl<T> Transform<T> for Option<T> {}
+impl<T, E> Transform<T> for Result<T, E> {}
+impl<B, C> Transform<C> for ControlFlow<B, C> {}
+
 /// Methods for transforming TryTypes. Inspired by the methods provided on `Option` & `Result`
 ///
 /// ## Note
 ///
-/// - Methods which act on the contained value are only available for the *Output* case. TryTypes
-///   are recommended to directly implement equivalent methods for *Residual* cases with suitable
-///   naming. E.g. we provide a `.map()` but not a `.map_err()` equivalent as multiple such
-///   methods may be needed and no standardised naming makes sense.
+/// - TryTypes are recommended to directly implement specific `map_xxx` methods for *Residual* cases
+///   with suitable where this makes sense. `map_residual()` provides for the cases where generic
+///   naming is acceptable, and/or for implementations generic over `Try + Transform`
 /// - Methods which act on the contained value will extract a value of type `Output` and return the
 ///   *canonical TryType* for the new Output. This is identifiable by the generic type `X` in the
 ///   method signature. This is usually the expected behaviour but can lead to a different value
@@ -91,38 +94,45 @@ where
         }
     }
 
-    /// Applies a function to the residual leaving output values untouched, then returns the
-    /// canonical TryType for the residual returned by the function with Output `T`.
+    /// Applies a function to the residual, leaving output values untouched, then returns the
+    /// canonical TryType for the residual returned by the function (and Output `T`).
     ///
     /// # Note:
-    /// - This allows for interconversion between TryTypes if F returns a different residual
-    /// - F takes the Residual and returns a Residual, not any values potentially wrapped by the
-    ///   Residual. This is different from the specialised Result::map_err() which works on the
+    /// - `f` takes the Residual and returns a Residual, not any values potentially wrapped by the
+    ///   Residual. This is different from the specialised `Result::map_err()` which works on the
     ///   wrapped error value.
     ///
-    /// # Examples:
-    ///
-    /// ```ignore impl_for_foreign_type
+    /// ```
     /// # use try_v2_traits::Transform;
-    /// # impl<T, E> Transform<T> for Result<T, E> {}
     /// let err_5: Result<String, i32> = Err(5);
+    ///
+    /// // Err(e).map_err() operates directly on e
     /// let stdlib = err_5.clone().map_err(|e| format!("{e}"));
-    /// let custom = err_5.map_residual(|e| match e {
-    ///     Err(e) => Err(format!("{e}")),
-    /// });
+    ///
+    /// // Err(e).map_residual() operates on Err(e)
+    /// // With only one residual variant direct destructuring is possible
+    /// let custom = err_5.map_residual(|Err(e)| Err(format!("{e}")));
+    ///
     /// assert_eq!(stdlib, custom);
     /// ```
     ///
-    /// ```ignore impl_for_foreign_type
+    /// - This allows for interconversion between TryTypes if `f` returns a different residual:
+    ///
+    /// ```
     /// # use try_v2_traits::Transform;
     /// # use std::ops::ControlFlow;
-    /// # impl<T, E> Transform<T> for Result<T, E> {}
-    /// # impl<B, C> Transform<C> for ControlFlow<B, C> {}
     /// let err_5: Result<String, i32> = Err(5);
-    /// let custom = err_5.map_residual(|e| match e {
-    ///     Err(e) => ControlFlow::Break(e),
-    /// });
+    /// let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
     /// assert_eq!(custom, ControlFlow::Break(5))
+    /// ```
+    ///
+    /// ```
+    /// # use try_v2_traits::Transform;
+    /// // This is effectively the equivalent of Option::ok_or_else()
+    /// let none: Option<i32> = None;
+    /// let stdlib = none.ok_or_else(|| 5);
+    /// let custom = none.map_residual(|_| Err(5));
+    /// assert_eq!(stdlib, custom);
     /// ```
     fn map_residual<F, X, G>(self, f: F) -> X
     where
@@ -265,10 +275,6 @@ where
 mod tests {
     use super::*;
 
-    impl<T> Transform<T> for Option<T> {}
-    impl<T, E> Transform<T> for Result<T, E> {}
-    impl<B, C> Transform<C> for ControlFlow<B, C> {}
-
     mod boolean {
         use super::*;
 
@@ -348,8 +354,6 @@ mod tests {
     }
 
     mod map {
-        use std::ops::ControlFlow::Break;
-
         use super::*;
 
         #[test]
@@ -396,18 +400,14 @@ mod tests {
         fn map_residual() {
             let err_5: Result<String, i32> = Err(5);
             let stdlib = err_5.clone().map_err(|e| format!("{e}"));
-            let custom = Transform::map_residual(err_5, |e| match e {
-                Err(e) => Err(format!("{e}")),
-            });
+            let custom = err_5.map_residual(|Err(e)| Err(format!("{e}")));
             assert_eq!(stdlib, custom);
         }
 
         #[test]
         fn map_residual_conversion() {
             let err_5: Result<String, i32> = Err(5);
-            let custom = Transform::map_residual(err_5, |e| match e {
-                Err(e) => Break(e),
-            });
+            let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
             assert_eq!(custom, ControlFlow::Break(5))
         }
     }

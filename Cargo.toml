@@ -4,8 +4,8 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.dependencies]
-try_v2_derive = { path = "crates/try_v2_derive", version = "0.8.1" }
-try_v2_traits = { path = "crates/try_v2_traits", version = "0.8.1" }
+try_v2_derive = { path = "crates/try_v2_derive", version = "0.8.2" }
+try_v2_traits = { path = "crates/try_v2_traits", version = "0.8.2" }
 
 autocfg = "1.5.1"
 ninja-build_rs = "0.1.2"
