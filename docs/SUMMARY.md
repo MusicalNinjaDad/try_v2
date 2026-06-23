@@ -7,6 +7,7 @@
 
 - [Overview](traits.md)
 - [Implementing Try](implementing/intro.md)
+  - [Why?](implementing/why.md)
   - [Derive]()
   - [Manually implementing]()
 - [Using Try as a trait bound]()
