@@ -95,23 +95,26 @@ where
     /// canonical TryType for the residual returned by the function with Output `T`.
     ///
     /// # Note:
-    /// - This allows for interconversion between TryTypes if F returns a different residual
     /// - F takes the Residual and returns a Residual, not any values potentially wrapped by the
-    ///   Residual. This is different from the specialised Result::map_err() which works on the
+    ///   Residual. This is different from the specialised `Result::map_err()` which works on the
     ///   wrapped error value.
-    ///
-    /// # Examples:
     ///
     /// ```ignore impl_for_foreign_type
     /// # use try_v2_traits::Transform;
     /// # impl<T, E> Transform<T> for Result<T, E> {}
     /// let err_5: Result<String, i32> = Err(5);
+    ///
+    /// // Err(e).map_err() operates directly on e
     /// let stdlib = err_5.clone().map_err(|e| format!("{e}"));
-    /// let custom = err_5.map_residual(|e| match e {
-    ///     Err(e) => Err(format!("{e}")),
-    /// });
+    ///
+    /// // Err(e).map_residual() operates on Err(e)
+    /// // With only one residual variant direct destructuring is possible
+    /// let custom = err_5.map_residual(err_5.map_residual(|Err(e)| Err(format!("{e}")));
+    ///
     /// assert_eq!(stdlib, custom);
     /// ```
+    ///
+    /// - This allows for interconversion between TryTypes if F returns a different residual:
     ///
     /// ```ignore impl_for_foreign_type
     /// # use try_v2_traits::Transform;
@@ -119,9 +122,10 @@ where
     /// # impl<T, E> Transform<T> for Result<T, E> {}
     /// # impl<B, C> Transform<C> for ControlFlow<B, C> {}
     /// let err_5: Result<String, i32> = Err(5);
-    /// let custom = err_5.map_residual(|e| match e {
-    ///     Err(e) => ControlFlow::Break(e),
-    /// });
+    ///
+    /// // With only one residual variant direct destructuring is possible
+    /// let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
+    ///
     /// assert_eq!(custom, ControlFlow::Break(5))
     /// ```
     fn map_residual<F, X, G>(self, f: F) -> X
@@ -396,18 +400,14 @@ mod tests {
         fn map_residual() {
             let err_5: Result<String, i32> = Err(5);
             let stdlib = err_5.clone().map_err(|e| format!("{e}"));
-            let custom = Transform::map_residual(err_5, |e| match e {
-                Err(e) => Err(format!("{e}")),
-            });
+            let custom = err_5.map_residual(|Err(e)| Err(format!("{e}")));
             assert_eq!(stdlib, custom);
         }
 
         #[test]
         fn map_residual_conversion() {
             let err_5: Result<String, i32> = Err(5);
-            let custom = Transform::map_residual(err_5, |e| match e {
-                Err(e) => Break(e),
-            });
+            let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
             assert_eq!(custom, ControlFlow::Break(5))
         }
     }
