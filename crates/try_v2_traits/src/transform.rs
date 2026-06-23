@@ -94,11 +94,11 @@ where
         }
     }
 
-    /// Applies a function to the residual leaving output values untouched, then returns the
-    /// canonical TryType for the residual returned by the function with Output `T`.
+    /// Applies a function to the residual, leaving output values untouched, then returns the
+    /// canonical TryType for the residual returned by the function (and Output `T`).
     ///
     /// # Note:
-    /// - F takes the Residual and returns a Residual, not any values potentially wrapped by the
+    /// - `f` takes the Residual and returns a Residual, not any values potentially wrapped by the
     ///   Residual. This is different from the specialised `Result::map_err()` which works on the
     ///   wrapped error value.
     ///
@@ -116,7 +116,7 @@ where
     /// assert_eq!(stdlib, custom);
     /// ```
     ///
-    /// - This allows for interconversion between TryTypes if F returns a different residual:
+    /// - This allows for interconversion between TryTypes if `f` returns a different residual:
     ///
     /// ```
     /// # use try_v2_traits::Transform;
