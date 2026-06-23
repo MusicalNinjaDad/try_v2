@@ -4,7 +4,7 @@
 
 ### New features
 
-- Added `impl Transform` for `Option`, `Result` & `ControlFlow`
+- Added `impl Transform` & `impl Extract` for `Option`, `Result` & `ControlFlow`
 
 ### Technical changes
 
