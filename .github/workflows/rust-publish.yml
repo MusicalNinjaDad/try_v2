@@ -33,7 +33,7 @@ jobs:
         echo "$v"
         [[ "$(jaq -cr .workspace.dependencies.try_v2_derive.version Cargo.toml)" == "$v" ]]
         [[ "$(jaq -cr .workspace.dependencies.try_v2_traits.version Cargo.toml)" == "$v" ]]
-        echo "version=v$v" >> $GITHUB_OUTPUT
+        echo "version=$v" >> $GITHUB_OUTPUT
     - id: changelog
       name: validate changelog
       run: parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }}
@@ -78,4 +78,4 @@ jobs:
         with:
           tool: parse-changelog
       - name: publish release
-        run: parse-changelog CHANGELOG.md ${{ needs.version.outputs.version }} | gh release create ${{ needs.version.outputs.version }} --notes-file -
+        run: parse-changelog CHANGELOG.md ${{ needs.version.outputs.version }} | gh release create v${{ needs.version.outputs.version }} --notes-file -
