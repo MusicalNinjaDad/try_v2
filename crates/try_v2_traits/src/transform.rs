@@ -1,5 +1,9 @@
 use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
+impl<T> Transform<T> for Option<T> {}
+impl<T, E> Transform<T> for Result<T, E> {}
+impl<B, C> Transform<C> for ControlFlow<B, C> {}
+
 /// Methods for transforming TryTypes. Inspired by the methods provided on `Option` & `Result`
 ///
 /// ## Note
@@ -269,10 +273,6 @@ where
 mod tests {
     use super::*;
 
-    impl<T> Transform<T> for Option<T> {}
-    impl<T, E> Transform<T> for Result<T, E> {}
-    impl<B, C> Transform<C> for ControlFlow<B, C> {}
-
     mod boolean {
         use super::*;
 
@@ -352,8 +352,6 @@ mod tests {
     }
 
     mod map {
-        use std::ops::ControlFlow::Break;
-
         use super::*;
 
         #[test]
