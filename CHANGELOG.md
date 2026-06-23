@@ -1,5 +1,15 @@
 # Changelog try_v2
 
+## [v0.8.2]
+
+### New features
+
+- Added `impl Transform` for `Option`, `Result` & `ControlFlow`
+
+### Technical changes
+
+- Improved documentation regarding `map_residual`
+
 ## [v0.8.1]
 
 ### New features
