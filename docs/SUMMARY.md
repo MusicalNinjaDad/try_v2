@@ -9,7 +9,7 @@
 - [Implementing Try](implementing/intro.md)
   - [Why?](implementing/why.md)
   - [Implementing other traits on Result (derive)](implementing/alias.md)
-  - [Manually implementing]()
+  - [Making TryTypes usable](implementing/methods.md)
 - [Using Try as a trait bound]()
 
 ------
