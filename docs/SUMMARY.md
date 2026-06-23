@@ -7,8 +7,8 @@
 
 - [Overview](traits.md)
 - [Implementing Try](implementing/intro.md)
-  -[Derive]()
-  -[Manually implementing]()
+  - [Derive]()
+  - [Manually implementing]()
 - [Using Try as a trait bound]()
 
 ------
