@@ -30,13 +30,28 @@ jobs:
       name: get version
       run: |
         v="$(jaq -cr .package.version crates/try_v2/Cargo.toml)"
-        echo "$v"
-        [[ "$(jaq -cr .workspace.dependencies.try_v2_derive.version Cargo.toml)" == "$v" ]]
-        [[ "$(jaq -cr .workspace.dependencies.try_v2_traits.version Cargo.toml)" == "$v" ]]
-        echo "version=v$v" >> $GITHUB_OUTPUT
+        echo "try_v2 version: $v"
+
+        derive_version="$(jaq -cr .workspace.dependencies.try_v2_derive.version Cargo.toml)"
+        traits_version="$(jaq -cr .workspace.dependencies.try_v2_traits.version Cargo.toml)"
+        
+        [[ "$derive_version" == "$v" ]] || {
+          echo "::error title=try_v2_derive version mismatch::expected $v, got $derive_version"
+          exit 1
+        }
+        
+        [[ "$traits_version" == "$v" ]] || {
+          echo "::error title=try_v2_traits version mismatch::expected $v, got $traits_version"
+          exit 1
+        }
+        
+        echo "version=$v" >> $GITHUB_OUTPUT
+        echo "# version $v" >> $GITHUB_STEP_SUMMARY
     - id: changelog
       name: validate changelog
-      run: parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }}
+      run: | 
+        echo "## Changelog entry" >> $GITHUB_STEP_SUMMARY
+        echo "$(parse-changelog CHANGELOG.md ${{ steps.version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
 
   publish_lib:
     needs:
@@ -78,4 +93,4 @@ jobs:
         with:
           tool: parse-changelog
       - name: publish release
-        run: parse-changelog CHANGELOG.md ${{ needs.version.outputs.version }} | gh release create ${{ needs.version.outputs.version }} --notes-file -
+        run: parse-changelog CHANGELOG.md ${{ needs.version.outputs.version }} | gh release create v${{ needs.version.outputs.version }} --notes-file -
