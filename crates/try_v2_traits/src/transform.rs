@@ -125,6 +125,15 @@ where
     /// let custom = err_5.map_residual(|Err(e)| ControlFlow::Break(e));
     /// assert_eq!(custom, ControlFlow::Break(5))
     /// ```
+    ///
+    /// ```
+    /// # use try_v2_traits::Transform;
+    /// // This is effectively the equivalent of Option::ok_or_else()
+    /// let none: Option<i32> = None;
+    /// let stdlib = none.ok_or_else(|| 5);
+    /// let custom = none.map_residual(|_| Err(5));
+    /// assert_eq!(stdlib, custom);
+    /// ```
     fn map_residual<F, X, G>(self, f: F) -> X
     where
         F: FnOnce(Self::Residual) -> G,
