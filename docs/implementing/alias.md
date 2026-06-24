@@ -8,7 +8,7 @@ Type-alias-ing a Result is current idiom but this comes with one signifcant limi
 
 You can't do this:
 
-```rust
+```rust,ignore snippet
 use std::process::Termination;
 
 type Exit<E> = Result<(),E>;
@@ -36,7 +36,10 @@ error[E0117]: only traits defined in the current crate can be implemented for ty
 
 Manually implementing `Try` & friends for this comes with a chunk of boilerplate code and a few gotchas. Getting the same ergonomics that are available from Option, Try & Control-Flow adds even more boilerplate. As such the pay off was never there for me personally, until I was _forced_ to put a minimal implementation in place for [`exit_safely`](https://crates.io/crates/exit_safely). In true [pass-the-salt](https://xkcd.com/974/) style I went ahead and created the derive macros in [`try_v2`](https://crates.io/crates/try_v2).
 
-```rust
+```rust,ignore not_in_crate
+#![feature(never_type)]
+#![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 use std::process::Termination;
 use try_v2::Try;
 
@@ -57,13 +60,15 @@ impl<T: Termination> Termination for Exit<T> {
 fn main() {}
 ```
 
-generates
+is the equivalent of manually implementing:
 
 ```rust
+#![feature(never_type)]
+#![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 use std::process::Termination;
-use try_v2::Try;
 
-#[derive(Debug, Try)]
+#[derive(Debug)]
 #[must_use]
 enum Exit<T: Termination> {
     Ok(T),
