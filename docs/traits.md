@@ -12,7 +12,7 @@ The inter-operation of 3 traits is responsible for the correct function of a *tr
 - splitting a *try-type* into `Continue` or `Break`
 - generating an instance of the *try-type* by wrapping a value of the `Output` type
 
-```rust
+```rust,ignore snippet
 pub trait Try: FromResidual {
     type Output;
     type Residual;
@@ -32,7 +32,7 @@ pub trait Try: FromResidual {
 - generating and instance of the *try-type* from the relevant `Residual` type
 - inter-conversion from one *try-type* `Residual` to a different *try-type*
 
-```rust
+```rust,ignore snippet
 pub trait FromResidual<R = <Self as Try>::Residual> {
     // Generates a try-type from a residual
     fn from_residual(residual: R) -> Self;
@@ -45,7 +45,7 @@ pub trait FromResidual<R = <Self as Try>::Residual> {
 
 - defining the canonical *try-type* for a given `Residual`
 
-```rust
+```rust,ignore snippet
 pub trait Residual<O>: Sized {
     type TryType: Try<Output = O, Residual = Self>;
 }
@@ -55,7 +55,7 @@ pub trait Residual<O>: Sized {
 
 The compiler replaces `x?` with the following code (known as "desugaring")
 
-```rust
+```rust,ignore snippet
 match Try::branch(x) {
     ControlFlow::Continue(v) => v,
     ControlFlow::Break(r) => return FromResidual::from_residual(r),
