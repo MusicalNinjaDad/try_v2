@@ -14,7 +14,7 @@ Type-alias-ing a `Result` is current idiom but this comes with one signifcant li
 
 Rather than documenting:
 
-```rust
+```rust,ignore snippet
 /// I _might_ have found somewhere that could contain duplicate info
 ///     Identifying duplicates _might_ have caused an error
 ///         And the answer _might_ be "no overlap"
@@ -28,7 +28,7 @@ enum ValidErrors {
 
 It can be easier to reate, read, and reason about:
 
-```rust
+```rust,ignore snippet
 enum DuplicateData<T> {
     Duplicate(T),
     NoCandidate,
