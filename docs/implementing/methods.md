@@ -10,7 +10,7 @@ While having a type which responds to `?` is nice, sooner or later you will star
 
 Methods for extracting the wrapped value
 
-```rust
+```rust,ignore snippet
 pub trait Extract<T>: Sized + Try<Output = T> {
     // Provided methods
     fn output(self) -> Option<T> { ... }
@@ -26,7 +26,7 @@ pub trait Extract<T>: Sized + Try<Output = T> {
 
 Methods for transforming TryTypes.
 
-```rust
+```rust,ignore snippet
 pub trait Transform<T>: Sized + Try<Output = T> {
     // Provided methods
     fn flatten(self) -> T { ... }
