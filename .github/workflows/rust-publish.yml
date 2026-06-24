@@ -76,6 +76,15 @@ jobs:
       run:
         cargo publish
 
+  publish_book:
+    needs:
+      - publish_lib
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/mdbook-publish.yml
+
   github_release:
     env:
       GH_TOKEN: ${{ github.token }}

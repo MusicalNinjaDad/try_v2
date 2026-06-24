@@ -12,15 +12,8 @@ fn main() {
         |total: Poll<i32>, n: Poll<Result<i32, i32>>| -> Result<Poll<i32>, i32> {
             let n: Poll<i32> = n?; // <- shorts on Poll::Ready(Err)
             let total: Poll<i32> = match n {
-                Poll::Ready(n) => {
-                    if let Poll::Ready(prev) = total {
-                        Poll::Ready(prev + n)
-                    } else {
-                        unreachable!("we seed with Poll::Ready(0) and ignore Poll::Pending below")
-                    }
-                }
-                // If we prefer to propogate Pending, then above can change to total.map()
-                Poll::Pending => total,
+                Poll::Ready(n) => total.map(|prev| prev + n),
+                Poll::Pending => Poll::Pending,
             };
             Ok(total)
         },
