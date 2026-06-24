@@ -6,7 +6,21 @@
 
 - derive FromResidual replaces Try_ConvertResult, works on any TryType
 
-## [Main] (v0.8.1)?
+## [v0.8.2]
+
+### New features
+
+- Added `impl Transform` & `impl Extract` for `Option`, `Result` & `ControlFlow`
+
+### Technical changes
+
+- Improved documentation regarding `map_residual`
+
+## [v0.8.1]
+
+### New features
+
+- Added `map_residual` to `trait Transform`
 
 ### Bugfix
 

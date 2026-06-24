@@ -34,9 +34,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6.0.3
     - name: Run tests
-      run: cargo test
-    - name: Test examples
-      run: cargo test --examples
+      run: |
+        cargo test
+        cargo test --examples
 
   lint:
     needs: skip_check
@@ -79,7 +79,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6.0.3
     - name: install cargo-msrv
-      uses: taiki-e/install-action@v2.81.6
+      uses: taiki-e/install-action@v2.81.10
       with:
         tool: cargo-msrv
     - name: check MSRV
