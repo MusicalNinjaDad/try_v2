@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.9.0"
+version = "0.8.2"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro & helper traits for `Try`"

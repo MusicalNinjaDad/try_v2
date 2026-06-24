@@ -3,6 +3,10 @@ use std::{
     ops::{ControlFlow, Try},
 };
 
+impl<T> Extract<T> for Option<T> {}
+impl<T, E> Extract<T> for Result<T, E> {}
+impl<B, C> Extract<C> for ControlFlow<B, C> {}
+
 /// Methods for extracting the wrapped value
 pub trait Extract<T>
 where
@@ -87,9 +91,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    impl<T> Extract<T> for Option<T> {}
-    impl<T, E> Extract<T> for Result<T, E> {}
 
     mod output {
         use super::*;

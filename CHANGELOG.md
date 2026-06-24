@@ -1,12 +1,20 @@
 # Changelog try_v2
 
-## [WIP] v0.9.0
+## [v0.8.2]
 
-### Breaking changes / New Features
+### New features
 
-- derive FromResidual replaces Try_ConvertResult, works on any TryType
+- Added `impl Transform` & `impl Extract` for `Option`, `Result` & `ControlFlow`
 
-## [Main] (v0.8.1)?
+### Technical changes
+
+- Improved documentation regarding `map_residual`
+
+## [v0.8.1]
+
+### New features
+
+- Added `map_residual` to `trait Transform`
 
 ### Bugfix
 
