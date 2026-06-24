@@ -34,7 +34,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6.0.3
     - name: Run tests
-      run: cargo test
+      run: |
+        cargo test
+        cargo test --examples
 
   lint:
     needs: skip_check
