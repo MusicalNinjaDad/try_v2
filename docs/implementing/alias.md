@@ -60,7 +60,9 @@ impl<T: Termination> Termination for Exit<T> {
 fn main() {}
 ```
 
-is the equivalent of manually implementing:
+### Hand-rolled implementation
+
+The derive above is the equivalent of manually implementing:
 
 ```rust
 #![feature(never_type)]
