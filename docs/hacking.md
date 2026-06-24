@@ -49,7 +49,7 @@ Std contains 3 types which impl Try for all cases: `Result<T, E>`, `Option<T>` &
 
 ### Flattening nested types
 
-```rust
+```rust,ignore
 use std::{error::Error, io};
 
 /// I _might_ have found somewhere that could contain duplicate info
@@ -88,7 +88,7 @@ Wouldn't it be nicer to be able to have everything in one place, with meaningful
 
 This is much easier to create, read, and reason about:
 
-```rust
+```rust,ignore
 use std::{error::Error, io};
 
 use try_v2::Try;
@@ -123,7 +123,7 @@ Adding methods and functions to a Type alias requires a custom trait, which adds
 
 The alternative is a NewType, which again pushes an implementation detail into downstream code which now needs to use `MyType.0`. Even worse, this adds a subtle nudge for people to `impl Deref` on their NewType - which is specifically _not_ designed for this kind of ergonomic hack.
 
-```rust
+```rust,ignore
 use log::info;
 
 /// A Counter which logs each adjustment
@@ -163,7 +163,7 @@ fn main() {
 
 With try this becomes much nicer to implement, read and use:
 
-```rust
+```rust,ignore
 use log::info;
 use std::{fmt::Display, ops::Add};
 
@@ -230,7 +230,7 @@ While technically, the generic ordering requirement could be relaxed with slight
 
 For the following case (based upon the usage in [pt](https://github.com/MusicalNinjaDad/pt))
 
-```rust
+```rust,ignore
 #[derive(Try, Try_ConvertResult, Try_Iterator, Try_Methods)]
 enum TestResult<T, E> {
     Ok(T),
@@ -243,7 +243,7 @@ enum TestResult<T, E> {
 
 will result in code of the shape:
 
-```rust
+```rust,ignore
 impl<T,E> Try for TestResult<T, E> {
     type Output = T;
     type Residual = TestResult<!,E>;
@@ -275,7 +275,7 @@ impl<T, E> Residual<T> for TestResult<!, E> {
 
 adds
 
-```rust
+```rust,ignore
 
 impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
 where
@@ -286,7 +286,7 @@ where
 
 and
 
-```rust
+```rust,ignore
 impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
 where
     RE: From<TestResult<!,E>>
@@ -303,7 +303,7 @@ where
 
 Effectively that allows using your type in any trait function where a `Result` is expected. Here's the `TryFrom` example from the integration tests. The subtle point to note: `let n = Even::try_from(num)?;` uses `?` to provide an `Even`, in a function that aims to return `Eightball<String>`, not `Eightball<Even>`
 
-```rust
+```rust,ignore
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
@@ -345,7 +345,7 @@ assert!(matches!(even_string(1), Eightball::No));
 
 The stdlib implementations are almost identical. I took a lazy approach and have leveraged `std::option::IntoIter` to allow:
 
-```rust
+```rust,ignore
 let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something weird"), Ok(3), Ok(4)];
 
 let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
@@ -394,7 +394,7 @@ In [proc_macro2_diagnostic](https://crates.io/crates/proc_macro2_diagnostic) I c
 
 This cost me some extra code but implementing `Try` etc. on a `struct` works perfectly fine.
 
-```rust
+```rust,ignore
 pub struct DiagnosticResult<T> {
     inner: DiagnosticResult_<T>,
 }
@@ -416,7 +416,7 @@ Let me start by offering an unrequested opinion: global state is inherently evil
 
 And yet ... also in [proc_macro2_diagnostic](https://crates.io/crates/proc_macro2_diagnostic) I have `?` with side-effects :flushed:. Top-level compiler diagnostics (on nightly) are not all errors, a custom `Try` implementation allowed both fatal errors & non-fatal warnings:
 
-```rust
+```rust,ignore
 /// Result-like type which can represent a valid return value, an error or a warning accompanying
 /// a valid return value. Warnings will be emitted upon `?`, allowing your code to continue with
 /// the valid value. Errors will short-circuit upon `?` and be emitted upon final conversion to a
@@ -449,7 +449,7 @@ I'd consider this pattern both **inherently dangerous** and **invaluable in sele
 
 - `LoggedResult` (near the top of my todo list)
 
-    ```rust
+    ```rust,ignore
     /// Calling `?`:
     ///   - Ok(t) -> provides `t`;
     ///   - NonFatal(t, record) -> emits `record` to the logger & provides `t`
@@ -463,7 +463,7 @@ I'd consider this pattern both **inherently dangerous** and **invaluable in sele
 
 - Async cases, e.g. for handling paged responses to a query:
 
-  ```rust
+  ```rust,ignore
     /// Calling ?:
     ///   - LastPage(data) -> provides `data`;
     ///   - Page(data, next_page_uri) -> sends `next_page_uri` to page_handler channel & provides `data`
@@ -484,7 +484,7 @@ I'd consider this pattern both **inherently dangerous** and **invaluable in sele
 
 This one I find more annoying. The simple case is safe to derive for outputs `T` and `&'t T` but not for `Box<T>`, `Vec<T>` etc. The compiler currently does not identify anything other than a pure `!` (or `Infallible` etc.) as impossible when checking match arms. For the purpose of match-arm completeness we currently need to write:
 
-```rust
+```rust,ignore
 enum ValidatedBox<T> {
     ValidValue(Box<T>),
     InvalidValue,
@@ -536,7 +536,7 @@ It would be a very valuable clippy lint to check that types which implement `Try
 
 While `Option` & [`Result`](https://doc.rust-lang.org/std/result/index.html#the-question-mark-operator-) nicely document using `?`, [Poll](https://doc.rust-lang.org/std/task/enum.Poll.html) does not. I'd consider it really valuable to understand why the two specific implementations were chosen and how they are intended to be used:
 
-```rust
+```rust,ignore
 impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Option<Result<T, F>>>
 where
     F: From<E>,
@@ -544,7 +544,7 @@ where
 
 and
 
-```rust
+```rust,ignore
 impl<T, E, F> FromResidual<Result<Infallible, E>> for Poll<Result<T, F>>
 where
     F: From<E>,
