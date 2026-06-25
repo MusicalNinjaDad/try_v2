@@ -558,15 +558,20 @@ impl FromResidualImpl {
         }
 
         let (impl_generics, _, where_clause) = generics.split_for_impl();
-        let impl_convert = quote! {
-            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
-                    std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
+        let impl_convert = match wraps {
+            Some(Wraps::This) => quote! {
+                impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
+                    #[inline]
+                    #[track_caller]
+                    fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
+                        std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
+                    }
                 }
-            }
+            },
+            Some(Wraps::Residual) => todo!("Residual"),
+            None => todo!("missing Self/Residual"),
         };
+        
         Ok(Self {
             tokens: impl_convert,
             wraps: wraps.expect("wrapped Self or Residual"),
