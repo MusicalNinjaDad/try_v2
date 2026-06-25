@@ -8,7 +8,10 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Generics, Ident, Path, parse_quote, spanned::Spanned};
+use syn::{
+    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, parse_quote,
+    spanned::Spanned,
+};
 
 mod parse;
 use parse::TryEnum;
@@ -512,18 +515,13 @@ impl FromResidualImpl {
         else {
             todo!("must wrap generics")
         };
-        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-            .args
-            .iter_mut()
-            .next()
-            .expect("this should be `Self`, `_`or `Residual`")
-        else {
-            todo!("must be path")
-        };
-        if wrapped.path.is_ident("Self") {
-            *wrapped = parse_quote!(#name #ty_generics);
-        } else {
-            todo!("unknown source")
+        for wrapped in wrapped.args.iter_mut() {
+            match wrapped {
+                GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
+                    *wrapped = parse_quote!(#name #ty_generics)
+                }
+                _ => todo!("unknown source"),
+            };
         }
         let impl_convert = quote! {
             impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
