@@ -9,8 +9,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, TypePath, parse_quote,
-    spanned::Spanned,
+    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, TypeParam, TypePath,
+    parse_quote, spanned::Spanned,
 };
 
 mod parse;
@@ -505,7 +505,8 @@ enum FromResidualImpl {
 
 impl FromResidualImpl {
     fn new(mut path: Path, name: &Ident, mut generics: Generics) -> DiagnosticResult<Self> {
-        let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+        let g2 = generics.clone();
+        let (_, ty_generics, _) = g2.split_for_impl();
         let this: TypePath = parse_quote!(#name #ty_generics);
         let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
             .segments
@@ -522,10 +523,18 @@ impl FromResidualImpl {
                 GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
                     *wrapped = this.clone();
                 }
-                GenericArgument::Type(Type::Infer(_)) => todo!("handle _"),
+                GenericArgument::Type(Type::Infer(_)) => {
+                    let generic = format_ident!("FromResidual_Generic_{infer_count}");
+                    generics
+                        .params
+                        .push(GenericParam::from(TypeParam::from(generic.clone())));
+                    *wrapped = parse_quote! {#generic};
+                    infer_count += 1;
+                }
                 _ => todo!("unknown source"),
             };
         }
+        let (impl_generics, _, _where_clause) = generics.split_for_impl();
         let impl_convert = quote! {
             impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path {
                 #[inline]
