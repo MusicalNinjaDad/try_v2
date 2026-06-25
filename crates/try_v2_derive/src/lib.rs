@@ -9,7 +9,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, parse_quote,
+    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, TypePath, parse_quote,
     spanned::Spanned,
 };
 
@@ -506,6 +506,7 @@ enum FromResidualImpl {
 impl FromResidualImpl {
     fn new(mut path: Path, name: &Ident, mut generics: Generics) -> DiagnosticResult<Self> {
         let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+        let this: TypePath = parse_quote!(#name #ty_generics);
         let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
             .segments
             .iter_mut()
@@ -515,21 +516,21 @@ impl FromResidualImpl {
         else {
             todo!("must wrap generics")
         };
-        let infer_count = 0;
+        let mut infer_count = 0;
         for wrapped in wrapped.args.iter_mut() {
             match wrapped {
                 GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
-                    *wrapped = parse_quote!(#name #ty_generics)
+                    *wrapped = this.clone();
                 }
                 GenericArgument::Type(Type::Infer(_)) => todo!("handle _"),
                 _ => todo!("unknown source"),
             };
         }
         let impl_convert = quote! {
-            impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
+            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path {
                 #[inline]
                 #[track_caller]
-                fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
+                fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
                     std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                 }
             }
