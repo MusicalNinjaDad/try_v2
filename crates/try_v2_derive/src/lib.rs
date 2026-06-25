@@ -515,11 +515,13 @@ impl FromResidualImpl {
         else {
             todo!("must wrap generics")
         };
+        let infer_count = 0;
         for wrapped in wrapped.args.iter_mut() {
             match wrapped {
                 GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
                     *wrapped = parse_quote!(#name #ty_generics)
                 }
+                GenericArgument::Type(Type::Infer(_)) => todo!("handle _"),
                 _ => todo!("unknown source"),
             };
         }
