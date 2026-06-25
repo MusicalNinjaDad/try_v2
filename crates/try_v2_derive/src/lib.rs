@@ -503,19 +503,24 @@ enum FromResidualImpl {
 impl FromResidualImpl {
     fn new(mut path: Path, name: &Ident, mut generics: Generics) -> DiagnosticResult<Self> {
         let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
-        if let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
             .segments
             .iter_mut()
             .next_back()
             .expect("at least one segment")
             .arguments
-            && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-                .args
-                .iter_mut()
-                .next()
-                .expect("this should be `Self`, `_`or `Residual`")
-            && wrapped.path.is_ident("Self")
-        {
+        else {
+            todo!("must wrap generics")
+        };
+        let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+            .args
+            .iter_mut()
+            .next()
+            .expect("this should be `Self`, `_`or `Residual`")
+        else {
+            todo!("must be path")
+        };
+        if wrapped.path.is_ident("Self") {
             *wrapped = parse_quote!(#name #ty_generics);
         } else {
             todo!("unknown source")
