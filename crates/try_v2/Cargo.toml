@@ -1,6 +1,6 @@
 [package]
 name = "try_v2"
-version = "0.8.2"
+version = "0.9.0"
 edition = "2024"
 readme = "README.md"
 description = "Provides a derive macro & helper traits for `Try`"
@@ -10,7 +10,7 @@ homepage = "https://github.com/MusicalNinjaDad/try_v2"
 repository = "https://github.com/MusicalNinjaDad/try_v2"
 categories = ["development-tools"]
 license = "MIT"
-rust-version = "1.85.1"
+rust-version = "1.93.1"
 exclude = [".github", ".devcontainer"]
 
 [lib]
