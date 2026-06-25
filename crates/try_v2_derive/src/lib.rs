@@ -540,6 +540,10 @@ impl FromResidualImpl {
                     if wraps.get_or_insert(Wraps::Residual) != &Wraps::Residual {
                         todo!("Self & Residual")
                     }
+                    let generic = format_ident!("FromResidual_Generic_{infer_count}");
+                    infer_count += 1;
+                    generics.params.push(parse_quote!{#generic: From<<#this as ::std::ops::Try>::Residual>});
+                    *wrapped = parse_quote!{#generic};
                 }
                 GenericArgument::Type(Type::Infer(_)) => {
                     let generic = format_ident!("FromResidual_Generic_{infer_count}");
