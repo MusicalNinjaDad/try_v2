@@ -207,9 +207,7 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     {
         let path = attribute.parse_args::<Path>()?;
         let impl_convert = FromResidualImpl::new(path, &name, ast.generics.clone())?;
-        match impl_convert {
-            FromResidualImpl::WrappedSelf(token_stream) => return Ok(token_stream),
-        }
+        return Ok(impl_convert.tokens);
     }
     Ok(TokenStream2::new())
 }
@@ -499,8 +497,17 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 }
 
 #[derive(Debug, Clone)]
-enum FromResidualImpl {
-    WrappedSelf(TokenStream2),
+struct FromResidualImpl {
+    tokens: TokenStream2,
+    #[allow(unused, reason = "only for testing")]
+    wraps: Wraps,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Wraps {
+    This,
+    #[expect(unused, reason = "todo")]
+    Residual,
 }
 
 impl FromResidualImpl {
@@ -547,7 +554,10 @@ impl FromResidualImpl {
                 }
             }
         };
-        Ok(Self::WrappedSelf(impl_convert))
+        Ok(Self {
+            tokens: impl_convert,
+            wraps: Wraps::This,
+        })
     }
 }
 
@@ -575,7 +585,7 @@ mod tests {
         dbg!(&path);
         let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
         dbg!(&wrapped);
-        assert_matches!(wrapped, Continue(FromResidualImpl::WrappedSelf(_)));
+        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::This));
     }
 
     #[test]
@@ -593,7 +603,7 @@ mod tests {
         dbg!(&path);
         let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
         dbg!(&wrapped);
-        assert_matches!(wrapped, Continue(FromResidualImpl::WrappedSelf(_)));
+        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::This));
     }
 
     #[test]
