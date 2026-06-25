@@ -195,18 +195,8 @@ pub fn from_residual(input: TokenStream1) -> TokenStream1 {
 
 fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
-
-    let tryenum = TryEnum::parse(&ast)?;
-    let (
-        name,
-        _output_variant_name,
-        _output_type,
-        output_type_name,
-        residual_type,
-        impl_generics,
-        ty_generics,
-        where_clause,
-    ) = tryenum.split_for_impl();
+    let name = ast.ident;
+    let (impl_generics, ty_generics, _where_clause) = ast.generics.split_for_impl();
 
     if let Some(attribute) = ast
         .attrs
@@ -215,59 +205,6 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     {
         let derive_for: KnownSource = attribute.parse_args::<Path>()?.try_into()?;
         match derive_for {
-            KnownSource::Result => {
-                let result_e = format_ident!("Derive_TryConvert_ResultE");
-                let result_t = format_ident!("Derive_TryConvert_ResultT");
-
-                let from_result_generics = tryenum.generics(|g| {
-                    g.params
-                        .push(parse_quote! {#result_e: Into<#residual_type>})
-                });
-                let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
-
-                let mut impl_convert = quote! {
-                    impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
-                    {
-                        #[inline]
-                        #[track_caller]
-                        fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
-                            match residual {
-                                std::result::Result::Err(e) => {
-                                    let bang: #residual_type = e.into();
-                                    Self::from_residual(bang)
-                                }
-                            }
-                        }
-                    }
-                };
-
-                let to_result_generics = tryenum.generics_with_params(|p| {
-                    p
-                        //remove output type
-                        .filter(
-                            |p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name),
-                        )
-                        // add result types
-                        .chain([
-                            parse_quote! {#result_t},
-                            parse_quote! {#result_e: From<#residual_type>},
-                        ])
-                });
-
-                let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
-
-                impl_convert.extend(quote! {
-                    impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
-                    {
-                        #[inline]
-                        #[track_caller]
-                        fn from_residual(residual: #residual_type) -> Self {
-                            std::result::Result::Err(residual.into())
-                        }
-                    }
-                });
-                return Ok(impl_convert);
-            }
             KnownSource::WrappedSelf(mut path) => {
                 let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
                     .segments
@@ -589,7 +526,6 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum KnownSource {
-    Result,
     WrappedSelf(Path),
 }
 
@@ -597,9 +533,6 @@ impl TryFrom<Path> for KnownSource {
     type Error = Diagnostic;
 
     fn try_from(path: Path) -> Result<Self, Self::Error> {
-        if path.is_ident("Result") {
-            return Result::Ok(KnownSource::Result);
-        }
         if KnownSource::wraps_self(&path) {
             return Result::Ok(KnownSource::WrappedSelf(path));
         };
@@ -628,20 +561,6 @@ mod tests {
     use syn::Attribute;
 
     use super::*;
-
-    #[test]
-    fn parse_from_residual_result() {
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let arg = attr.parse_args::<Path>().expect("a path");
-        dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
-        assert_eq!(wrapped, KnownSource::Result);
-    }
 
     #[test]
     fn parse_from_residual_option_self() {
