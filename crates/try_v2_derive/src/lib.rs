@@ -506,7 +506,6 @@ struct FromResidualImpl {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Wraps {
     This,
-    #[expect(unused, reason = "todo")]
     Residual,
 }
 
@@ -527,10 +526,20 @@ impl FromResidualImpl {
         };
 
         let mut infer_count = 0;
+        let residual: Path = parse_quote! {Self::Residual};
+        let mut wraps = None;
         for wrapped in wrapped.args.iter_mut() {
             match wrapped {
                 GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
                     *wrapped = this.clone();
+                    if wraps.get_or_insert(Wraps::This) != &Wraps::This {
+                        todo!("Self & Residual")
+                    }
+                }
+                GenericArgument::Type(Type::Path(wrapped)) if wrapped.path == residual => {
+                    if wraps.get_or_insert(Wraps::Residual) != &Wraps::Residual {
+                        todo!("Self & Residual")
+                    }
                 }
                 GenericArgument::Type(Type::Infer(_)) => {
                     let generic = format_ident!("FromResidual_Generic_{infer_count}");
@@ -556,7 +565,7 @@ impl FromResidualImpl {
         };
         Ok(Self {
             tokens: impl_convert,
-            wraps: Wraps::This,
+            wraps: wraps.expect("wrapped Self or Residual"),
         })
     }
 }
@@ -604,6 +613,24 @@ mod tests {
         let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
         dbg!(&wrapped);
         assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::This));
+    }
+
+    #[test]
+    fn parse_from_residual_result_residual() {
+        let ast: DeriveInput = parse_quote!(
+            enum Foo {}
+        );
+        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result<_, Self::Residual>)]};
+        dbg!(&attr);
+        let attr = attr
+            .iter()
+            .find(|attr| attr.path().is_ident("FromResidual"))
+            .expect("my attribute");
+        let path = attr.parse_args::<Path>().expect("a path");
+        dbg!(&path);
+        let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
+        dbg!(&wrapped);
+        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::Residual));
     }
 
     #[test]
