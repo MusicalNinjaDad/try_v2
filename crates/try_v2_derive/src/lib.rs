@@ -2,13 +2,13 @@
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
-#![feature(try_blocks)]
+#![cfg_attr(all(test, unstable_try_trait_v2), feature(try_trait_v2))]
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro2_diagnostic::{Diagnostic, ToTokens, prelude::*};
+use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
-use syn::{DeriveInput, GenericParam, Path, parse_quote, spanned::Spanned};
+use syn::{DeriveInput, GenericParam, Generics, Ident, Path, parse_quote, spanned::Spanned};
 
 mod parse;
 use parse::TryEnum;
@@ -196,40 +196,18 @@ pub fn from_residual(input: TokenStream1) -> TokenStream1 {
 fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
     let name = ast.ident;
-    let (impl_generics, ty_generics, _where_clause) = ast.generics.split_for_impl();
 
     if let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
     {
-        let mut path = attribute.parse_args::<Path>()?;
-        if let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
-            .segments
-            .iter_mut()
-            .next_back()
-            .expect("at least one segment")
-            .arguments
-            && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-                .args
-                .iter_mut()
-                .next()
-                .expect("this should be `Self`, `_`or `Residual`")
-            && wrapped.path.is_ident("Self")
-        {
-            *wrapped = parse_quote!(#name #ty_generics);
-            let impl_convert = quote! {
-                impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
-                    #[inline]
-                    #[track_caller]
-                    fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
-                        std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
-                    }
-                }
-            };
-            return Ok(impl_convert);
-        };
-    };
+        let path = attribute.parse_args::<Path>()?;
+        let impl_convert = FromResidualImpl::new(path, &name, &ast.generics)?;
+        match impl_convert {
+            FromResidualImpl::WrappedSelf(token_stream) => return Ok(token_stream),
+        }
+    }
     Ok(TokenStream2::new())
 }
 
@@ -517,42 +495,68 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_traits)
 }
 
+#[derive(Debug, Clone)]
+enum FromResidualImpl {
+    WrappedSelf(TokenStream2),
+}
+
+impl FromResidualImpl {
+    fn new(mut path: Path, name: &Ident, generics: &Generics) -> DiagnosticResult<Self> {
+        let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+        if let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+            .segments
+            .iter_mut()
+            .next_back()
+            .expect("at least one segment")
+            .arguments
+            && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+                .args
+                .iter_mut()
+                .next()
+                .expect("this should be `Self`, `_`or `Residual`")
+            && wrapped.path.is_ident("Self")
+        {
+            *wrapped = parse_quote!(#name #ty_generics);
+            let impl_convert = quote! {
+                impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
+                    #[inline]
+                    #[track_caller]
+                    fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
+                        std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
+                    }
+                }
+            };
+            return Ok(Self::WrappedSelf(impl_convert));
+        };
+        todo!("unknown source")
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+    use std::ops::{ControlFlow::Continue, Try};
+
     use syn::Attribute;
 
     use super::*;
 
     #[test]
     fn parse_from_residual_option_self() {
-        let path: Path = parse_quote! {std::option::Option<Self>};
+        let ast: DeriveInput = parse_quote!(
+            enum Foo {}
+        );
         let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
         dbg!(&attr);
         let attr = attr
             .iter()
             .find(|attr| attr.path().is_ident("FromResidual"))
             .expect("my attribute");
-        let arg = attr.parse_args::<Path>().expect("a path");
-        dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
+        let path = attr.parse_args::<Path>().expect("a path");
+        dbg!(&path);
+        let wrapped = FromResidualImpl::new(path, &ast.ident, &ast.generics).branch();
         dbg!(&wrapped);
-        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
-    }
-
-    #[test]
-    fn parse_from_residual_poll_option_self() {
-        let path: Path = parse_quote! {Poll<Option<Self>>};
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Poll<Option<Self>>)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let arg = attr.parse_args::<Path>().expect("a path");
-        dbg!(&arg);
-        let wrapped: KnownSource = arg.try_into().expect("try into");
-        dbg!(&wrapped);
-        assert_eq!(wrapped, KnownSource::WrappedSelf(path));
+        assert_matches!(wrapped, Continue(FromResidualImpl::WrappedSelf(_)));
     }
 
     #[test]
