@@ -203,39 +203,32 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
     {
-        let derive_for: KnownSource = attribute.parse_args::<Path>()?.try_into()?;
-        match derive_for {
-            KnownSource::WrappedSelf(mut path) => {
-                let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
-                    .segments
-                    .iter_mut()
-                    .next_back()
-                    .expect("at least one segment")
-                    .arguments
-                else {
-                    unreachable!()
-                };
-                let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
-                    .args
-                    .iter_mut()
-                    .next()
-                    .expect("this should be `Self`")
-                else {
-                    unreachable!()
-                };
-                *wrapped = parse_quote!(#name #ty_generics);
-                let impl_convert = quote! {
-                    impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
-                        #[inline]
-                        #[track_caller]
-                        fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
-                            std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
-                        }
+        let mut path = attribute.parse_args::<Path>()?;
+        if let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+            .segments
+            .iter_mut()
+            .next_back()
+            .expect("at least one segment")
+            .arguments
+            && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) = wrapped
+                .args
+                .iter_mut()
+                .next()
+                .expect("this should be `Self`, `_`or `Residual`")
+            && wrapped.path.is_ident("Self")
+        {
+            *wrapped = parse_quote!(#name #ty_generics);
+            let impl_convert = quote! {
+                impl #impl_generics std::ops::FromResidual<<#name #ty_generics as std::ops::Try>::Residual> for #path {
+                    #[inline]
+                    #[track_caller]
+                    fn from_residual(residual: <#name #ty_generics as std::ops::Try>::Residual) -> Self {
+                        std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                     }
-                };
-                return Ok(impl_convert);
-            }
-        }
+                }
+            };
+            return Ok(impl_convert);
+        };
     };
     Ok(TokenStream2::new())
 }
@@ -522,38 +515,6 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     });
 
     Ok(impl_traits)
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum KnownSource {
-    WrappedSelf(Path),
-}
-
-impl TryFrom<Path> for KnownSource {
-    type Error = Diagnostic;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        if KnownSource::wraps_self(&path) {
-            return Result::Ok(KnownSource::WrappedSelf(path));
-        };
-        todo!("unknown source")
-    }
-}
-
-impl KnownSource {
-    fn wraps_self(path: &Path) -> bool {
-        try {
-            if let syn::PathArguments::AngleBracketed(ref wrapped) = path.segments.last()?.arguments
-                && let syn::GenericArgument::Type(syn::Type::Path(wrapped)) =
-                    wrapped.args.first()?
-            {
-                wrapped.path.is_ident("Self") || KnownSource::wraps_self(&wrapped.path)
-            } else {
-                false
-            }
-        }
-        .unwrap_or(false)
-    }
 }
 
 #[cfg(test)]
