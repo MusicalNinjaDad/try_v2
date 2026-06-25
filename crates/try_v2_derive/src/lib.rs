@@ -537,9 +537,9 @@ impl FromResidualImpl {
             };
         }
 
-        let (impl_generics, _, _where_clause) = generics.split_for_impl();
+        let (impl_generics, _, where_clause) = generics.split_for_impl();
         let impl_convert = quote! {
-            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path {
+            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
                 #[inline]
                 #[track_caller]
                 fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
