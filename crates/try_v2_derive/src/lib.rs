@@ -568,30 +568,13 @@ enum Wraps {
 
 impl FromResidualImpl {
     fn new(mut path: Path, name: &Ident, mut generics: Generics) -> DiagnosticResult<Self> {
-        let original_generics = generics.clone();
-        let (_, ty_generics, _) = original_generics.split_for_impl();
-        let this: TypePath = parse_quote!(#name #ty_generics);
+        let this_generics = generics.clone();
+        let (_, this_ty_generics, _) = this_generics.split_for_impl();
+        let this: TypePath = parse_quote!(#name #this_ty_generics);
 
         if path == parse_quote! {Result<_, Self::Residual>} {
             let wraps = Wraps::Residual;
-            let this_residual = quote! {<#this as ::std::ops::Try>::Residual};
-            let result_t: GenericParam = parse_quote! {Derive_TryConvert_ResultT};
-            let result_e: GenericParam =
-                parse_quote! {Derive_TryConvert_ResultE: Into<#this_residual>};
-            let result = quote! {::std::result::Result<#result_t, #result_e>};
-            let result_residual = quote! {<#result as ::std::ops::Try>::Residual};
-            generics.params.push(result_t);
-            generics.params.push(result_e);
-            let (impl_generics, _, where_clause) = generics.split_for_impl();
-            let tokens = quote! {
-                impl #impl_generics ::std::ops::FromResidual<#this_residual> for #result #where_clause {
-                    #[inline]
-                    #[track_caller]
-                    fn from_residual(residual: #this_residual) -> Self {
-                        ::std::result::Result::Err(residual.into())
-                    }
-                }
-            };
+            let tokens = TokenStream2::new();
             return Ok(Self { tokens, wraps });
         };
 
