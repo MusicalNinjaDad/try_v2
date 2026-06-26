@@ -516,9 +516,27 @@ impl FromResidualImpl {
         let this: TypePath = parse_quote!(#name #ty_generics);
 
         if path == parse_quote! {Result<_, Self::Residual>} {
+            let wraps = Wraps::Residual;
+            let this_residual = quote! {<#this as ::std::ops::Try>::Residual};
+            let result_t: GenericParam = parse_quote! {Derive_TryConvert_ResultT};
+            let result_e: GenericParam = parse_quote! {Derive_TryConvert_ResultE: From<#this>};
+            let result = quote!{::std::result::Result<#result_t, #result_e>};
+            let result_residual = quote! {<#result as ::std::ops::Try>::Residual};
+            generics.params.push(result_t);
+            generics.params.push(result_e);
+            let (impl_generics, _, where_clause) = generics.split_for_impl();
+            let tokens = quote! {
+                impl #impl_generics ::std::ops::FromResidual<#this_residual> for #result #where_clause {
+                    #[inline]
+                    #[track_caller]
+                    fn from_residual(residual: #this_residual) -> Self {
+                        ::std::result::Result::Err(residual.into())
+                    }
+                }
+            };
             return Ok(Self {
-                tokens: TokenStream2::new(),
-                wraps: Wraps::Residual,
+                tokens,
+                wraps,
             });
         };
 
