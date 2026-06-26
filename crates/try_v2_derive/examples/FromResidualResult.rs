@@ -15,19 +15,18 @@ enum EightBall<Y, N> {
     No(N),
 }
 
-impl<
-    Y,
-    N,
-    Derive_TryConvert_ResultT,
-    Derive_TryConvert_ResultE,
-> ::std::ops::FromResidual<<EightBall<Y,N> as std::ops::Try>::Residual>
-    for ::std::result::Result<Derive_TryConvert_ResultT, Derive_TryConvert_ResultE>
-    where <EightBall<Y,N> as ::std::ops::Try>::Residual: Into<Derive_TryConvert_ResultE>,
+impl<Y, N, Derive_TryConvert_ResultE: Into<EightBall<!, N>>>
+    ::std::ops::FromResidual<
+        ::std::result::Result<::std::convert::Infallible, Derive_TryConvert_ResultE>,
+    > for EightBall<Y, N>
 {
     #[inline]
     #[track_caller]
-    fn from_residual(residual: <EightBall<Y, N> as ::std::ops::Try>::Residual) -> Self {
-        ::std::result::Result::Err(residual.into())
+    fn from_residual(
+        residual: ::std::result::Result<::std::convert::Infallible, Derive_TryConvert_ResultE>,
+    ) -> Self {
+        let Err(e) = residual;
+        Self::from_residual(e.into())
     }
 }
 

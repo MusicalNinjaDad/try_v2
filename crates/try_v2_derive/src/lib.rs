@@ -519,7 +519,7 @@ impl FromResidualImpl {
             let wraps = Wraps::Residual;
             let this_residual = quote! {<#this as ::std::ops::Try>::Residual};
             let result_t: GenericParam = parse_quote! {Derive_TryConvert_ResultT};
-            let result_e: GenericParam = parse_quote! {Derive_TryConvert_ResultE: From<#this>};
+            let result_e: GenericParam = parse_quote! {Derive_TryConvert_ResultE: Into<#this_residual>};
             let result = quote!{::std::result::Result<#result_t, #result_e>};
             let result_residual = quote! {<#result as ::std::ops::Try>::Residual};
             generics.params.push(result_t);
