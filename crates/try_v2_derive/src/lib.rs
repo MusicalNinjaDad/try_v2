@@ -515,6 +515,13 @@ impl FromResidualImpl {
         let (_, ty_generics, _) = original_generics.split_for_impl();
         let this: TypePath = parse_quote!(#name #ty_generics);
 
+        if path == parse_quote! {Result<_, Self::Residual>} {
+            return Ok(Self {
+                tokens: TokenStream2::new(),
+                wraps: Wraps::Residual,
+            });
+        };
+
         let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
             .segments
             .iter_mut()
@@ -526,7 +533,6 @@ impl FromResidualImpl {
         };
 
         let mut infer_count = 0;
-        let residual: Path = parse_quote! {Self::Residual};
         let mut wraps = None;
         for wrapped in wrapped.args.iter_mut() {
             match wrapped {
@@ -535,15 +541,6 @@ impl FromResidualImpl {
                     if wraps.get_or_insert(Wraps::This) != &Wraps::This {
                         todo!("Self & Residual")
                     }
-                }
-                GenericArgument::Type(Type::Path(wrapped)) if wrapped.path == residual => {
-                    if wraps.get_or_insert(Wraps::Residual) != &Wraps::Residual {
-                        todo!("Self & Residual")
-                    }
-                    let generic = format_ident!("FromResidual_Generic_{infer_count}");
-                    infer_count += 1;
-                    generics.params.push(parse_quote!{#generic: From<<#this as ::std::ops::Try>::Residual>});
-                    *wrapped = parse_quote!{#generic};
                 }
                 GenericArgument::Type(Type::Infer(_)) => {
                     let generic = format_ident!("FromResidual_Generic_{infer_count}");
@@ -558,20 +555,16 @@ impl FromResidualImpl {
         }
 
         let (impl_generics, _, where_clause) = generics.split_for_impl();
-        let impl_convert = match wraps {
-            Some(Wraps::This) => quote! {
-                impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
-                    #[inline]
-                    #[track_caller]
-                    fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
-                        std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
-                    }
+        let impl_convert = quote! {
+            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
+                #[inline]
+                #[track_caller]
+                fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
+                    std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
                 }
-            },
-            Some(Wraps::Residual) => todo!("Residual"),
-            None => todo!("missing Self/Residual"),
+            }
         };
-        
+
         Ok(Self {
             tokens: impl_convert,
             wraps: wraps.expect("wrapped Self or Residual"),
