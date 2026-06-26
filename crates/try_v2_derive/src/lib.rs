@@ -16,7 +16,6 @@ use syn::{
 mod parse;
 use parse::TryEnum;
 
-#[proc_macro_derive(Try)]
 /// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
 ///
 /// ## Limitations on the annotated type
@@ -121,6 +120,7 @@ use parse::TryEnum;
 /// compiler but `&!` will dereference to `!` which will then coerce into any type or satisfy
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
+#[proc_macro_derive(Try, attributes(FromResidual))]
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).to_tokens()
 }
@@ -188,6 +188,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
+    if let Some(path) = ast
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("FromResidual"))
+        .map(|attribute| attribute.parse_args::<Path>())
+        && path? == parse_quote! {Result<_, Self::Residual>}
+    {
+        todo!("derive result residual case")
+    }
     Ok(impl_try)
 }
 
@@ -519,8 +528,9 @@ impl FromResidualImpl {
             let wraps = Wraps::Residual;
             let this_residual = quote! {<#this as ::std::ops::Try>::Residual};
             let result_t: GenericParam = parse_quote! {Derive_TryConvert_ResultT};
-            let result_e: GenericParam = parse_quote! {Derive_TryConvert_ResultE: Into<#this_residual>};
-            let result = quote!{::std::result::Result<#result_t, #result_e>};
+            let result_e: GenericParam =
+                parse_quote! {Derive_TryConvert_ResultE: Into<#this_residual>};
+            let result = quote! {::std::result::Result<#result_t, #result_e>};
             let result_residual = quote! {<#result as ::std::ops::Try>::Residual};
             generics.params.push(result_t);
             generics.params.push(result_e);
@@ -534,10 +544,7 @@ impl FromResidualImpl {
                     }
                 }
             };
-            return Ok(Self {
-                tokens,
-                wraps,
-            });
+            return Ok(Self { tokens, wraps });
         };
 
         let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
