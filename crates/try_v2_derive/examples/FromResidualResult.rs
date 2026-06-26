@@ -23,16 +23,16 @@ impl<N> From<EightBall<!, N>> for Option<N> {
 }
 
 #[allow(dead_code)]
-fn eightball_error() -> Result<(), Option<EightBall<!, ()>>> {
+fn eightball_error() -> Result<(), Option<()>> {
     let _ = EightBall::<_, ()>::RollAgain?;
-    let _ = EightBall::<_, ()>::Yes(())?;
+    EightBall::<_, ()>::Yes(())?;
     Ok(())
 }
 
 #[test]
 fn test_maybe_eightball() {
-    let ret = maybe_eightball();
-    assert_eq!(ret, Some(EightBall::RollAgain));
+    let ret = eightball_error();
+    assert_eq!(ret, Err(None));
 }
 
 fn main() {}
