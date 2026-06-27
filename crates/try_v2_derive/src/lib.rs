@@ -119,7 +119,7 @@ use parse::TryEnum;
 /// compiler but `&!` will dereference to `!` which will then coerce into any type or satisfy
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
-#[proc_macro_derive(Try, attributes(FromResidual))]
+#[proc_macro_derive(Try, attributes(FromResidual, methods))]
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).to_tokens()
 }
@@ -246,6 +246,13 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         });
         impl_try.extend(impl_convert);
+    };
+    if let Some(attribute) = ast
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("methods"))
+    {
+        todo!("methods")
     }
     Ok(impl_try)
 }

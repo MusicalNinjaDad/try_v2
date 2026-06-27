@@ -8,6 +8,7 @@ use std::ops::Try;
 use try_v2_derive::{IntoIterator, Try};
 
 #[derive(Debug, Try, IntoIterator)]
+#[methods]
 #[must_use]
 enum EightBall<Y, N> {
     Yes(Y),
@@ -20,6 +21,7 @@ fn into() {
     assert_eq!(Some(5), EightBall::<i32, i32>::Yes(5).into_iter().next());
     assert_eq!(None, EightBall::<i32, i32>::RollAgain.into_iter().next());
     assert_eq!(None, EightBall::<i32, i32>::No(5).into_iter().next());
+    assert_eq!(Some(&5), EightBall::<i32, i32>::Yes(5).iter().next());
 }
 
 fn main() {}
