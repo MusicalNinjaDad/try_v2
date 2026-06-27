@@ -188,12 +188,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
-    if let Some(path) = ast
+    if let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
-        .map(|attribute| attribute.parse_args::<Path>())
-        && path? == parse_quote! {Result<_, Self::Residual>}
+        && attribute
+            .parse_args_with(Punctuated::<Path, Token![,]>::parse_terminated)?
+            .iter()
+            .find(|path| **path == parse_quote! {Result<_, Self::Residual>})
+            .is_some()
     {
         let result_e = format_ident!("Derive_TryConvert_ResultE");
         let result_t = format_ident!("Derive_TryConvert_ResultT");
@@ -266,8 +269,12 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
         return Ok(impl_convert);
     };
 
+    dbg!(&attribute);
+
     let paths: Punctuated<Path, Token![,]> =
         attribute.parse_args_with(Punctuated::parse_terminated)?;
+
+    dbg!(&paths);
 
     for mut path in paths {
         let (_, ty_generics, _) = ast.generics.split_for_impl();
