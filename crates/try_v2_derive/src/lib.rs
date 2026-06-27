@@ -288,6 +288,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                         methods.extend(iter());
                     } else if method == format_ident!("iter_mut") {
                         methods.extend(iter_mut());
+                    } else {
+                        todo!("error for unknown names")
                     }
                 }
             }
