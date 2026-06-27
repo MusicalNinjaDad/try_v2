@@ -618,7 +618,7 @@ fn into_iterator(input: TokenStream2) -> DiagnosticStream {
     let this = quote! {#name #ty_generics};
 
     let impl_trait = quote! {
-        #impl_generics ::std::iter::IntoIterator for #this #where_clause {
+        impl #impl_generics ::std::iter::IntoIterator for #this #where_clause {
             type Item = <#this as ::std::ops::Try>::Output;
             type IntoIter = ::std::option::IntoIter<<#this as ::std::ops::Try>::Output>;
 
@@ -631,7 +631,6 @@ fn into_iterator(input: TokenStream2) -> DiagnosticStream {
             }
         }
     };
-
     Ok(impl_trait)
 }
 
