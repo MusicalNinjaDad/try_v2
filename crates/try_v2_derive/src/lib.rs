@@ -260,9 +260,16 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                         _ => None,
                     }.into_iter()
                 }
+
+                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }
             }
         });
-    }
+    };
     Ok(impl_try)
 }
 
