@@ -38,4 +38,11 @@ where
     }
 }
 
+#[test]
+fn into() {
+    assert_eq!(Some(5), EightBall::<i32,i32>::Yes(5).into_iter().next());
+    assert_eq!(None, EightBall::<i32,i32>::RollAgain.into_iter().next());
+    assert_eq!(None, EightBall::<i32,i32>::No(5).into_iter().next());
+}
+
 fn main() {}
