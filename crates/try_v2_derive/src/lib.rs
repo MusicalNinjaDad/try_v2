@@ -8,8 +8,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath,
-    parse_quote, punctuated::Punctuated, spanned::Spanned,
+    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath, parse_quote,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 mod parse;
