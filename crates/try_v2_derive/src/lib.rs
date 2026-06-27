@@ -8,7 +8,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath, parse_quote,
+    DeriveInput, GenericArgument, GenericParam, Ident, Path, Token, Type, TypePath, parse_quote,
     punctuated::Punctuated, spanned::Spanned,
 };
 
@@ -247,26 +247,39 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         });
         impl_try.extend(impl_convert);
     };
-    if let Some(_attribute) = ast
+    if let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("methods"))
     {
+        let mut methods = TokenStream2::new();
+        let wanted: Punctuated<Ident, Token![,]> =
+            attribute.parse_args_with(Punctuated::parse_terminated)?;
+
+        for method in wanted {
+            if method == format_ident!("iter") {
+                methods.extend(quote! {
+                    pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }});
+            } else if method == format_ident!("iter_mut") {
+                methods.extend(quote! {
+                    pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                        match self {
+                            Self::#output_variant_name(v) => Some(v),
+                            _ => None,
+                        }.into_iter()
+                    }
+                });
+            }
+        }
+
         impl_try.extend(quote! {
             impl #impl_generics #name #ty_generics #where_clause {
-                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
-
-                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
+                #methods
             }
         });
     };
