@@ -2,15 +2,14 @@
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
-#![cfg_attr(all(test, unstable_try_trait_v2), feature(try_trait_v2))]
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Generics, Ident, Path, Type, TypePath, parse_quote,
-    spanned::Spanned,
+    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath, parse_quote,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 mod parse;
@@ -188,12 +187,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
-    if let Some(path) = ast
+    if let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
-        .map(|attribute| attribute.parse_args::<Path>())
-        && path? == parse_quote! {Result<_, Self::Residual>}
+        && attribute
+            .parse_args_with(Punctuated::<Path, Token![,]>::parse_terminated)?
+            .iter()
+            .find(|path| **path == parse_quote! {Result<_, Self::Residual>})
+            .is_some()
     {
         let result_e = format_ident!("Derive_TryConvert_ResultE");
         let result_t = format_ident!("Derive_TryConvert_ResultT");
@@ -256,17 +258,68 @@ pub fn from_residual(input: TokenStream1) -> TokenStream1 {
 fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
     let name = ast.ident;
+    let mut impl_convert = TokenStream2::new();
 
-    if let Some(attribute) = ast
+    let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
-    {
-        let path = attribute.parse_args::<Path>()?;
-        let impl_convert = FromResidualImpl::new(path, &name, ast.generics.clone())?;
-        return Ok(impl_convert.tokens);
+    else {
+        return Ok(impl_convert);
+    };
+
+    let paths: Punctuated<Path, Token![,]> =
+        attribute.parse_args_with(Punctuated::parse_terminated)?;
+
+    for mut path in paths {
+        let (_, ty_generics, _) = ast.generics.split_for_impl();
+        let this: TypePath = parse_quote!(#name #ty_generics);
+
+        if path == parse_quote! {Result<_, Self::Residual>} {
+            continue;
+        };
+
+        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
+            .segments
+            .iter_mut()
+            .next_back()
+            .expect("at least one segment")
+            .arguments
+        else {
+            todo!("must wrap generics")
+        };
+
+        let mut generics = ast.generics.clone(); // TODO rename
+        let mut infer_count = 0;
+        for wrapped in wrapped.args.iter_mut() {
+            match wrapped {
+                GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
+                    *wrapped = this.clone();
+                }
+                GenericArgument::Type(Type::Infer(_)) => {
+                    let generic = format_ident!("FromResidual_Generic_{infer_count}");
+                    generics
+                        .params
+                        .push(GenericParam::Type(generic.clone().into()));
+                    *wrapped = parse_quote! {#generic};
+                    infer_count += 1;
+                }
+                _ => todo!("unknown source"),
+            };
+        }
+
+        let (impl_generics, _, where_clause) = generics.split_for_impl();
+        impl_convert.extend(quote! {
+            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
+                #[inline]
+                #[track_caller]
+                fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
+                    std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
+                }
+            }
+        });
     }
-    Ok(TokenStream2::new())
+    Ok(impl_convert)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
@@ -553,143 +606,9 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_traits)
 }
 
-#[derive(Debug, Clone)]
-struct FromResidualImpl {
-    tokens: TokenStream2,
-    #[allow(unused, reason = "only for testing")]
-    wraps: Wraps,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Wraps {
-    This,
-    Residual,
-}
-
-impl FromResidualImpl {
-    fn new(mut path: Path, name: &Ident, mut generics: Generics) -> DiagnosticResult<Self> {
-        let this_generics = generics.clone();
-        let (_, this_ty_generics, _) = this_generics.split_for_impl();
-        let this: TypePath = parse_quote!(#name #this_ty_generics);
-
-        if path == parse_quote! {Result<_, Self::Residual>} {
-            let wraps = Wraps::Residual;
-            let tokens = TokenStream2::new();
-            return Ok(Self { tokens, wraps });
-        };
-
-        let syn::PathArguments::AngleBracketed(ref mut wrapped) = path
-            .segments
-            .iter_mut()
-            .next_back()
-            .expect("at least one segment")
-            .arguments
-        else {
-            todo!("must wrap generics")
-        };
-
-        let mut infer_count = 0;
-        let mut wraps = None;
-        for wrapped in wrapped.args.iter_mut() {
-            match wrapped {
-                GenericArgument::Type(Type::Path(wrapped)) if wrapped.path.is_ident("Self") => {
-                    *wrapped = this.clone();
-                    if wraps.get_or_insert(Wraps::This) != &Wraps::This {
-                        todo!("Self & Residual")
-                    }
-                }
-                GenericArgument::Type(Type::Infer(_)) => {
-                    let generic = format_ident!("FromResidual_Generic_{infer_count}");
-                    generics
-                        .params
-                        .push(GenericParam::Type(generic.clone().into()));
-                    *wrapped = parse_quote! {#generic};
-                    infer_count += 1;
-                }
-                _ => todo!("unknown source"),
-            };
-        }
-
-        let (impl_generics, _, where_clause) = generics.split_for_impl();
-        let impl_convert = quote! {
-            impl #impl_generics std::ops::FromResidual<<#this as std::ops::Try>::Residual> for #path #where_clause {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: <#this as std::ops::Try>::Residual) -> Self {
-                    std::ops::Try::from_output(std::ops::FromResidual::from_residual(residual))
-                }
-            }
-        };
-
-        Ok(Self {
-            tokens: impl_convert,
-            wraps: wraps.expect("wrapped Self or Residual"),
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::assert_matches;
-    use std::ops::{ControlFlow::Continue, Try};
-
-    use syn::Attribute;
-
     use super::*;
-
-    #[test]
-    fn parse_from_residual_option_self() {
-        let ast: DeriveInput = parse_quote!(
-            enum Foo {}
-        );
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(std::option::Option<Self>)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let path = attr.parse_args::<Path>().expect("a path");
-        dbg!(&path);
-        let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
-        dbg!(&wrapped);
-        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::This));
-    }
-
-    #[test]
-    fn parse_from_residual_result_self() {
-        let ast: DeriveInput = parse_quote!(
-            enum Foo {}
-        );
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result<Self, _>)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let path = attr.parse_args::<Path>().expect("a path");
-        dbg!(&path);
-        let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
-        dbg!(&wrapped);
-        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::This));
-    }
-
-    #[test]
-    fn parse_from_residual_result_residual() {
-        let ast: DeriveInput = parse_quote!(
-            enum Foo {}
-        );
-        let attr: Vec<Attribute> = parse_quote! {#[FromResidual(Result<_, Self::Residual>)]};
-        dbg!(&attr);
-        let attr = attr
-            .iter()
-            .find(|attr| attr.path().is_ident("FromResidual"))
-            .expect("my attribute");
-        let path = attr.parse_args::<Path>().expect("a path");
-        dbg!(&path);
-        let wrapped = FromResidualImpl::new(path, &ast.ident, ast.generics.clone()).branch();
-        dbg!(&wrapped);
-        assert_matches!(wrapped, Continue(FromResidualImpl{wraps, ..}) if matches!(wraps, Wraps::Residual));
-    }
 
     #[test]
     fn derive() {
