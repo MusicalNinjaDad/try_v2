@@ -247,12 +247,21 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         });
         impl_try.extend(impl_convert);
     };
-    if let Some(attribute) = ast
+    if let Some(_attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("methods"))
     {
-        todo!("methods")
+        impl_try.extend(quote! {
+            impl #impl_generics #name #ty_generics #where_clause {
+                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }
+            }
+        });
     }
     Ok(impl_try)
 }
