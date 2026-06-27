@@ -2,7 +2,10 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use std::{num::NonZeroI32, ops::{FromResidual, Residual, Try}};
+use std::{
+    num::NonZeroI32,
+    ops::{FromResidual, Residual, Try},
+};
 
 use try_v2_derive::FromResidual;
 
