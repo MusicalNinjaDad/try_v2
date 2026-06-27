@@ -5,8 +5,6 @@
 use try_v2_derive::{FromResidual, Try};
 
 #[derive(Debug, Try, FromResidual, PartialEq)]
-// #[FromResidual(Result<Self, _>)]
-// #[FromResidual(Option<Self>)]
 #[FromResidual(Result<Self, _>, Option<Self>)]
 #[must_use]
 enum EightBall<Y, N> {
