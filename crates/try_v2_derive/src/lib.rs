@@ -8,8 +8,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath, parse_quote,
-    punctuated::Punctuated, spanned::Spanned,
+    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath,
+    parse_quote, punctuated::Punctuated, spanned::Spanned,
 };
 
 mod parse;
@@ -604,6 +604,35 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     });
 
     Ok(impl_traits)
+}
+
+#[proc_macro_derive(IntoIterator)]
+pub fn derive_into_iterator(input: TokenStream1) -> TokenStream1 {
+    into_iterator(input.into()).to_tokens()
+}
+
+fn into_iterator(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+    let name = ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let this = quote! {#name #ty_generics};
+
+    let impl_trait = quote! {
+        #impl_generics ::std::iter::IntoIterator for #this #where_clause {
+            type Item = <#this as ::std::ops::Try>::Output;
+            type IntoIter = ::std::option::IntoIter<<#this as ::std::ops::Try>::Output>;
+
+            fn into_iter(self) -> Self::IntoIter {
+                match self.branch() {
+                    std::ops::ControlFlow::Continue(v) => Some(v),
+                    std::ops::ControlFlow::Break(_) => None,
+                }
+                .into_iter()
+            }
+        }
+    };
+
+    Ok(impl_trait)
 }
 
 #[cfg(test)]
