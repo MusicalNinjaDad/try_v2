@@ -8,7 +8,7 @@ use std::ops::Try;
 use try_v2_derive::{IntoIterator, Try};
 
 #[derive(Debug, Try, IntoIterator, PartialEq)]
-#[methods(iter, iter_mut)]
+#[methods]
 #[must_use]
 enum EightBall<Y, N> {
     Yes(Y),

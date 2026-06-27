@@ -253,29 +253,46 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .find(|attr| attr.path().is_ident("methods"))
     {
         let mut methods = TokenStream2::new();
-        let wanted: Punctuated<Ident, Token![,]> =
-            attribute.parse_args_with(Punctuated::parse_terminated)?;
-
-        for method in wanted {
-            if method == format_ident!("iter") {
-                methods.extend(quote! {
-                    pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+        let iter = || {
+            quote! {
+                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
                     match self {
                         Self::#output_variant_name(v) => Some(v),
                         _ => None,
                     }.into_iter()
-                }});
-            } else if method == format_ident!("iter_mut") {
-                methods.extend(quote! {
-                    pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
-                        match self {
-                            Self::#output_variant_name(v) => Some(v),
-                            _ => None,
-                        }.into_iter()
-                    }
-                });
+                }
             }
-        }
+        };
+        let iter_mut = || {
+            quote! {
+                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }
+            }
+        };
+
+        match attribute.meta {
+            syn::Meta::Path(_) => {
+                methods.extend(iter());
+                methods.extend(iter_mut());
+            }
+            syn::Meta::List(_) => {
+                let wanted: Punctuated<Ident, Token![,]> =
+                    attribute.parse_args_with(Punctuated::parse_terminated)?;
+
+                for method in wanted {
+                    if method == format_ident!("iter") {
+                        methods.extend(iter());
+                    } else if method == format_ident!("iter_mut") {
+                        methods.extend(iter_mut());
+                    }
+                }
+            }
+            syn::Meta::NameValue(_) => todo!("can't process name value"),
+        };
 
         impl_try.extend(quote! {
             impl #impl_generics #name #ty_generics #where_clause {
