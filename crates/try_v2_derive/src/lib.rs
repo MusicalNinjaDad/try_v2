@@ -8,7 +8,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
 use quote::{format_ident, quote};
 use syn::{
-    DeriveInput, GenericArgument, GenericParam, Path, Token, Type, TypePath, parse_quote,
+    DeriveInput, GenericArgument, GenericParam, Ident, Path, Token, Type, TypePath, parse_quote,
     punctuated::Punctuated, spanned::Spanned,
 };
 
@@ -119,7 +119,7 @@ use parse::TryEnum;
 /// compiler but `&!` will dereference to `!` which will then coerce into any type or satisfy
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
-#[proc_macro_derive(Try, attributes(FromResidual))]
+#[proc_macro_derive(Try, attributes(FromResidual, methods))]
 pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
     impl_derive(input.into()).to_tokens()
 }
@@ -246,7 +246,62 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         });
         impl_try.extend(impl_convert);
-    }
+    };
+    if let Some(attribute) = ast
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("methods"))
+    {
+        let mut methods = TokenStream2::new();
+        let iter = || {
+            quote! {
+                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }
+            }
+        };
+        let iter_mut = || {
+            quote! {
+                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                    match self {
+                        Self::#output_variant_name(v) => Some(v),
+                        _ => None,
+                    }.into_iter()
+                }
+            }
+        };
+
+        match attribute.meta {
+            syn::Meta::Path(_) => {
+                methods.extend(iter());
+                methods.extend(iter_mut());
+            }
+            syn::Meta::List(_) => {
+                let wanted: Punctuated<Ident, Token![,]> =
+                    attribute.parse_args_with(Punctuated::parse_terminated)?;
+
+                for method in wanted {
+                    if method == format_ident!("iter") {
+                        methods.extend(iter());
+                    } else if method == format_ident!("iter_mut") {
+                        methods.extend(iter_mut());
+                    } else {
+                        todo!("error for unknown names")
+                    }
+                }
+            }
+            syn::Meta::NameValue(_) => todo!("can't process name value"),
+        };
+
+        impl_try.extend(quote! {
+            impl #impl_generics #name #ty_generics #where_clause {
+                #methods
+            }
+        });
+    };
     Ok(impl_try)
 }
 
@@ -604,6 +659,34 @@ fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
     });
 
     Ok(impl_traits)
+}
+
+#[proc_macro_derive(IntoIterator)]
+pub fn derive_into_iterator(input: TokenStream1) -> TokenStream1 {
+    into_iterator(input.into()).to_tokens()
+}
+
+fn into_iterator(input: TokenStream2) -> DiagnosticStream {
+    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
+    let name = ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let this = quote! {#name #ty_generics};
+
+    let impl_trait = quote! {
+        impl #impl_generics ::std::iter::IntoIterator for #this #where_clause {
+            type Item = <#this as ::std::ops::Try>::Output;
+            type IntoIter = ::std::option::IntoIter<<#this as ::std::ops::Try>::Output>;
+
+            fn into_iter(self) -> Self::IntoIter {
+                match self.branch() {
+                    std::ops::ControlFlow::Continue(v) => Some(v),
+                    std::ops::ControlFlow::Break(_) => None,
+                }
+                .into_iter()
+            }
+        }
+    };
+    Ok(impl_trait)
 }
 
 #[cfg(test)]
