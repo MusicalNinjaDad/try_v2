@@ -269,12 +269,8 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
         return Ok(impl_convert);
     };
 
-    dbg!(&attribute);
-
     let paths: Punctuated<Path, Token![,]> =
         attribute.parse_args_with(Punctuated::parse_terminated)?;
-
-    dbg!(&paths);
 
     for mut path in paths {
         let (_, ty_generics, _) = ast.generics.split_for_impl();
