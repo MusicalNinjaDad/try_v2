@@ -257,16 +257,16 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
     let name = ast.ident;
 
-    if let Some(attribute) = ast
+    let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("FromResidual"))
-    {
-        let path = attribute.parse_args::<Path>()?;
-        let impl_convert = FromResidualImpl::new(path, &name, ast.generics.clone())?;
-        return Ok(impl_convert.tokens);
-    }
-    Ok(TokenStream2::new())
+    else {
+        return Ok(TokenStream2::new());
+    };
+    let path = attribute.parse_args::<Path>()?;
+    let impl_convert = FromResidualImpl::new(path, &name, ast.generics.clone())?;
+    Ok(impl_convert.tokens)
 }
 
 #[proc_macro_derive(Try_ConvertResult)]
