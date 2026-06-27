@@ -2,7 +2,6 @@
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
-#![feature(iterator_try_collect)]
 
 use std::ops::Try;
 
@@ -14,15 +13,6 @@ enum EightBall<Y, N> {
     Yes(Y),
     RollAgain,
     No(N),
-}
-
-impl<V, Y, N> FromIterator<EightBall<Y, N>> for EightBall<V, N>
-where
-    V: FromIterator<<EightBall<Y, N> as std::ops::Try>::Output>,
-{
-    fn from_iter<T: IntoIterator<Item = EightBall<Y, N>>>(iter: T) -> Self {
-        iter.into_iter().try_collect()
-    }
 }
 
 #[test]
