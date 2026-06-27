@@ -5,6 +5,9 @@
 ### Breaking changes / New Features
 
 - derive FromResidual replaces Try_ConvertResult, works on any TryType
+- derive IntoIterator replaces Try_Iterator, works on any TryType
+- FromIterator removed
+- methods generates iter, iter_mut
 
 ## [v0.8.2]
 
