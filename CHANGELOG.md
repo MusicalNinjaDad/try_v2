@@ -7,7 +7,7 @@
 - derive FromResidual replaces Try_ConvertResult, works on any TryType
 - derive IntoIterator replaces Try_Iterator, works on any TryType
 - FromIterator removed
-- methods generates iter, iter_mut
+- methods generates iter, iter_mut, as_ref, as_ref_mut, as_deref, as_deref_mut
 
 ## [v0.8.2]
 
