@@ -3,6 +3,8 @@
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
 
+use std::collections::HashMap;
+
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2_diagnostic::{ToTokens, prelude::*};
@@ -187,6 +189,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
+
     if let Some(attribute) = ast
         .attrs
         .iter()
@@ -247,50 +250,145 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         });
         impl_try.extend(impl_convert);
     };
+
     if let Some(attribute) = ast
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("methods"))
     {
+        // Must declare this before available_methods, as Drop happens in reverse order at end of block
+        let mut ref_arms = vec![Some(parse_quote! {
+            #name::#output_variant_name(v) => #name::#output_variant_name(v),
+        })];
+        // Relies on invariant - output arm is always first
+        ref_arms.extend(residual_arms.iter().skip(1).cloned());
+
+        let mut available_methods: HashMap<Ident, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
+
+        available_methods.insert(
+            format_ident!("iter"),
+            Box::new(|| {
+                quote! {
+                    pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+                        match self {
+                            Self::#output_variant_name(v) => Some(v),
+                            _ => None,
+                        }.into_iter()
+                    }
+                }
+            }),
+        );
+        available_methods.insert(
+            format_ident!("iter_mut"),
+            Box::new(|| {
+                quote! {
+                    pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                        match self {
+                            Self::#output_variant_name(v) => Some(v),
+                            _ => None,
+                        }.into_iter()
+                    }
+                }
+            }),
+        );
+        available_methods.insert(
+            format_ident!("as_ref"),
+            Box::new(|| {
+                let ty_params = ast.generics.type_params();
+                let ref_ty_generics = quote! { <#(&#ty_params),*> };
+
+                quote! {
+                    pub fn as_ref(&self) -> #name #ref_ty_generics {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
+        available_methods.insert(
+            format_ident!("as_mut"),
+            Box::new(|| {
+                let ty_params = ast.generics.type_params();
+                let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
+
+                quote! {
+                    pub fn as_mut(&mut self) -> #name #ref_ty_generics {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
+        available_methods.insert(
+            format_ident!("as_deref"),
+            Box::new(|| {
+                // Relies on invariant: output is first generic type
+                let output_target: Option<TypePath> =
+                    Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
+                let ty_params = ast
+                    .generics
+                    .type_params()
+                    .skip(1)
+                    .map::<TypePath, _>(|tp| parse_quote! {#tp});
+                let ty_params = output_target.into_iter().chain(ty_params);
+                let ref_ty_generics = quote! { <#(&#ty_params),*> };
+                quote! {
+                    pub fn as_deref(&self) -> #name #ref_ty_generics
+                    where
+                        #output_type: ::std::ops::Deref,
+                    {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
+        available_methods.insert(
+            format_ident!("as_deref_mut"),
+            Box::new(|| {
+                // Relies on invariant: output is first generic type
+                let output_target: Option<TypePath> =
+                    Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
+                let ty_params = ast
+                    .generics
+                    .type_params()
+                    .skip(1)
+                    .map::<TypePath, _>(|tp| parse_quote! {#tp});
+                let ty_params = output_target.into_iter().chain(ty_params);
+                let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
+                quote! {
+                    pub fn as_deref_mut(&mut self) -> #name #ref_ty_generics
+                    where
+                        #output_type: ::std::ops::DerefMut,
+                    {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
+
         let mut methods = TokenStream2::new();
-        let iter = || {
-            quote! {
-                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
-            }
-        };
-        let iter_mut = || {
-            quote! {
-                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
-            }
-        };
 
         match attribute.meta {
             syn::Meta::Path(_) => {
-                methods.extend(iter());
-                methods.extend(iter_mut());
+                for method in available_methods.values() {
+                    methods.extend(method())
+                }
             }
             syn::Meta::List(_) => {
                 let wanted: Punctuated<Ident, Token![,]> =
                     attribute.parse_args_with(Punctuated::parse_terminated)?;
 
                 for method in wanted {
-                    if method == format_ident!("iter") {
-                        methods.extend(iter());
-                    } else if method == format_ident!("iter_mut") {
-                        methods.extend(iter_mut());
-                    } else {
-                        todo!("error for unknown names")
-                    }
+                    match available_methods.get(&method) {
+                        Some(method) => methods.extend(method()),
+                        None => todo!("error for unknown names"),
+                    };
                 }
             }
             syn::Meta::NameValue(_) => todo!("can't process name value"),
