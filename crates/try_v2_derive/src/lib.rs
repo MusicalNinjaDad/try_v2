@@ -254,6 +254,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .iter()
         .find(|attr| attr.path().is_ident("methods"))
     {
+        // Must declare this before available_methods, as Drop happens in reverse order at end of block
         let mut ref_arms = vec![Some(parse_quote! {
             #name::#output_variant_name(v) => #name::#output_variant_name(v),
         })];
