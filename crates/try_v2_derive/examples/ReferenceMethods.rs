@@ -16,7 +16,6 @@ enum EightBall<Y, N> {
     No(N),
 }
 
-#[cfg(test)]
 #[test]
 fn refs() {
     assert_eq!(
