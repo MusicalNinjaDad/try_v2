@@ -275,17 +275,14 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         };
 
         let mut ref_arms = vec![Some(parse_quote! {
-            #name::#output_variant_name(v) => #name::#output_variant_name(v)
+            #name::#output_variant_name(v) => #name::#output_variant_name(v),
         })];
         // Relies on invariant - output arm is always first
         ref_arms.extend(residual_arms.iter().skip(1).cloned());
 
         let as_ref = || {
-            let generics = tryenum.generics(|g| {
-                g.type_params_mut()
-                    .for_each(|tp| tp.ident = format_ident!("&{ident}", ident = tp.ident))
-            });
-            let (_, ref_ty_generics, _) = generics.split_for_impl();
+            let ty_params = ast.generics.type_params();
+            let ref_ty_generics = quote! { <#(&#ty_params),*> };
 
             quote! {
                 pub fn as_ref(&self) -> #name #ref_ty_generics {
