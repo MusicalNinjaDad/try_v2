@@ -335,7 +335,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 let ty_params = output_target.into_iter().chain(ty_params);
                 let ref_ty_generics = quote! { <#(&#ty_params),*> };
                 quote! {
-                    fn as_deref(&self) -> #name #ref_ty_generics
+                    pub fn as_deref(&self) -> #name #ref_ty_generics
                     where
                         #output_type: ::std::ops::Deref,
                     {
@@ -360,7 +360,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 let ty_params = output_target.into_iter().chain(ty_params);
                 let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
                 quote! {
-                    fn as_deref_mut(&mut self) -> #name #ref_ty_generics
+                    pub fn as_deref_mut(&mut self) -> #name #ref_ty_generics
                     where
                         #output_type: ::std::ops::DerefMut,
                     {
@@ -374,25 +374,25 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
         let mut methods = TokenStream2::new();
 
-        match attribute.meta {
-            syn::Meta::Path(_) => {
-                for method in available_methods.values() {
-                    methods.extend(method())
-                }
-            }
-            syn::Meta::List(_) => {
-                let wanted: Punctuated<Ident, Token![,]> =
-                    attribute.parse_args_with(Punctuated::parse_terminated)?;
+match attribute.meta {
+    syn::Meta::Path(_) => {
+        for method in available_methods.values() {
+            methods.extend(method())
+        }
+    }
+    syn::Meta::List(_) => {
+        let wanted: Punctuated<Ident, Token![,]> =
+            attribute.parse_args_with(Punctuated::parse_terminated)?;
 
-                for method in wanted {
-                    match available_methods.get(&method) {
-                        Some(method) => methods.extend(method()),
-                        None => todo!("error for unknown names"),
-                    };
-                }
-            }
-            syn::Meta::NameValue(_) => todo!("can't process name value"),
-        };
+        for method in wanted {
+            match available_methods.get(&method) {
+                Some(method) => methods.extend(method()),
+                None => todo!("error for unknown names"),
+            };
+        }
+    }
+    syn::Meta::NameValue(_) => todo!("can't process name value"),
+};
 
         impl_try.extend(quote! {
             impl #impl_generics #name #ty_generics #where_clause {
