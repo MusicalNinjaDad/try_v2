@@ -189,6 +189,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             type TryType = #name #ty_generics;
         }
     };
+
     if let Some(attribute) = ast
         .attrs
         .iter()
@@ -249,6 +250,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         });
         impl_try.extend(impl_convert);
     };
+
     if let Some(attribute) = ast
         .attrs
         .iter()
