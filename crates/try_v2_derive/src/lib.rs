@@ -274,10 +274,33 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         };
 
+        let mut ref_arms = vec![Some(parse_quote! {
+            #name::#output_variant_name(v) => #name::#output_variant_name(v)
+        })];
+        // Relies on invariant - output arm is always first
+        ref_arms.extend(residual_arms.iter().skip(1).cloned());
+
+        let as_ref = || {
+            let generics = tryenum.generics(|g| {
+                g.type_params_mut()
+                    .for_each(|tp| tp.ident = format_ident!("&{ident}", ident = tp.ident))
+            });
+            let (_, ref_ty_generics, _) = generics.split_for_impl();
+
+            quote! {
+                pub fn as_ref(&self) -> #name #ref_ty_generics {
+                    match self {
+                        #(#ref_arms)*
+                    }
+                }
+            }
+        };
+
         match attribute.meta {
             syn::Meta::Path(_) => {
                 methods.extend(iter());
                 methods.extend(iter_mut());
+                methods.extend(as_ref());
             }
             syn::Meta::List(_) => {
                 let wanted: Punctuated<Ident, Token![,]> =
@@ -288,6 +311,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                         methods.extend(iter());
                     } else if method == format_ident!("iter_mut") {
                         methods.extend(iter_mut());
+                    } else if method == format_ident!("as_ref") {
+                        methods.extend(as_ref());
                     } else {
                         todo!("error for unknown names")
                     }

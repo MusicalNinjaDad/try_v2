@@ -16,8 +16,8 @@ enum EightBall<Y, N> {
     No(N),
 }
 
-impl<Y,N> EightBall<Y,N> {
-    fn as_ref(&self) -> EightBall<&Y,&N> {
+impl<Y, N> EightBall<Y, N> {
+    fn as_ref(&self) -> EightBall<&Y, &N> {
         match self {
             EightBall::Yes(v) => EightBall::Yes(v),
             EightBall::RollAgain => EightBall::RollAgain,
@@ -29,9 +29,18 @@ impl<Y,N> EightBall<Y,N> {
 #[cfg(test)]
 #[test]
 fn refs() {
-    assert_eq!(EightBall::<&i32,&i32>::Yes(&5), EightBall::<i32, i32>::Yes(5).as_ref());
-    assert_eq!(EightBall::<&i32,&i32>::RollAgain, EightBall::<i32, i32>::RollAgain.as_ref());
-    assert_eq!(EightBall::<&i32,&i32>::No(&5), EightBall::<i32, i32>::No(5).as_ref());
+    assert_eq!(
+        EightBall::<&i32, &i32>::Yes(&5),
+        EightBall::<i32, i32>::Yes(5).as_ref()
+    );
+    assert_eq!(
+        EightBall::<&i32, &i32>::RollAgain,
+        EightBall::<i32, i32>::RollAgain.as_ref()
+    );
+    assert_eq!(
+        EightBall::<&i32, &i32>::No(&5),
+        EightBall::<i32, i32>::No(5).as_ref()
+    );
 }
 
 fn main() {}
