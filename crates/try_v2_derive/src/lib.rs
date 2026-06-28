@@ -374,25 +374,25 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
 
         let mut methods = TokenStream2::new();
 
-match attribute.meta {
-    syn::Meta::Path(_) => {
-        for method in available_methods.values() {
-            methods.extend(method())
-        }
-    }
-    syn::Meta::List(_) => {
-        let wanted: Punctuated<Ident, Token![,]> =
-            attribute.parse_args_with(Punctuated::parse_terminated)?;
+        match attribute.meta {
+            syn::Meta::Path(_) => {
+                for method in available_methods.values() {
+                    methods.extend(method())
+                }
+            }
+            syn::Meta::List(_) => {
+                let wanted: Punctuated<Ident, Token![,]> =
+                    attribute.parse_args_with(Punctuated::parse_terminated)?;
 
-        for method in wanted {
-            match available_methods.get(&method) {
-                Some(method) => methods.extend(method()),
-                None => todo!("error for unknown names"),
-            };
-        }
-    }
-    syn::Meta::NameValue(_) => todo!("can't process name value"),
-};
+                for method in wanted {
+                    match available_methods.get(&method) {
+                        Some(method) => methods.extend(method()),
+                        None => todo!("error for unknown names"),
+                    };
+                }
+            }
+            syn::Meta::NameValue(_) => todo!("can't process name value"),
+        };
 
         impl_try.extend(quote! {
             impl #impl_generics #name #ty_generics #where_clause {
