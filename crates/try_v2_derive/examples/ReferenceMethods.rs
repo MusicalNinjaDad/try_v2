@@ -8,25 +8,12 @@ use std::ops::{Deref, DerefMut, Try};
 use try_v2_derive::Try;
 
 #[derive(Debug, Try, PartialEq)]
-#[methods(as_ref, as_mut, as_deref)]
+#[methods(as_ref, as_mut, as_deref, as_deref_mut)]
 #[must_use]
 enum EightBall<Y, N> {
     Yes(Y),
     RollAgain,
     No(N),
-}
-
-impl<Y, N> EightBall<Y, N> {
-    fn as_deref_mut(&mut self) -> EightBall<&mut <Y as Deref>::Target, &mut N>
-    where
-        Y: DerefMut,
-    {
-        match self {
-            EightBall::Yes(y) => EightBall::Yes(y),
-            EightBall::RollAgain => EightBall::RollAgain,
-            EightBall::No(n) => EightBall::No(n),
-        }
-    }
 }
 
 #[test]

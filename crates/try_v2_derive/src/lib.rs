@@ -343,6 +343,31 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }),
         );
+        available_methods.insert(
+            format_ident!("as_deref_mut"),
+            Box::new(|| {
+                // Relies on invariant: output is first generic type
+                let output_target: Option<TypePath> =
+                    Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
+                let ty_params = ast
+                    .generics
+                    .type_params()
+                    .skip(1)
+                    .map::<TypePath, _>(|tp| parse_quote! {#tp});
+                let ty_params = output_target.into_iter().chain(ty_params);
+                let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
+                quote! {
+                    fn as_deref_mut(&mut self) -> #name #ref_ty_generics
+                    where
+                        #output_type: ::std::ops::DerefMut,
+                    {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
 
         let mut methods = TokenStream2::new();
 
