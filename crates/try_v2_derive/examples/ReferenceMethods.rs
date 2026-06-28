@@ -3,7 +3,7 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use std::ops::{Deref, Try};
+use std::ops::{Deref, DerefMut, Try};
 
 use try_v2_derive::Try;
 
@@ -16,8 +16,22 @@ enum EightBall<Y, N> {
     No(N),
 }
 
-impl<Y: Deref,N> EightBall<Y,N> {
-    fn as_deref(&self) -> EightBall<&<Y as Deref>::Target, &N> {
+impl<Y, N> EightBall<Y, N> {
+    fn as_deref(&self) -> EightBall<&<Y as Deref>::Target, &N>
+    where
+        Y: Deref,
+    {
+        match self {
+            EightBall::Yes(y) => EightBall::Yes(y),
+            EightBall::RollAgain => EightBall::RollAgain,
+            EightBall::No(n) => EightBall::No(n),
+        }
+    }
+
+    fn as_deref_mut(&mut self) -> EightBall<&mut <Y as Deref>::Target, &mut N>
+    where
+        Y: DerefMut,
+    {
         match self {
             EightBall::Yes(y) => EightBall::Yes(y),
             EightBall::RollAgain => EightBall::RollAgain,
@@ -67,6 +81,18 @@ fn derefs() {
     assert_eq!(
         EightBall::<&str, &i32>::No(&5),
         EightBall::<String, i32>::No(5).as_deref()
+    );
+    assert_eq!(
+        EightBall::<&mut str, &mut i32>::Yes(&mut "yes".to_string()),
+        EightBall::<String, i32>::Yes("yes".to_string()).as_deref_mut()
+    );
+    assert_eq!(
+        EightBall::<&mut str, &mut i32>::RollAgain,
+        EightBall::<String, i32>::RollAgain.as_deref_mut()
+    );
+    assert_eq!(
+        EightBall::<&mut str, &mut i32>::No(&mut 5),
+        EightBall::<String, i32>::No(5).as_deref_mut()
     );
 }
 
