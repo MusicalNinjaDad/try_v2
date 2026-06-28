@@ -255,26 +255,6 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .find(|attr| attr.path().is_ident("methods"))
     {
         let mut methods = TokenStream2::new();
-        let iter = || {
-            quote! {
-                pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
-            }
-        };
-        let iter_mut = || {
-            quote! {
-                pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
-                    match self {
-                        Self::#output_variant_name(v) => Some(v),
-                        _ => None,
-                    }.into_iter()
-                }
-            }
-        };
 
         let mut ref_arms = vec![Some(parse_quote! {
             #name::#output_variant_name(v) => #name::#output_variant_name(v),
@@ -282,37 +262,63 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         // Relies on invariant - output arm is always first
         ref_arms.extend(residual_arms.iter().skip(1).cloned());
 
-        let as_ref = || {
-            let ty_params = ast.generics.type_params();
-            let ref_ty_generics = quote! { <#(&#ty_params),*> };
-
-            quote! {
-                pub fn as_ref(&self) -> #name #ref_ty_generics {
-                    match self {
-                        #(#ref_arms)*
-                    }
-                }
-            }
-        };
-
-        let as_mut = || {
-            let ty_params = ast.generics.type_params();
-            let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
-
-            quote! {
-                pub fn as_mut(&mut self) -> #name #ref_ty_generics {
-                    match self {
-                        #(#ref_arms)*
-                    }
-                }
-            }
-        };
-
         let mut method_map: HashMap<&str, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
-        method_map.insert("iter", Box::new(iter));
-        method_map.insert("iter_mut", Box::new(iter_mut));
-        method_map.insert("as_ref", Box::new(as_ref));
-        method_map.insert("as_mut", Box::new(as_mut));
+        method_map.insert(
+            "iter",
+            Box::new(|| {
+                quote! {
+                    pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
+                        match self {
+                            Self::#output_variant_name(v) => Some(v),
+                            _ => None,
+                        }.into_iter()
+                    }
+                }
+            }),
+        );
+        method_map.insert(
+            "iter_mut",
+            Box::new(|| {
+                quote! {
+                    pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
+                        match self {
+                            Self::#output_variant_name(v) => Some(v),
+                            _ => None,
+                        }.into_iter()
+                    }
+                }
+            }),
+        );
+        method_map.insert(
+            "as_ref",
+            Box::new(|| {
+                let ty_params = ast.generics.type_params();
+                let ref_ty_generics = quote! { <#(&#ty_params),*> };
+
+                quote! {
+                    pub fn as_ref(&self) -> #name #ref_ty_generics {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
+        method_map.insert(
+            "as_mut",
+            Box::new(|| {
+                let ty_params = ast.generics.type_params();
+                let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
+
+                quote! {
+                    pub fn as_mut(&mut self) -> #name #ref_ty_generics {
+                        match self {
+                            #(#ref_arms)*
+                        }
+                    }
+                }
+            }),
+        );
 
         match attribute.meta {
             syn::Meta::Path(_) => {
