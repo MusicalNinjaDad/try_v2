@@ -293,11 +293,25 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         };
 
+        let as_mut = || {
+            let ty_params = ast.generics.type_params();
+            let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
+
+            quote! {
+                pub fn as_mut(&mut self) -> #name #ref_ty_generics {
+                    match self {
+                        #(#ref_arms)*
+                    }
+                }
+            }
+        };
+
         match attribute.meta {
             syn::Meta::Path(_) => {
                 methods.extend(iter());
                 methods.extend(iter_mut());
                 methods.extend(as_ref());
+                methods.extend(as_mut());
             }
             syn::Meta::List(_) => {
                 let wanted: Punctuated<Ident, Token![,]> =
@@ -310,6 +324,8 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                         methods.extend(iter_mut());
                     } else if method == format_ident!("as_ref") {
                         methods.extend(as_ref());
+                    } else if method == format_ident!("as_mut") {
+                        methods.extend(as_mut());
                     } else {
                         todo!("error for unknown names")
                     }
