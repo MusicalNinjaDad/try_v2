@@ -325,17 +325,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                     attribute.parse_args_with(Punctuated::parse_terminated)?;
 
                 for method in wanted {
-                    if method == format_ident!("iter") {
-                        methods.extend(iter());
-                    } else if method == format_ident!("iter_mut") {
-                        methods.extend(iter_mut());
-                    } else if method == format_ident!("as_ref") {
-                        methods.extend(as_ref());
-                    } else if method == format_ident!("as_mut") {
-                        methods.extend(as_mut());
-                    } else {
-                        todo!("error for unknown names")
-                    }
+                    match method_map.get(method.to_string().as_str()) {
+                        Some(method) => methods.extend(method()),
+                        None => todo!("error for unknown names"),
+                    };
                 }
             }
             syn::Meta::NameValue(_) => todo!("can't process name value"),
