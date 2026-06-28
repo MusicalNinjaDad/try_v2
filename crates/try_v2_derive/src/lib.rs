@@ -254,16 +254,15 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         .iter()
         .find(|attr| attr.path().is_ident("methods"))
     {
-        let mut methods = TokenStream2::new();
-
         let mut ref_arms = vec![Some(parse_quote! {
             #name::#output_variant_name(v) => #name::#output_variant_name(v),
         })];
         // Relies on invariant - output arm is always first
         ref_arms.extend(residual_arms.iter().skip(1).cloned());
 
-        let mut method_map: HashMap<&str, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
-        method_map.insert(
+        let mut available_methods: HashMap<&str, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
+
+        available_methods.insert(
             "iter",
             Box::new(|| {
                 quote! {
@@ -276,7 +275,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }),
         );
-        method_map.insert(
+        available_methods.insert(
             "iter_mut",
             Box::new(|| {
                 quote! {
@@ -289,7 +288,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }),
         );
-        method_map.insert(
+        available_methods.insert(
             "as_ref",
             Box::new(|| {
                 let ty_params = ast.generics.type_params();
@@ -304,7 +303,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                 }
             }),
         );
-        method_map.insert(
+        available_methods.insert(
             "as_mut",
             Box::new(|| {
                 let ty_params = ast.generics.type_params();
@@ -320,9 +319,11 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }),
         );
 
+        let mut methods = TokenStream2::new();
+
         match attribute.meta {
             syn::Meta::Path(_) => {
-                for method in method_map.values() {
+                for method in available_methods.values() {
                     methods.extend(method())
                 }
             }
@@ -331,7 +332,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                     attribute.parse_args_with(Punctuated::parse_terminated)?;
 
                 for method in wanted {
-                    match method_map.get(method.to_string().as_str()) {
+                    match available_methods.get(method.to_string().as_str()) {
                         Some(method) => methods.extend(method()),
                         None => todo!("error for unknown names"),
                     };
