@@ -8,12 +8,22 @@ use std::ops::Try;
 use try_v2_derive::Try;
 
 #[derive(Debug, Try, PartialEq)]
-#[methods(as_ref)]
+// #[methods(as_ref)]
 #[must_use]
 enum EightBall<Y, N> {
     Yes(Y),
     RollAgain,
     No(N),
+}
+
+impl<Y,N> EightBall<Y,N> {
+    fn as_ref(&self) -> EightBall<&Y,&N> {
+        match self {
+            EightBall::Yes(v) => EightBall::Yes(v),
+            EightBall::RollAgain => EightBall::RollAgain,
+            EightBall::No(v) => EightBall::No(v),
+        }
+    }
 }
 
 #[cfg(test)]
