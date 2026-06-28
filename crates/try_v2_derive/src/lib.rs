@@ -260,10 +260,10 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         // Relies on invariant - output arm is always first
         ref_arms.extend(residual_arms.iter().skip(1).cloned());
 
-        let mut available_methods: HashMap<&str, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
+        let mut available_methods: HashMap<Ident, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
 
         available_methods.insert(
-            "iter",
+            format_ident!("iter"),
             Box::new(|| {
                 quote! {
                     pub fn iter(&self) -> ::std::option::IntoIter<&#output_type> {
@@ -276,7 +276,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }),
         );
         available_methods.insert(
-            "iter_mut",
+            format_ident!("iter_mut"),
             Box::new(|| {
                 quote! {
                     pub fn iter_mut(&mut self) -> ::std::option::IntoIter<&mut #output_type> {
@@ -289,7 +289,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }),
         );
         available_methods.insert(
-            "as_ref",
+            format_ident!("as_ref"),
             Box::new(|| {
                 let ty_params = ast.generics.type_params();
                 let ref_ty_generics = quote! { <#(&#ty_params),*> };
@@ -304,7 +304,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }),
         );
         available_methods.insert(
-            "as_mut",
+            format_ident!("as_mut"),
             Box::new(|| {
                 let ty_params = ast.generics.type_params();
                 let ref_ty_generics = quote! { <#(&mut #ty_params),*> };
@@ -332,7 +332,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                     attribute.parse_args_with(Punctuated::parse_terminated)?;
 
                 for method in wanted {
-                    match available_methods.get(method.to_string().as_str()) {
+                    match available_methods.get(&method) {
                         Some(method) => methods.extend(method()),
                         None => todo!("error for unknown names"),
                     };
