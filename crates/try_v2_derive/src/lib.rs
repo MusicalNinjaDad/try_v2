@@ -1,10 +1,9 @@
-#![feature(hash_map_macro)]
 #![cfg(all(has_never_type, has_try_trait_v2, has_try_trait_v2_residual))]
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
 
-use std::hash_map;
+use std::collections::HashMap;
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
@@ -309,17 +308,17 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             }
         };
 
-        let method_map = hash_map! {
-            "iter" => Box::new(iter),
-            "iter_mut" => Box::new(iter_mut)
-        };
+        let mut method_map: HashMap<&str, Box<dyn Fn() -> TokenStream2>> = HashMap::new();
+        method_map.insert("iter", Box::new(iter));
+        method_map.insert("iter_mut", Box::new(iter_mut));
+        method_map.insert("as_ref", Box::new(as_ref));
+        method_map.insert("as_mut", Box::new(as_mut));
 
         match attribute.meta {
             syn::Meta::Path(_) => {
-                methods.extend(iter());
-                methods.extend(iter_mut());
-                methods.extend(as_ref());
-                methods.extend(as_mut());
+                for method in method_map.values() {
+                    methods.extend(method())
+                }
             }
             syn::Meta::List(_) => {
                 let wanted: Punctuated<Ident, Token![,]> =
