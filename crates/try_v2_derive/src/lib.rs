@@ -1,7 +1,10 @@
+#![feature(hash_map_macro)]
 #![cfg(all(has_never_type, has_try_trait_v2, has_try_trait_v2_residual))]
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
+
+use std::hash_map;
 
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream as TokenStream2;
@@ -304,6 +307,11 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                     }
                 }
             }
+        };
+
+        let method_map = hash_map! {
+            "iter" => Box::new(iter),
+            "iter_mut" => Box::new(iter_mut)
         };
 
         match attribute.meta {
