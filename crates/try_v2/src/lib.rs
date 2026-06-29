@@ -1,6 +1,7 @@
 #![cfg(all(has_try_trait_v2, has_try_trait_v2_residual))]
 
-//! Provides derive macros for [Try], [FromResidual] & [crate::IntoIterator].
+//! Provides derive macros for [Try](derive@Try), [FromResidual](derive@FromResidual) &
+//! [IntoIterator](derive@IntoIterator).
 //! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
 //! of the underlying trait.
 //!
