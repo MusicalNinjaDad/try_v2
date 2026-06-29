@@ -90,25 +90,6 @@ mod bound_ok_type {
         }
         assert_matches!(pass(), Exit::Ok(()))
     }
-
-    #[test]
-    fn convert_to_result_1() {
-        fn fail() -> Result<(), AnError> {
-            Exit::TestsFailed?;
-            Ok(())
-        }
-        assert_matches!(fail(), Result::Err(e) if e.0 == "tests failed")
-    }
-
-    #[test]
-    fn convert_to_result_2() {
-        fn fail() -> Result<(), AnError> {
-            Exit::OtherError("oops!".to_string())?;
-            Exit::TestsFailed?;
-            Ok(())
-        }
-        assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
-    }
 }
 
 mod multiple_generics {
@@ -219,60 +200,6 @@ mod lifetime_conversion {
         fn from(f: Failure<'f>) -> Self {
             BorrowedResult::Err(f.0)
         }
-    }
-
-    #[test]
-    fn test_borrowed_to_result_passthrough() {
-        fn borrowed_to_result_passthrough<'t, 'e>(
-            okval: &'t i32,
-            errval: &'e i32,
-        ) -> StdResult<'t, 'e> {
-            let rtn = match errval {
-                ..=4 => BorrowedResult::pass(okval)?,
-                5 => BorrowedResult::fail(errval)?,
-                6.. => BorrowedResult::fail_directly(errval)?,
-            };
-            Ok(rtn)
-        }
-
-        assert_matches!(borrowed_to_result_passthrough(&0, &1), StdResult::Ok(&0));
-        assert_matches!(
-            borrowed_to_result_passthrough(&0, &5),
-            StdResult::Err(Failure(&5))
-        );
-        assert_matches!(
-            borrowed_to_result_passthrough(&0, &7),
-            StdResult::Err(Failure(&7))
-        );
-    }
-
-    #[test]
-    fn test_borrowed_to_result_restricted() {
-        fn borrowed_to_result_restricted<'t, 'e, 'o, 'f>(
-            okval: &'t i32,
-            errval: &'e i32,
-        ) -> StdResult<'o, 'f>
-        where
-            't: 'o,
-            'e: 'f,
-        {
-            let rtn = match errval {
-                ..=4 => BorrowedResult::pass(okval)?,
-                5 => BorrowedResult::fail(errval)?,
-                6.. => BorrowedResult::fail_directly(errval)?,
-            };
-            Ok(rtn)
-        }
-
-        assert_matches!(borrowed_to_result_restricted(&0, &1), StdResult::Ok(&0));
-        assert_matches!(
-            borrowed_to_result_restricted(&0, &5),
-            StdResult::Err(Failure(&5))
-        );
-        assert_matches!(
-            borrowed_to_result_restricted(&0, &7),
-            StdResult::Err(Failure(&7))
-        );
     }
 
     #[test]

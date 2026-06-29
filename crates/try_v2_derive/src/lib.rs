@@ -192,7 +192,7 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
         name,
         output_variant_name,
         output_type,
-        output_type_name,
+        _output_type_name,
         residual_type,
         impl_generics,
         ty_generics,
@@ -258,7 +258,6 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
             .is_some()
     {
         let result_e = format_ident!("Derive_TryConvert_ResultE");
-        let result_t = format_ident!("Derive_TryConvert_ResultT");
 
         let from_result_generics = tryenum.generics(|g| {
             g.params
@@ -266,7 +265,7 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
         });
         let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-        let mut impl_convert = quote! {
+        impl_try.extend(quote! {
             impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
             {
                 #[inline]
@@ -280,32 +279,7 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
                     }
                 }
             }
-        };
-
-        let to_result_generics = tryenum.generics_with_params(|p| {
-            p
-                //remove output type
-                .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
-                // add result types
-                .chain([
-                    parse_quote! {#result_t},
-                    parse_quote! {#result_e: From<#residual_type>},
-                ])
         });
-
-        let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
-
-        impl_convert.extend(quote! {
-            impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: #residual_type) -> Self {
-                    std::result::Result::Err(residual.into())
-                }
-            }
-        });
-        impl_try.extend(impl_convert);
     };
 
     if let Some(attribute) = ast
