@@ -35,6 +35,7 @@ use parse::TryEnum;
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2_derive::Try;
 /// #[derive(Try)]
+/// #[must_use]
 /// enum TestResult<T, E> {
 ///     Ok(T),
 ///     TestsFailed,
@@ -70,6 +71,63 @@ use parse::TryEnum;
 /// }
 /// ```
 ///
+/// ## `#[methods]` for working with references
+///
+/// The following direct methods can be additionally derived by adding a `#[method]` annotation.
+/// A simple annotation will derive *all* methods, alternatively you can list the specific methods
+/// e.g. `#[methods(as_ref, as_mut)]`
+///
+///   - `as_ref`: converts an `&'a Foo<_,_>` to a new, owned `Foo<&'a _, &'a _>`, leaving the original intact
+///   - `as_mut`: converts an `&'a mut Foo<_,_>` to a new, owned `Foo<&'a mut _, &'a mut _>`,
+///     leaving the original intact
+///   - `as_deref`: converts an `&'a Foo<T,_>` to a new, owned `Foo<&'a T::Target, &'a _>`,
+///     where `T: Deref`, leaving the original intact
+///   - `as_deref_mut`: converts an `&'a mut Foo<T,_>` to a new, owned `Foo<&'a mut T::Target, &'a mut _>`,
+///     where `T: DerefMut`, leaving the original intact
+///   - `iter`: returns an iterator over `&T` - see [into_iterator] for more details on iterating
+///     over TryTypes
+///   - `iter_mut`: returns an iterator over `&mut T` - see [into_iterator] for more details on iterating
+///     over TryTypes
+///
+/// ## Interconversion with `Result` in error cases
+///
+/// If you wish to allow interconversion with `Result` via `?`:
+///   - `?` operations on a `Result` in functions which return your TryType
+///   - `?` on your TryType in functions which return a `Result`
+///
+/// 1. annotate your type with `#[FromResidual(Result<_, Self::Residual>)]`
+/// 2. provide relevant `From` implementations (see examples)
+///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # use try_v2_derive::Try;
+/// # use std::{io, path::PathBuf};
+/// #[derive(Debug, Try)]
+/// #[FromResidual(Result<_, Self::Residual>)]
+/// #[must_use]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E)
+/// }
+///
+/// // Need to know which variant to create for a specific error
+/// impl<T> From<io::Error> for TestResult<T, io::Error> {
+///     fn from(err: io::Error) -> Self {
+///         Self::OtherError(err)
+///     }
+/// }
+///
+/// //                 function returns custom TryType
+/// fn read_stdin() -> TestResult<String, io::Error> {
+///     let stdin = io::read_to_string(io::stdin())?; // <- `?` on an `io::Result`
+///     // some parsing logic
+///     TestResult::Ok(stdin)
+/// }
+/// ```
+///
 /// ## Things to note
 ///
 /// This macro aims to reduce boilerpate for the most common implementations.
@@ -102,6 +160,7 @@ use parse::TryEnum;
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2_derive::Try;
 /// #[derive(Try)]
+/// # #[must_use]
 /// enum TestResult<'t, 'e, T, E> {
 ///     Ok(&'t T),
 ///     TestsFailed,

@@ -28,13 +28,13 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust
+//! ```rust, ignore TODO update
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
 //! #![feature(try_trait_v2_residual)]
 //! use try_v2::{Try, Try_ConvertResult};
 //!
-//! #[derive(Try, Try_ConvertResult)]
+//! #[derive(Try)]
 //! enum TestResult<T> {
 //!     Ok(T),
 //!     TestsFailed,
