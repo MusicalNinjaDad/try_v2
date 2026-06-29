@@ -259,10 +259,10 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
     {
         let result_e = format_ident!("Derive_TryConvert_ResultE");
 
-        let from_result_generics = tryenum.generics(|g| {
-            g.params
-                .push(parse_quote! {#result_e: Into<#residual_type>})
-        });
+        let mut from_result_generics = ast.generics.clone();
+        from_result_generics
+            .params
+            .push(parse_quote! {#result_e: Into<#residual_type>});
         let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
         impl_try.extend(quote! {

@@ -175,20 +175,6 @@ impl<'ast> TryEnum<'ast> {
         self.enum_data.variants.iter().map(arms).unzip()
     }
 
-    /// Provides a cloned set of generics after applying `change`
-    ///
-    /// `generics()` is designed for situations where you can modify the generics in place, use
-    /// `generics_with_params()` where the parameters need redefining in a way which can be better
-    /// achieved via `.into_iter()....collect()`
-    pub(crate) fn generics<C>(&self, mut change: C) -> Generics
-    where
-        C: FnMut(&mut Generics),
-    {
-        let mut generics = self.generics.clone();
-        change(&mut generics);
-        generics
-    }
-
     pub(crate) fn split_for_impl(
         &'ast self,
     ) -> (
