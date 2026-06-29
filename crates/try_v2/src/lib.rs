@@ -1,8 +1,6 @@
 #![cfg(all(has_try_trait_v2, has_try_trait_v2_residual))]
 
-//! Provides a derive macro for [Try] & optionally [Try_ConvertResult] for interconversion with
-//! `std::result::Result` and [Try_Iterator] for iterating over `IntoIterator` and collecting from
-//! `FromIterator` analog to how `Result` & `Option` do this.
+//! Provides derive macros for [Try], [FromResidual] & [crate::IntoIterator].
 //! See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details
 //! of the underlying trait.
 //!
@@ -12,7 +10,6 @@
 //!   - `#![feature(never_type)]`
 //!   - `#![feature(try_trait_v2)]`
 //!   - `#![feature(try_trait_v2_residual)]`
-//!   - optionally: `#![feature(iterator_try_collect)]` (if using Try_Iterator)
 //!
 //! ## Limitations on the annotated type
 //!
@@ -23,7 +20,7 @@
 //!     type as the _only unnamed_ field
 //!   - no other variant can store the Output type (TODO #72 add a nice error message)
 //!
-//! See the individual documentation for [Try], [Try_ConvertResult] and [Try_Iterator] for specifics
+//! See the individual documentation for [Try], [FromResidual] and [crate::IntoIterator] for specifics
 //! on the generated code.
 //!
 //! ## Example Usage
@@ -80,7 +77,6 @@
 //! >  - [`#![feature(never_type)]`](https://github.com/rust-lang/rust/issues/35121)
 //! >  - [`#![feature(try_trait_v2)]`](https://github.com/rust-lang/rust/issues/84277)
 //! >  - [`#![feature(try_trait_v2_residual)]`](https://github.com/rust-lang/rust/issues/91285)
-//! >  - optionally: [`#![feature(iterator_try_collect)]`](https://github.com/rust-lang/rust/issues/94047) (if using [Try_Iterator])
 //!
 //! This crate makes use of the following experimental features in addition to those which it
 //! directly supports:
