@@ -1,8 +1,8 @@
 error: Try requires a generic type for `Output`
-  --> tests/compilation/fail_OutputUnitType.rs:7:10
+  --> tests/compilation/fail_OutputUnitType.rs:7:17
    |
- 7 | #[derive(Try, Try_ConvertResult)]
-   |          ^^^
+ 7 | #[derive(Debug, Try)]
+   |                 ^^^
    |
 help: Output type defined here
   --> tests/compilation/fail_OutputUnitType.rs:9:21
@@ -15,21 +15,3 @@ help: add (T) after this...
 10 |     Ok,
    |     ^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error: Try requires a generic type for `Output`
-  --> tests/compilation/fail_OutputUnitType.rs:7:15
-   |
- 7 | #[derive(Try, Try_ConvertResult)]
-   |               ^^^^^^^^^^^^^^^^^
-   |
-help: Output type defined here
-  --> tests/compilation/fail_OutputUnitType.rs:9:21
-   |
- 9 | enum OutputUnitType<T> {
-   |                     ^
-help: add (T) after this...
-  --> tests/compilation/fail_OutputUnitType.rs:10:5
-   |
-10 |     Ok,
-   |     ^^
-   = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)

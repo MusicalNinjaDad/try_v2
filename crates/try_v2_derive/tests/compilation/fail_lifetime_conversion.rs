@@ -4,9 +4,10 @@
 
 //! Tests that conversion between custom enum and std::result::Result requires correct lifetime bounds.
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),

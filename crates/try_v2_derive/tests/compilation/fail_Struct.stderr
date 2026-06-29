@@ -1,8 +1,8 @@
 error: Try can only be derived for an enum
- --> tests/compilation/fail_Struct.rs:7:10
+ --> tests/compilation/fail_Struct.rs:7:17
   |
-7 | #[derive(Try, Try_ConvertResult)]
-  |          ^^^
+7 | #[derive(Debug, Try)]
+  |                 ^^^
   |
 help: not an enum
  --> tests/compilation/fail_Struct.rs:9:1
@@ -10,16 +10,3 @@ help: not an enum
 9 | struct Struct;
   | ^^^^^^
   = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error: Try can only be derived for an enum
- --> tests/compilation/fail_Struct.rs:7:15
-  |
-7 | #[derive(Try, Try_ConvertResult)]
-  |               ^^^^^^^^^^^^^^^^^
-  |
-help: not an enum
- --> tests/compilation/fail_Struct.rs:9:1
-  |
-9 | struct Struct;
-  | ^^^^^^
-  = note: this error originates in the derive macro `Try_ConvertResult` (in Nightly builds, run with -Z macro-backtrace for more info)

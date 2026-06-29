@@ -4,11 +4,11 @@
 
 //! Tests to ensure that lifetimes are correctly passed through and live as long as expected.
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
 // Basic result with T & E borrowed
 #[must_use]
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),
     Err(&'e E),

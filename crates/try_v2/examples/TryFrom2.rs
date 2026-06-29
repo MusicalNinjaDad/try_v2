@@ -3,7 +3,7 @@
 #![feature(try_trait_v2_residual)]
 #![feature(associated_type_defaults)]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
 /// Make TryFrom able to return arbitrary Try types
 trait TryFrom<T>: Sized {
@@ -16,7 +16,8 @@ trait TryFrom<T>: Sized {
     fn try_from(value: T) -> Self::Return;
 }
 
-#[derive(Try, Try_ConvertResult)]
+#[derive(Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum Eightball<Y, N> {
     Yes(Y),

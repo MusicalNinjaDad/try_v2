@@ -1,77 +1,77 @@
 error: lifetime may not live long enough
-  --> tests/compilation/fail_lifetime_conversion.rs:96:5
+  --> tests/compilation/fail_lifetime_conversion.rs:97:5
    |
-84 | fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
+85 | fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
    |                                       --      -- lifetime `'o` defined here
    |                                       |
    |                                       lifetime `'t` defined here
 ...
-96 |     Ok(rtn)
+97 |     Ok(rtn)
    |     ^^^^^^^ function was supposed to return data with lifetime `'o` but it is returning data with lifetime `'t`
    |
    = help: consider adding the following bound: `'t: 'o`
 
 error: lifetime may not live long enough
-   --> tests/compilation/fail_lifetime_conversion.rs:108:16
+   --> tests/compilation/fail_lifetime_conversion.rs:109:16
     |
- 99 | fn _unrestricted_e_borrowed_to_result_direct<'t, 'e, 'o, 'f>(
+100 | fn _unrestricted_e_borrowed_to_result_direct<'t, 'e, 'o, 'f>(
     |                                                  --      -- lifetime `'f` defined here
     |                                                  |
     |                                                  lifetime `'e` defined here
 ...
-108 |         5.. => BorrowedResult::fail_directly(errval)?,
+109 |         5.. => BorrowedResult::fail_directly(errval)?,
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'f` but it is returning data with lifetime `'e`
     |
     = help: consider adding the following bound: `'e: 'f`
 
 error: lifetime may not live long enough
-   --> tests/compilation/fail_lifetime_conversion.rs:122:16
+   --> tests/compilation/fail_lifetime_conversion.rs:123:16
     |
-113 | fn _unrestricted_e_borrowed_to_result_indirect<'t, 'e, 'o, 'f>(
+114 | fn _unrestricted_e_borrowed_to_result_indirect<'t, 'e, 'o, 'f>(
     |                                                    --      -- lifetime `'f` defined here
     |                                                    |
     |                                                    lifetime `'e` defined here
 ...
-122 |         5.. => BorrowedResult::fail(errval)?,
+123 |         5.. => BorrowedResult::fail(errval)?,
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'f` but it is returning data with lifetime `'e`
     |
     = help: consider adding the following bound: `'e: 'f`
 
 error: lifetime may not live long enough
-   --> tests/compilation/fail_lifetime_conversion.rs:139:5
+   --> tests/compilation/fail_lifetime_conversion.rs:140:5
     |
-127 | fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(
+128 | fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(
     |                                       --      -- lifetime `'t` defined here
     |                                       |
     |                                       lifetime `'o` defined here
 ...
-139 |     BorrowedResult::Ok(rtn)
+140 |     BorrowedResult::Ok(rtn)
     |     ^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'t` but it is returning data with lifetime `'o`
     |
     = help: consider adding the following bound: `'o: 't`
 
 error: lifetime may not live long enough
-   --> tests/compilation/fail_lifetime_conversion.rs:151:16
+   --> tests/compilation/fail_lifetime_conversion.rs:152:16
     |
-142 | fn _unrestricted_e_result_to_borrowed_direct<'o, 'f, 't, 'e>(
+143 | fn _unrestricted_e_result_to_borrowed_direct<'o, 'f, 't, 'e>(
     |                                                  --      -- lifetime `'e` defined here
     |                                                  |
     |                                                  lifetime `'f` defined here
 ...
-151 |         5.. => fail_directly(Failure(errval))?,
+152 |         5.. => fail_directly(Failure(errval))?,
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'f`
     |
     = help: consider adding the following bound: `'f: 'e`
 
 error: lifetime may not live long enough
-   --> tests/compilation/fail_lifetime_conversion.rs:165:16
+   --> tests/compilation/fail_lifetime_conversion.rs:166:16
     |
-156 | fn _unrestricted_e_result_to_borrowed_indirect<'o, 'f, 't, 'e>(
+157 | fn _unrestricted_e_result_to_borrowed_indirect<'o, 'f, 't, 'e>(
     |                                                    --      -- lifetime `'e` defined here
     |                                                    |
     |                                                    lifetime `'f` defined here
 ...
-165 |         5.. => fail(Failure(errval))?,
+166 |         5.. => fail(Failure(errval))?,
     |                ^^^^^^^^^^^^^^^^^^^^^^ function was supposed to return data with lifetime `'e` but it is returning data with lifetime `'f`
     |
     = help: consider adding the following bound: `'f: 'e`

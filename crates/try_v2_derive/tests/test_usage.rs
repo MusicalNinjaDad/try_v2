@@ -1,10 +1,9 @@
 #![cfg_attr(unstable_assert_matches, feature(assert_matches))]
-#![cfg_attr(unstable_iterator_try_collect, feature(iterator_try_collect))]
 #![cfg_attr(unstable_never_type, feature(never_type))]
 #![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2))]
 #![cfg_attr(unstable_try_trait_v2_residual, feature(try_trait_v2_residual))]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
 #[cfg(assert_matches_location = "module")]
 use std::assert_matches::assert_matches;
@@ -17,7 +16,8 @@ mod bound_ok_type {
 
     use std::process::Termination;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum Exit<T: Termination> {
         Ok(T),
@@ -114,7 +114,7 @@ mod bound_ok_type {
 mod multiple_generics {
     use super::*;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
     #[must_use]
     enum MyResult<T, E> {
         Ok(T),
@@ -140,37 +140,13 @@ mod multiple_generics {
     }
 }
 
-mod iter {
-    use try_v2_derive::Try_Iterator;
-
-    use super::*;
-
-    #[derive(Debug, Try, Try_Iterator)]
-    #[must_use]
-    enum MyResult<T> {
-        Ok(T),
-        Err,
-    }
-
-    #[test]
-    fn not_copy() {
-        let mut res: MyResult<String> = MyResult::Ok("String is not Copy".to_string());
-        let borrowed_text: &String = res.iter().next().unwrap();
-        assert_eq!(borrowed_text, "String is not Copy");
-        if let Some(text) = res.iter_mut().next() {
-            *text = "Another String".to_string();
-        };
-        let text: String = res.into_iter().next().unwrap();
-        assert_eq!(text, "Another String");
-    }
-}
-
 // TODO: #62 fix tests to exercise non-trivial lifetime relationships
 mod lifetime_conversion {
 
     use super::*;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum BorrowedResult<'t, 'e, T, E> {
         Ok(&'t T),
@@ -365,7 +341,8 @@ mod lifetime_duration {
     use super::*;
 
     // Basic result with T & E borrowed
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum BorrowedResult<'t, 'e, T, E> {
         Ok(&'t T),
