@@ -596,9 +596,9 @@ fn derive_into_iterator(input: TokenStream2) -> DiagnosticStream {
             type IntoIter = ::std::option::IntoIter<<#this as ::std::ops::Try>::Output>;
 
             fn into_iter(self) -> Self::IntoIter {
-                match self.branch() {
-                    std::ops::ControlFlow::Continue(v) => Some(v),
-                    std::ops::ControlFlow::Break(_) => None,
+                match ::std::ops::Try::branch(self) {
+                    ::std::ops::ControlFlow::Continue(v) => Some(v),
+                    ::std::ops::ControlFlow::Break(_) => None,
                 }
                 .into_iter()
             }
