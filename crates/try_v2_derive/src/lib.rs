@@ -437,7 +437,7 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
 /// Derive *additional implementations* of `FromResidual` for nested TryTypes
 ///
 /// Works on any TryType, does not require a derived Try.
-/// 
+///
 /// ## `#[FromResidual]` annotation format
 ///
 /// use `Self` for the location of your TryType & `_` for other generics e.g.
@@ -551,6 +551,34 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_convert)
 }
 
+/// Derives `IntoIterator` analog to Result & Option.
+///
+/// Works on any TryType, does not require a derived Try.
+///
+/// `TryType.into_iter()` -> yields *one* value in the **Output** case, else empty.
+///
+/// ## Things to note
+///
+/// - additional methods `iter()` & `iter_mut` for working with references are available from `#[derive(Try)]`
+/// ## Examples
+///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # use try_v2_derive::{IntoIterator, Try};
+///
+/// #[derive(Debug, Try, IntoIterator, PartialEq)]
+/// #[must_use]
+/// enum EightBall<Y, N> {
+///     Yes(Y),
+///     RollAgain,
+///     No(N),
+/// }
+///
+/// assert_eq!(Some(5), EightBall::<i32, i32>::Yes(5).into_iter().next());
+/// assert_eq!(None, EightBall::<i32, i32>::RollAgain.into_iter().next());
+/// ```
 #[proc_macro_derive(IntoIterator)]
 pub fn into_iterator(input: TokenStream1) -> TokenStream1 {
     derive_into_iterator(input.into()).to_tokens()
