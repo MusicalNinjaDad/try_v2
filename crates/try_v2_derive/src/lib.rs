@@ -180,7 +180,7 @@ use parse::TryEnum;
 /// compiler but `&!` will dereference to `!` which will then coerce into any type or satisfy
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
-#[proc_macro_derive(Try, attributes(FromResidual, methods))]
+#[proc_macro_derive(Try, attributes(FromResidual, methods, ResidualAlias))]
 pub fn try_trait_v2(input: TokenStream1) -> TokenStream1 {
     derive_try_trait_v2(input.into()).to_tokens()
 }
@@ -383,7 +383,6 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
         available_methods.insert(
             format_ident!("as_deref"),
             Box::new(|| {
-                // Relies on invariant: output is first generic type
                 let output_target: Option<TypePath> =
                     Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
                 // Relies on invariant: output is first generic type
@@ -460,6 +459,29 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
             }
         });
     };
+
+    if let Some(attribute) = ast
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("ResidualAlias"))
+    {
+        let alias: Ident = match &attribute.meta {
+            syn::Meta::Path(_) => format_ident!("{name}_residual"),
+            syn::Meta::List(alias) => parse_quote!(#alias), // Todo - check error
+            syn::Meta::NameValue(_) => todo!("decent error for name value"),
+        };
+        let vis = &ast.vis;
+        let res_generics = tryenum.generics_with_params(|p| {
+            p
+                //remove output type
+                .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
+        });
+        let (_, res_ty_generics, _) = res_generics.split_for_impl();
+        impl_try.extend(quote! {
+            #vis type #alias #res_ty_generics = #residual_type;
+        });
+    }
+
     Ok(impl_try)
 }
 
