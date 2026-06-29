@@ -92,12 +92,12 @@ use parse::TryEnum;
 /// ## Interconversion with `Result` in error cases
 ///
 /// If you wish to allow interconversion with `Result` via `?`:
-///   - `?` operations on a `Result` in functions which return your TryType
-///   - `?` on your TryType in functions which return a `Result`
 ///
 /// 1. annotate your type with `#[FromResidual(Result<_, Self::Residual>)]`
 /// 2. provide relevant `From` implementations (see examples)
 ///
+/// ### `?` operations on a `Result` in functions which return your TryType
+/// 
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
@@ -127,7 +127,39 @@ use parse::TryEnum;
 ///     TestResult::Ok(stdin)
 /// }
 /// ```
+/// 
+/// ### `?` on your TryType in functions which return a `Result`
 ///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # use try_v2_derive::Try;
+/// # use std::{io, path::PathBuf};
+/// #[derive(Debug, Try)]
+/// #[FromResidual(Result<_, Self::Residual>)]
+/// #[must_use]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E)
+/// }
+///
+/// // Need to know how to convert from our residual to a given Error-Type
+/// impl<T> From<TestResult<!,E>> for TestResult<T, io::Error> {
+///     fn from(err: io::Error) -> Self {
+///         Self::OtherError(err)
+///     }
+/// }
+///
+/// //                 function returns custom TryType
+/// fn read_stdin() -> TestResult<String, io::Error> {
+///     let stdin = io::read_to_string(io::stdin())?; // <- `?` on an `io::Result`
+///     // some parsing logic
+///     TestResult::Ok(stdin)
+/// }
+/// ```
+/// 
 /// ## Things to note
 ///
 /// This macro aims to reduce boilerpate for the most common implementations.
