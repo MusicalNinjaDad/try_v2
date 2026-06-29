@@ -560,7 +560,8 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
 /// ## Things to note
 ///
 /// - additional methods `iter()` & `iter_mut` for working with references are available from `#[derive(Try)]`
-/// ## Examples
+///
+/// ## Example
 ///
 /// ```
 /// # #![feature(never_type)]
