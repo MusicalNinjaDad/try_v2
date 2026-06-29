@@ -355,7 +355,6 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
         available_methods.insert(
             format_ident!("as_deref"),
             Box::new(|| {
-                // Relies on invariant: output is first generic type
                 let output_target: Option<TypePath> =
                     Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
                 // Relies on invariant: output is first generic type
