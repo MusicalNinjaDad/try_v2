@@ -434,6 +434,51 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_try)
 }
 
+/// Derive *additional implementations* of `FromResidual` for nested TryTypes
+///
+/// Works on any TryType, does not require a derived Try.
+/// 
+/// ## `#[FromResidual]` annotation format
+///
+/// use `Self` for the location of your TryType & `_` for other generics e.g.
+///
+/// - `Option<Self>`
+/// - `std::option::Option<Self>`
+/// - `Result<Self, _>`
+///
+/// ## Note
+///
+/// - Currently this will only derive for cases of another TryType wrapping your TryType.
+/// - Your TryType must be wrapped as the **Output** of the other TryType
+/// - TODO: #168 Multi-level nesting
+/// - See [try_trait_v2] for deriving conversion from `Result::Err`
+/// - A basic `FromResidual` implementation is included in `#[derive(Try)]`
+///
+/// ## Example
+///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+///
+/// # use try_v2_derive::{FromResidual, Try};
+///
+/// #[derive(Debug, Try, FromResidual, PartialEq)]
+/// #[FromResidual(Option<Self>)]
+/// #[must_use]
+/// enum EightBall<Y, N> {
+///     Yes(Y),
+///     RollAgain,
+///     No(N),
+/// }
+///
+///                         // Option wrapping Eightball
+/// fn maybe_eightball() -> Option<EightBall<(), ()>> {
+///     let _ = EightBall::RollAgain?; // <- ? directly on an Eightball short circuits with Some(EightBall::RollAgain)
+///     let _ = EightBall::Yes(())?; // <- Does not short circuit
+///     None
+/// }
+/// ```
 #[proc_macro_derive(FromResidual, attributes(FromResidual))]
 pub fn from_residual(input: TokenStream1) -> TokenStream1 {
     derive_from_residual(input.into()).to_tokens()
