@@ -7,7 +7,7 @@ use try_v2_derive::Try;
 #[derive(Debug, Try)]
 #[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
-enum ExitE<E> {
+pub enum ExitE<E> {
     Ok(E),
     TestsFailed,
     OtherError(String),

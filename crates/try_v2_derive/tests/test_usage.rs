@@ -27,19 +27,6 @@ mod bound_ok_type {
         FormalError { errno: i32, data: String },
     }
 
-    impl From<Exit<!>> for AnError {
-        fn from(exit: Exit<!>) -> Self {
-            match exit {
-                Exit::TestsFailed => AnError("tests failed".to_string()),
-                Exit::OtherError(text) => AnError(text),
-                Exit::NumberedError(text, n) => AnError(format!("{n}: {text}")),
-                Exit::FormalError { errno, data } => AnError(format!("{errno}: {data}")),
-            }
-        }
-    }
-    #[derive(Debug)]
-    struct AnError(String);
-
     #[test]
     fn short_circuit_1() {
         fn fail() -> Exit<()> {
@@ -132,25 +119,6 @@ mod lifetime_conversion {
     enum BorrowedResult<'t, 'e, T, E> {
         Ok(&'t T),
         Err(&'e E),
-    }
-
-    impl<'pass, 'fail, 't, 'e, T, E> BorrowedResult<'t, 'e, T, E>
-    where
-        'pass: 't,
-        'fail: 'e,
-    {
-        fn fail(err: &'fail E) -> Self {
-            let r = Self::Err(err)?;
-            Self::Ok(r)
-        }
-
-        fn fail_directly(err: &'fail E) -> Self {
-            Self::Err(err)
-        }
-
-        fn pass(val: &'pass T) -> Self {
-            Self::Ok(val)
-        }
     }
 
     type StdResult<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
