@@ -1,15 +1,24 @@
 # Changelog try_v2
 
-## [WIP] v0.9.0
+## [v0.9.0]
 
 ### Breaking changes / New Features
 
-- derive FromResidual replaces Try_ConvertResult, works on any TryType
-- derive IntoIterator replaces Try_Iterator, works on any TryType
-- FromIterator removed
-- methods generates iter, iter_mut, as_ref, as_mut, as_deref, as_deref_mut
-- remove ConvertResult
-- remove deriving FromResidual to convert TO a Result::Err
+- derive `FromResidual` replaces `Try_ConvertResult`, works on any TryType
+- derive `IntoIterator` replaces `Try_Iterator`, works on any TryType
+- `FromIterator` removed
+- methods generates `iter`, `iter_mut`, `as_ref`, `as_mut`, `as_deref`, `as_deref_mut`
+- remove `ConvertResult`
+- remove deriving `FromResidual` to convert *to* a `Result::Err`
+
+## Bugfix
+
+- Update to ninja-build_rs v0.2.0 to (partially) respect cargo unstable.allow-features
+
+## Open tasks
+
+- Finalise documentation with all updates
+- Bump `proc_macro2_diagnostic` once it relies on this version to fully respect cargo unstable.allow-features
 
 ## [v0.8.2]
 
