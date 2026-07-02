@@ -1,10 +1,9 @@
 #![cfg_attr(unstable_assert_matches, feature(assert_matches))]
-#![cfg_attr(unstable_iterator_try_collect, feature(iterator_try_collect))]
 #![cfg_attr(unstable_never_type, feature(never_type))]
 #![cfg_attr(unstable_try_trait_v2, feature(try_trait_v2))]
 #![cfg_attr(unstable_try_trait_v2_residual, feature(try_trait_v2_residual))]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
 #[cfg(assert_matches_location = "module")]
 use std::assert_matches::assert_matches;
@@ -17,7 +16,8 @@ mod bound_ok_type {
 
     use std::process::Termination;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum Exit<T: Termination> {
         Ok(T),
@@ -26,19 +26,6 @@ mod bound_ok_type {
         NumberedError(String, i32),
         FormalError { errno: i32, data: String },
     }
-
-    impl From<Exit<!>> for AnError {
-        fn from(exit: Exit<!>) -> Self {
-            match exit {
-                Exit::TestsFailed => AnError("tests failed".to_string()),
-                Exit::OtherError(text) => AnError(text),
-                Exit::NumberedError(text, n) => AnError(format!("{n}: {text}")),
-                Exit::FormalError { errno, data } => AnError(format!("{errno}: {data}")),
-            }
-        }
-    }
-    #[derive(Debug)]
-    struct AnError(String);
 
     #[test]
     fn short_circuit_1() {
@@ -90,31 +77,12 @@ mod bound_ok_type {
         }
         assert_matches!(pass(), Exit::Ok(()))
     }
-
-    #[test]
-    fn convert_to_result_1() {
-        fn fail() -> Result<(), AnError> {
-            Exit::TestsFailed?;
-            Ok(())
-        }
-        assert_matches!(fail(), Result::Err(e) if e.0 == "tests failed")
-    }
-
-    #[test]
-    fn convert_to_result_2() {
-        fn fail() -> Result<(), AnError> {
-            Exit::OtherError("oops!".to_string())?;
-            Exit::TestsFailed?;
-            Ok(())
-        }
-        assert_matches!(fail(), Result::Err(e) if e.0 == "oops!")
-    }
 }
 
 mod multiple_generics {
     use super::*;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
     #[must_use]
     enum MyResult<T, E> {
         Ok(T),
@@ -140,60 +108,17 @@ mod multiple_generics {
     }
 }
 
-mod iter {
-    use try_v2_derive::Try_Iterator;
-
-    use super::*;
-
-    #[derive(Debug, Try, Try_Iterator)]
-    #[must_use]
-    enum MyResult<T> {
-        Ok(T),
-        Err,
-    }
-
-    #[test]
-    fn not_copy() {
-        let mut res: MyResult<String> = MyResult::Ok("String is not Copy".to_string());
-        let borrowed_text: &String = res.iter().next().unwrap();
-        assert_eq!(borrowed_text, "String is not Copy");
-        if let Some(text) = res.iter_mut().next() {
-            *text = "Another String".to_string();
-        };
-        let text: String = res.into_iter().next().unwrap();
-        assert_eq!(text, "Another String");
-    }
-}
-
 // TODO: #62 fix tests to exercise non-trivial lifetime relationships
 mod lifetime_conversion {
 
     use super::*;
 
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum BorrowedResult<'t, 'e, T, E> {
         Ok(&'t T),
         Err(&'e E),
-    }
-
-    impl<'pass, 'fail, 't, 'e, T, E> BorrowedResult<'t, 'e, T, E>
-    where
-        'pass: 't,
-        'fail: 'e,
-    {
-        fn fail(err: &'fail E) -> Self {
-            let r = Self::Err(err)?;
-            Self::Ok(r)
-        }
-
-        fn fail_directly(err: &'fail E) -> Self {
-            Self::Err(err)
-        }
-
-        fn pass(val: &'pass T) -> Self {
-            Self::Ok(val)
-        }
     }
 
     type StdResult<'o, 'f> = std::result::Result<&'o i32, Failure<'f>>;
@@ -243,60 +168,6 @@ mod lifetime_conversion {
         fn from(f: Failure<'f>) -> Self {
             BorrowedResult::Err(f.0)
         }
-    }
-
-    #[test]
-    fn test_borrowed_to_result_passthrough() {
-        fn borrowed_to_result_passthrough<'t, 'e>(
-            okval: &'t i32,
-            errval: &'e i32,
-        ) -> StdResult<'t, 'e> {
-            let rtn = match errval {
-                ..=4 => BorrowedResult::pass(okval)?,
-                5 => BorrowedResult::fail(errval)?,
-                6.. => BorrowedResult::fail_directly(errval)?,
-            };
-            Ok(rtn)
-        }
-
-        assert_matches!(borrowed_to_result_passthrough(&0, &1), StdResult::Ok(&0));
-        assert_matches!(
-            borrowed_to_result_passthrough(&0, &5),
-            StdResult::Err(Failure(&5))
-        );
-        assert_matches!(
-            borrowed_to_result_passthrough(&0, &7),
-            StdResult::Err(Failure(&7))
-        );
-    }
-
-    #[test]
-    fn test_borrowed_to_result_restricted() {
-        fn borrowed_to_result_restricted<'t, 'e, 'o, 'f>(
-            okval: &'t i32,
-            errval: &'e i32,
-        ) -> StdResult<'o, 'f>
-        where
-            't: 'o,
-            'e: 'f,
-        {
-            let rtn = match errval {
-                ..=4 => BorrowedResult::pass(okval)?,
-                5 => BorrowedResult::fail(errval)?,
-                6.. => BorrowedResult::fail_directly(errval)?,
-            };
-            Ok(rtn)
-        }
-
-        assert_matches!(borrowed_to_result_restricted(&0, &1), StdResult::Ok(&0));
-        assert_matches!(
-            borrowed_to_result_restricted(&0, &5),
-            StdResult::Err(Failure(&5))
-        );
-        assert_matches!(
-            borrowed_to_result_restricted(&0, &7),
-            StdResult::Err(Failure(&7))
-        );
     }
 
     #[test]
@@ -365,7 +236,8 @@ mod lifetime_duration {
     use super::*;
 
     // Basic result with T & E borrowed
-    #[derive(Debug, Try, Try_ConvertResult)]
+    #[derive(Debug, Try)]
+    #[FromResidual(Result<_, Self::Residual>)]
     #[must_use]
     enum BorrowedResult<'t, 'e, T, E> {
         Ok(&'t T),

@@ -35,6 +35,7 @@ use parse::TryEnum;
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2_derive::Try;
 /// #[derive(Try)]
+/// #[must_use]
 /// enum TestResult<T, E> {
 ///     Ok(T),
 ///     TestsFailed,
@@ -70,6 +71,61 @@ use parse::TryEnum;
 /// }
 /// ```
 ///
+/// ## `#[methods]` for working with references
+///
+/// The following direct methods can be additionally derived by adding a `#[method]` annotation.
+/// A simple annotation will derive *all* methods, alternatively you can list the specific methods
+/// e.g. `#[methods(as_ref, as_mut)]`
+///
+///   - `as_ref`: converts an `&'a Foo<_,_>` to a new, owned `Foo<&'a _, &'a _>`, leaving the original intact
+///   - `as_mut`: converts an `&'a mut Foo<_,_>` to a new, owned `Foo<&'a mut _, &'a mut _>`,
+///     leaving the original intact
+///   - `as_deref`: converts an `&'a Foo<T,_>` to a new, owned `Foo<&'a T::Target, &'a _>`,
+///     where `T: Deref`, leaving the original intact
+///   - `as_deref_mut`: converts an `&'a mut Foo<T,_>` to a new, owned `Foo<&'a mut T::Target, &'a mut _>`,
+///     where `T: DerefMut`, leaving the original intact
+///   - `iter`: returns an iterator over `&T` - see [into_iterator] for more details on iterating
+///     over TryTypes
+///   - `iter_mut`: returns an iterator over `&mut T` - see [into_iterator] for more details on iterating
+///     over TryTypes
+///
+/// ## `?` operations on a `Result` in functions which return your TryType
+///
+/// If you wish to allow interconversion with `Result` via `?`:
+///
+/// 1. annotate your type with `#[FromResidual(Result<_, Self::Residual>)]`
+/// 2. provide relevant `From` implementations (see examples)
+///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+/// # use try_v2_derive::Try;
+/// # use std::{io, path::PathBuf};
+/// #[derive(Debug, Try)]
+/// #[FromResidual(Result<_, Self::Residual>)]
+/// #[must_use]
+/// enum TestResult<T, E> {
+///     Ok(T),
+///     TestsFailed,
+///     OtherError(E)
+/// }
+///
+/// // Need to know which variant to create for a specific error
+/// impl<T> From<io::Error> for TestResult<T, io::Error> {
+///     fn from(err: io::Error) -> Self {
+///         Self::OtherError(err)
+///     }
+/// }
+///
+/// //                 function returns custom TryType
+/// fn read_stdin() -> TestResult<String, io::Error> {
+///     let stdin = io::read_to_string(io::stdin())?; // <- `?` on an `io::Result`
+///     // some parsing logic
+///     TestResult::Ok(stdin)
+/// }
+/// ```
+///
 /// ## Things to note
 ///
 /// This macro aims to reduce boilerpate for the most common implementations.
@@ -102,6 +158,7 @@ use parse::TryEnum;
 /// # #![feature(try_trait_v2_residual)]
 /// # use try_v2_derive::Try;
 /// #[derive(Try)]
+/// # #[must_use]
 /// enum TestResult<'t, 'e, T, E> {
 ///     Ok(&'t T),
 ///     TestsFailed,
@@ -122,12 +179,12 @@ use parse::TryEnum;
 /// `match ! {}`. Therefore, you should include a match arm `Ok(never) => *never` (doesn't guarantee
 /// it's actually `&!`) or `Ok(&never) => match never {}` (more verbose but guarantees infallibility)
 #[proc_macro_derive(Try, attributes(FromResidual, methods))]
-pub fn try_trait_v2_derive(input: TokenStream1) -> TokenStream1 {
-    impl_derive(input.into()).to_tokens()
+pub fn try_trait_v2(input: TokenStream1) -> TokenStream1 {
+    derive_try_trait_v2(input.into()).to_tokens()
 }
 
 /// Parses & validates the input then quote!s the impl.  
-fn impl_derive(input: TokenStream2) -> DiagnosticStream {
+fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
 
     let tryenum = TryEnum::parse(&ast)?;
@@ -135,7 +192,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         name,
         output_variant_name,
         output_type,
-        output_type_name,
+        _output_type_name,
         residual_type,
         impl_generics,
         ty_generics,
@@ -201,15 +258,14 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
             .is_some()
     {
         let result_e = format_ident!("Derive_TryConvert_ResultE");
-        let result_t = format_ident!("Derive_TryConvert_ResultT");
 
-        let from_result_generics = tryenum.generics(|g| {
-            g.params
-                .push(parse_quote! {#result_e: Into<#residual_type>})
-        });
+        let mut from_result_generics = ast.generics.clone();
+        from_result_generics
+            .params
+            .push(parse_quote! {#result_e: Into<#residual_type>});
         let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
 
-        let mut impl_convert = quote! {
+        impl_try.extend(quote! {
             impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
             {
                 #[inline]
@@ -223,32 +279,7 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
                     }
                 }
             }
-        };
-
-        let to_result_generics = tryenum.generics_with_params(|p| {
-            p
-                //remove output type
-                .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
-                // add result types
-                .chain([
-                    parse_quote! {#result_t},
-                    parse_quote! {#result_e: From<#residual_type>},
-                ])
         });
-
-        let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
-
-        impl_convert.extend(quote! {
-            impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: #residual_type) -> Self {
-                    std::result::Result::Err(residual.into())
-                }
-            }
-        });
-        impl_try.extend(impl_convert);
     };
 
     if let Some(attribute) = ast
@@ -324,9 +355,9 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         available_methods.insert(
             format_ident!("as_deref"),
             Box::new(|| {
-                // Relies on invariant: output is first generic type
                 let output_target: Option<TypePath> =
                     Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
+                // Relies on invariant: output is first generic type
                 let ty_params = ast
                     .generics
                     .type_params()
@@ -349,9 +380,9 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
         available_methods.insert(
             format_ident!("as_deref_mut"),
             Box::new(|| {
-                // Relies on invariant: output is first generic type
                 let output_target: Option<TypePath> =
                     Some(parse_quote! {<#output_type as ::std::ops::Deref>::Target});
+                // Relies on invariant: output is first generic type
                 let ty_params = ast
                     .generics
                     .type_params()
@@ -403,6 +434,51 @@ fn impl_derive(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_try)
 }
 
+/// Derive *additional implementations* of `FromResidual` for nested TryTypes
+///
+/// Works on any TryType, does not require a derived Try.
+///
+/// ## `#[FromResidual]` annotation format
+///
+/// use `Self` for the location of your TryType & `_` for other generics e.g.
+///
+/// - `Option<Self>`
+/// - `std::option::Option<Self>`
+/// - `Result<Self, _>`
+///
+/// ## Note
+///
+/// - Currently this will only derive for cases of another TryType wrapping your TryType.
+/// - Your TryType must be wrapped as the **Output** of the other TryType
+/// - TODO: #168 Multi-level nesting
+/// - See [try_trait_v2] for deriving conversion from `Result::Err`
+/// - A basic `FromResidual` implementation is included in `#[derive(Try)]`
+///
+/// ## Example
+///
+/// ```
+/// # #![feature(never_type)]
+/// # #![feature(try_trait_v2)]
+/// # #![feature(try_trait_v2_residual)]
+///
+/// # use try_v2_derive::{FromResidual, Try};
+///
+/// #[derive(Debug, Try, FromResidual, PartialEq)]
+/// #[FromResidual(Option<Self>)]
+/// #[must_use]
+/// enum EightBall<Y, N> {
+///     Yes(Y),
+///     RollAgain,
+///     No(N),
+/// }
+///
+///                         // Option wrapping Eightball
+/// fn maybe_eightball() -> Option<EightBall<(), ()>> {
+///     let _ = EightBall::RollAgain?; // <- ? directly on an Eightball short circuits with Some(EightBall::RollAgain)
+///     let _ = EightBall::Yes(())?; // <- Does not short circuit
+///     None
+/// }
+/// ```
 #[proc_macro_derive(FromResidual, attributes(FromResidual))]
 pub fn from_residual(input: TokenStream1) -> TokenStream1 {
     derive_from_residual(input.into()).to_tokens()
@@ -475,296 +551,41 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_convert)
 }
 
-#[proc_macro_derive(Try_ConvertResult)]
-/// Derives ?-conversion from Result<T, E> and back where suitable implementations of From/Into exist.
+/// Derives `IntoIterator` analog to Result & Option.
 ///
-/// ## Conversion from Result
-/// For ?-conversion _from_ a `Result<T, SomeError>` `impl<T> From<SomeError> for MyTryEnum<T>`.
+/// Works on any TryType, does not require a derived Try.
 ///
-/// This will allow `?` on a call which returns `Result<T, SomeError>` in any function which returns
-/// `MyTryEnum<T>`.
+/// `TryType.into_iter()` -> yields *one* value in the **Output** case, else empty.
 ///
-/// Type-hinting, type aliasing Result may be needed unless you have a
-/// blanket From<E: Error> implementation.
+/// ## Things to note
 ///
-/// ## Conversion to Result
-/// For ?-conversion _to_ a `Result<_, SomeError>` `impl From<MyTryEnumResidual> for SomeError`.
-///
-/// Note that conversion must be defined between your _Residual_ and SomeError - this both avoids
-/// triggering the orphan rule when your enum stores third-party / std types and requires
-/// consideration and correct handling of each failure variant.
-///
-/// See the notes on [Try] for full details on identifying the correct Residual to use.
-///
-/// ## Derived Code
-/// ```
-/// # #![feature(never_type)]
-/// # #![feature(try_trait_v2)]
-/// # #![feature(try_trait_v2_residual)]
-/// # use try_v2_derive::{Try, Try_ConvertResult};
-/// #[derive(Try, Try_ConvertResult)]
-/// #[must_use]
-/// enum TestResult<T, E> {
-///     Ok(T),
-///     TestsFailed,
-///     OtherError(E)
-/// }
-/// ```
-/// will generate:
-/// ```ignore code-snippet
-/// impl<T, E, RE> FromResidual<Result<Infallible, RE>> for TestResult<T, E>
-/// where
-///     RE: Into<TestResult<!,E>>
-///
-/// ... which calls Result::Err(e) => e.into(), ...
-/// ```
-/// and
-/// ```ignore code-snippet
-/// impl<E, RT, RE> FromResidual<TestResult<!,E>> for Result<RT, RE>
-/// where
-///     RE: From<TestResult<!,E>>
-///
-/// ... which calls Result::Err(residual.into()) ...
-/// ```
-///
-/// ## Implementing [TryFrom]
-///
-/// TryFrom requires a [Result] to be returned. To handle this: use your residual
-/// (e.g. `TestResult<!,E>` in the above example, or Eightball<!> in the one below) as the
-/// `Error` type. Here's the example from the integration tests:
-///
-/// ```
-/// #![feature(never_type)]
-/// #![feature(try_trait_v2)]
-/// #![feature(try_trait_v2_residual)]
-///
-/// # use try_v2_derive::{Try, Try_ConvertResult};
-///
-/// #[derive(Try, Try_ConvertResult)]
-/// #[must_use]
-/// enum Eightball<Y> {
-///     Yes(Y),
-///     No,
-/// }
-///
-/// struct Even(i32);
-///
-/// impl TryFrom<i32> for Even {
-///     type Error = Eightball<!>;
-///
-///     fn try_from(num: i32) -> Result<Even, Eightball<!>> {
-///         if num % 2 == 0 {
-///             Result::Ok(Even(num))
-///         } else {
-///             Result::Err(Eightball::No)
-///         }
-///     }
-/// }
-///
-/// fn even_string(num: i32) -> Eightball<String> {
-///     let n = Even::try_from(num)?;
-///     let s = format!("{}", n.0);
-///     Eightball::Yes(s)
-/// }
-///
-/// assert!(matches!(even_string(2), Eightball::Yes(s) if s == "2"));
-/// assert!(matches!(even_string(1), Eightball::No));
-/// ```
-///
-pub fn try_trait_v2_convert_result(input: TokenStream1) -> TokenStream1 {
-    impl_convert_result(input.into()).to_tokens()
-}
-
-fn impl_convert_result(input: TokenStream2) -> DiagnosticStream {
-    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
-
-    let tryenum = TryEnum::parse(&ast)?;
-    let (name, _, _, output_type_name, residual_type, _, ty_generics, where_clause) =
-        tryenum.split_for_impl();
-
-    let result_e = format_ident!("Derive_TryConvert_ResultE");
-    let result_t = format_ident!("Derive_TryConvert_ResultT");
-
-    let from_result_generics = tryenum.generics(|g| {
-        g.params
-            .push(parse_quote! {#result_e: Into<#residual_type>})
-    });
-    let (from_result_impl_generics, _, _) = from_result_generics.split_for_impl();
-
-    let mut impl_convert = quote! {
-        impl #from_result_impl_generics std::ops::FromResidual<std::result::Result<std::convert::Infallible, #result_e>> for #name #ty_generics #where_clause
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: std::result::Result<std::convert::Infallible, #result_e>) -> Self {
-                match residual {
-                    std::result::Result::Err(e) => {
-                        let bang: #residual_type = e.into();
-                        Self::from_residual(bang)
-                    }
-                }
-            }
-        }
-    };
-
-    let to_result_generics = tryenum.generics_with_params(|p| {
-        p
-            //remove output type
-            .filter(|p| !matches!(p, GenericParam::Type(t) if t.ident == *output_type_name))
-            // add result types
-            .chain([
-                parse_quote! {#result_t},
-                parse_quote! {#result_e: From<#residual_type>},
-            ])
-    });
-
-    let (to_result_impl_generics, _, _) = to_result_generics.split_for_impl();
-
-    impl_convert.extend(quote! {
-        impl #to_result_impl_generics std::ops::FromResidual<#residual_type> for std::result::Result<#result_t, #result_e>
-        {
-            #[inline]
-            #[track_caller]
-            fn from_residual(residual: #residual_type) -> Self {
-                std::result::Result::Err(residual.into())
-            }
-        }
-    });
-    Ok(impl_convert)
-}
-
-#[proc_macro_derive(Try_Iterator)]
-/// Derives `IntoIterator` and `FromIterator` analog to `Result` & `Option`.
-///
-/// - `Vec<TryEnum>::collect()` -> `TryEnum<Vec>`.
-/// - `TryEnum.into_iter()` -> yields _one_ value if Ok, else empty.
+/// - additional methods `iter()` & `iter_mut` for working with references are available from `#[derive(Try)]`
 ///
 /// ## Example
+///
 /// ```
 /// # #![feature(never_type)]
 /// # #![feature(try_trait_v2)]
 /// # #![feature(try_trait_v2_residual)]
-/// # #![feature(iterator_try_collect)]
-/// # use try_v2_derive::{Try, Try_Iterator};
-/// # use TestResult::{Ok, TestsFailed, OtherError};
-/// #[derive(Try, Try_Iterator)]
+/// # use try_v2_derive::{IntoIterator, Try};
+///
+/// #[derive(Debug, Try, IntoIterator, PartialEq)]
 /// #[must_use]
-/// enum TestResult<T, E> {
-///     Ok(T),
-///     TestsFailed,
-///     OtherError(E),
+/// enum EightBall<Y, N> {
+///     Yes(Y),
+///     RollAgain,
+///     No(N),
 /// }
 ///
-/// # fn main() {
-/// let tests: Vec<TestResult<i32, &'static str>> = vec![Ok(1), TestsFailed, Ok(2), OtherError("something weird"), Ok(3), Ok(4)];
-///
-/// let first_results: TestResult<Vec<i32>, &'static str> = tests.into_iter().collect();
-/// assert!(matches!(first_results, TestsFailed));
-///
-/// let mut test: TestResult<i32, &'static str> = Ok(4);
-/// let borrowed_result: &i32 = test.iter().next().unwrap();
-/// assert_eq!(borrowed_result, &4);
-/// match test.iter_mut().next() {
-///     Some(v) => *v = 5,
-///     None => {},
-/// }
-/// assert!(matches!(test, TestResult::Ok(v) if v == 5));
-/// let result = test.into_iter().next();
-/// assert_eq!(result, Some(5));
-/// # }
+/// assert_eq!(Some(5), EightBall::<i32, i32>::Yes(5).into_iter().next());
+/// assert_eq!(None, EightBall::<i32, i32>::RollAgain.into_iter().next());
 /// ```
-pub fn iterator_traits(input: TokenStream1) -> TokenStream1 {
-    impl_iterator_traits(input.into()).to_tokens()
-}
-
-fn impl_iterator_traits(input: TokenStream2) -> DiagnosticStream {
-    let ast: DeriveInput = syn::parse2(input).expect("derive macro");
-
-    let tryenum = TryEnum::parse(&ast)?;
-    let (
-        name,
-        output_variant_name,
-        output_type,
-        output_type_name,
-        _,
-        impl_generics,
-        ty_generics,
-        where_clause,
-    ) = tryenum.split_for_impl();
-
-    // Standing on the shoulders of giants & blatanty (ab)using `std::option`'s work
-    let mut impl_traits = quote! {
-        impl #impl_generics std::iter::IntoIterator for #name #ty_generics #where_clause {
-            type Item = #output_type;
-            type IntoIter = std::option::IntoIter<#output_type>;
-
-
-            fn into_iter(self) -> Self::IntoIter {
-                let opt = match self {
-                    Self::#output_variant_name(v) => Some(v),
-                    _ => None,
-                };
-                opt.into_iter()
-            }
-        }
-
-        impl #impl_generics #name #ty_generics {
-            pub fn iter(&self) -> std::option::IntoIter<&#output_type> {
-                let opt = match self {
-                    Self::#output_variant_name(v) => Some(v),
-                    _ => None,
-                };
-                opt.into_iter()
-            }
-
-            pub fn iter_mut(&mut self) -> std::option::IntoIter<&mut #output_type> {
-                let opt = match self {
-                    Self::#output_variant_name(v) => Some(v),
-                    _ => None,
-                };
-                opt.into_iter()
-            }
-        }
-    };
-
-    let defined_type = quote! {#name #ty_generics};
-    let vec_ish = format_ident!("Derive_TryIterator_V");
-
-    let full_generics = tryenum.generics(|g| {
-        g.params
-            .push(parse_quote! {#vec_ish: FromIterator<#output_type>})
-    });
-
-    let (full_impl_generics, _, full_where_clause) = full_generics.split_for_impl();
-
-    let returned_generics = tryenum.generics(|g| {
-        for param in g.type_params_mut() {
-            if param.ident == *output_type_name {
-                *param = parse_quote! {#vec_ish};
-                break;
-            }
-        }
-    });
-    let (_, ret_ty_generics, _) = returned_generics.split_for_impl();
-
-    impl_traits.extend(quote! {
-        impl #full_impl_generics std::iter::FromIterator<#defined_type> for #name #ret_ty_generics #full_where_clause
-        {
-            fn from_iter<I: IntoIterator<Item=#defined_type>>(iter: I) -> Self {
-                iter.into_iter().try_collect()
-            }
-        }
-    });
-
-    Ok(impl_traits)
-}
-
 #[proc_macro_derive(IntoIterator)]
-pub fn derive_into_iterator(input: TokenStream1) -> TokenStream1 {
-    into_iterator(input.into()).to_tokens()
+pub fn into_iterator(input: TokenStream1) -> TokenStream1 {
+    derive_into_iterator(input.into()).to_tokens()
 }
 
-fn into_iterator(input: TokenStream2) -> DiagnosticStream {
+fn derive_into_iterator(input: TokenStream2) -> DiagnosticStream {
     let ast: DeriveInput = syn::parse2(input).expect("derive macro");
     let name = ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
@@ -776,9 +597,9 @@ fn into_iterator(input: TokenStream2) -> DiagnosticStream {
             type IntoIter = ::std::option::IntoIter<<#this as ::std::ops::Try>::Output>;
 
             fn into_iter(self) -> Self::IntoIter {
-                match self.branch() {
-                    std::ops::ControlFlow::Continue(v) => Some(v),
-                    std::ops::ControlFlow::Break(_) => None,
+                match ::std::ops::Try::branch(self) {
+                    ::std::ops::ControlFlow::Continue(v) => Some(v),
+                    ::std::ops::ControlFlow::Break(_) => None,
                 }
                 .into_iter()
             }
@@ -844,48 +665,7 @@ mod tests {
         };
         assert_eq!(
             derived_impl.to_string(),
-            impl_derive(original).unwrap().to_string()
-        )
-    }
-    #[test]
-    fn convert_result() {
-        let original: TokenStream2 = quote! {
-            #[derive(Try_ConvertResult)]
-            enum Exit<T: Termination, E> {
-                Ok(T),
-                TestsFailed,
-                OtherError(E),
-            }
-        };
-
-        let expected_impl: TokenStream2 = quote! {
-            impl<T: Termination, E, Derive_TryConvert_ResultE: Into< Exit<!, E> > > std::ops::FromResidual<std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>> for Exit<T, E>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: std::result::Result<std::convert::Infallible, Derive_TryConvert_ResultE>) -> Self {
-                    match residual {
-                        std::result::Result::Err(e) => {
-                            let bang: Exit<!, E> = e.into();
-                            Self::from_residual(bang)
-                        }
-                    }
-                }
-            }
-
-            impl<E, Derive_TryConvert_ResultT, Derive_TryConvert_ResultE: From<Exit<!, E> > > std::ops::FromResidual<Exit<!, E> > for std::result::Result<Derive_TryConvert_ResultT, Derive_TryConvert_ResultE>
-            {
-                #[inline]
-                #[track_caller]
-                fn from_residual(residual: Exit<!, E>) -> Self {
-                    std::result::Result::Err(residual.into())
-                }
-            }
-        };
-
-        assert_eq!(
-            expected_impl.to_string(),
-            impl_convert_result(original).unwrap().to_string()
+            derive_try_trait_v2(original).unwrap().to_string()
         )
     }
 }

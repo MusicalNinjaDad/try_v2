@@ -11,7 +11,7 @@ warning: it is recommended to annotate try-types as `#[must_use]`
 note: this warning originates from the macro invocation here
   --> tests/compilation/fail_MustUse.rs:7:17
    |
- 7 | #[derive(Debug, Try, Try_ConvertResult)]
+ 7 | #[derive(Debug, Try)]
    |                 ^^^
    = note: this warning originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 

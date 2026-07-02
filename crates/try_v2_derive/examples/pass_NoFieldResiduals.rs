@@ -4,9 +4,10 @@
 
 use std::process::Termination;
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 #[allow(unused)] // If it compiles then it already passes
 enum NoFieldResiduals<T: Termination> {

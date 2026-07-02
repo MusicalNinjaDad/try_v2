@@ -2,8 +2,8 @@ use proc_macro2_diagnostic::{Diagnostic, ToDiagnostic, prelude::*};
 use quote::format_ident;
 use syn::{
     AngleBracketedGenericArguments, Arm, Data, DataEnum, DeriveInput, Fields, GenericArgument,
-    GenericParam, Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant,
-    WhereClause, parse_quote, punctuated::IntoIter, spanned::Spanned,
+    Generics, Ident, ImplGenerics, Lifetime, Type, TypeGenerics, Variant, WhereClause, parse_quote,
+    spanned::Spanned,
 };
 
 /// A destructured Enum with validated invariants and easy access to all the bits we need.
@@ -173,35 +173,6 @@ impl<'ast> TryEnum<'ast> {
         };
 
         self.enum_data.variants.iter().map(arms).unzip()
-    }
-
-    /// Provides a cloned set of generics after applying `change`
-    ///
-    /// `generics()` is designed for situations where you can modify the generics in place, use
-    /// `generics_with_params()` where the parameters need redefining in a way which can be better
-    /// achieved via `.into_iter()....collect()`
-    pub(crate) fn generics<C>(&self, mut change: C) -> Generics
-    where
-        C: FnMut(&mut Generics),
-    {
-        let mut generics = self.generics.clone();
-        change(&mut generics);
-        generics
-    }
-
-    /// Provides a cloned set of generics after applying the `adaptor` to the params.
-    ///
-    /// `generics_with_params()` is designed for situations where the parameters need redefining
-    /// in a way which can be best achieved via `.into_iter()....collect()`, use `generics()`
-    /// for situations where you can modify the generics in place.
-    pub(crate) fn generics_with_params<P, I>(&self, adaptor: P) -> Generics
-    where
-        P: FnOnce(IntoIter<GenericParam>) -> I,
-        I: Iterator<Item = GenericParam>,
-    {
-        let mut generics = self.generics.clone();
-        generics.params = adaptor(generics.params.into_iter()).collect();
-        generics
     }
 
     pub(crate) fn split_for_impl(

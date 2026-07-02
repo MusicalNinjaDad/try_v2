@@ -2,30 +2,33 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Try, Try_ConvertResult)]
-#[must_use]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 enum NotSimpleIdent<T> {
     Ok(proc_macro2::TokenStream),
     Err(T),
 }
 
-#[derive(Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum NotSimpleIdentBorrowed<'t, T> {
     Ok(&'t proc_macro2::TokenStream),
     Err(T),
 }
 
-#[derive(Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum NotPathOrRef<T> {
     Ok(!),
     Err(T),
 }
 
-#[derive(Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum RefToNotPath<'n, T> {
     Ok(&'n !),

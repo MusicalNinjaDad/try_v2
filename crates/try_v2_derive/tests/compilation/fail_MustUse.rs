@@ -2,9 +2,9 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
 enum ExitE<E> {
     Ok(E),
     TestsFailed,

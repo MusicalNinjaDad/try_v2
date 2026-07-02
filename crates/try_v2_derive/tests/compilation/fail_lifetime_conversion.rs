@@ -4,9 +4,10 @@
 
 //! Tests that conversion between custom enum and std::result::Result requires correct lifetime bounds.
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Debug, Try, Try_ConvertResult)]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 #[must_use]
 enum BorrowedResult<'t, 'e, T, E> {
     Ok(&'t T),
@@ -79,49 +80,6 @@ where
     fn from(f: Failure<'f>) -> Self {
         BorrowedResult::Err(f.0)
     }
-}
-
-fn _unrestricted_t_borrowed_to_result<'t, 'e, 'o, 'f>(
-    okval: &'t i32,
-    errval: &'e i32,
-) -> StdResult<'o, 'f>
-where
-    'e: 'f,
-{
-    let rtn = match errval {
-        ..=4 => BorrowedResult::pass(okval)?,
-        5 => BorrowedResult::fail(errval)?,
-        6.. => BorrowedResult::fail_directly(errval)?,
-    };
-    Ok(rtn)
-}
-
-fn _unrestricted_e_borrowed_to_result_direct<'t, 'e, 'o, 'f>(
-    okval: &'t i32,
-    errval: &'e i32,
-) -> StdResult<'o, 'f>
-where
-    't: 'o,
-{
-    let rtn = match errval {
-        ..=4 => BorrowedResult::pass(okval)?,
-        5.. => BorrowedResult::fail_directly(errval)?,
-    };
-    Ok(rtn)
-}
-
-fn _unrestricted_e_borrowed_to_result_indirect<'t, 'e, 'o, 'f>(
-    okval: &'t i32,
-    errval: &'e i32,
-) -> StdResult<'o, 'f>
-where
-    't: 'o,
-{
-    let rtn = match errval {
-        ..=4 => BorrowedResult::pass(okval)?,
-        5.. => BorrowedResult::fail(errval)?,
-    };
-    Ok(rtn)
 }
 
 fn _unrestricted_t_result_to_borrowed<'o, 'f, 't, 'e>(

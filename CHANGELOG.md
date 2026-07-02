@@ -8,6 +8,8 @@
 - derive IntoIterator replaces Try_Iterator, works on any TryType
 - FromIterator removed
 - methods generates iter, iter_mut, as_ref, as_mut, as_deref, as_deref_mut
+- remove ConvertResult
+- remove deriving FromResidual to convert TO a Result::Err
 
 ## [v0.8.2]
 

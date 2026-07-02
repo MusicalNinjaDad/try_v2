@@ -2,10 +2,10 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use try_v2_derive::{Try, Try_ConvertResult};
+use try_v2_derive::Try;
 
-#[derive(Try, Try_ConvertResult)]
-#[must_use]
+#[derive(Debug, Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 enum OutputUnitType<T> {
     Ok,
     TestsFailed(T),

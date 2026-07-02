@@ -3,8 +3,6 @@
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 
-use std::ops::Try;
-
 use try_v2_derive::{IntoIterator, Try};
 
 #[derive(Debug, Try, IntoIterator, PartialEq)]
