@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.9.2]
+
+### Bugfix
+
+- Bump `ninja-build_rs` to 0.2.1
+
 ## [v0.9.1]
 
 ### Bugfix
