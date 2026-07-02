@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.9.1]
+
+### Bugfix
+
+- Bump `proc_macro2_diagnostic` to 0.6.5 to fully respect cargo unstable.allow-features
+
 ## [v0.9.0]
 
 ### Breaking changes / New Features
@@ -11,14 +17,13 @@
 - remove `ConvertResult`
 - remove deriving `FromResidual` to convert *to* a `Result::Err`
 
-## Bugfix
+### Bugfix
 
 - Update to ninja-build_rs v0.2.0 to (partially) respect cargo unstable.allow-features
 
-## Open tasks
+### Open tasks
 
 - Finalise documentation with all updates
-- Bump `proc_macro2_diagnostic` once it relies on this version to fully respect cargo unstable.allow-features
 
 ## [v0.8.2]
 
