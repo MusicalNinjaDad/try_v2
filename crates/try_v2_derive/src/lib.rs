@@ -73,7 +73,7 @@ use parse::TryEnum;
 ///
 /// ## `#[methods]` for working with references
 ///
-/// The following direct methods can be additionally derived by adding a `#[method]` annotation.
+/// The following direct methods can be additionally derived by adding a `#[methods]` annotation.
 /// A simple annotation will derive *all* methods, alternatively you can list the specific methods
 /// e.g. `#[methods(as_ref, as_mut)]`
 ///
