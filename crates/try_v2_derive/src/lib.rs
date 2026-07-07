@@ -84,9 +84,9 @@ use parse::TryEnum;
 ///     where `T: Deref`, leaving the original intact
 ///   - `as_deref_mut`: converts an `&'a mut Foo<T,_>` to a new, owned `Foo<&'a mut T::Target, &'a mut _>`,
 ///     where `T: DerefMut`, leaving the original intact
-///   - `iter`: returns an iterator over `&T` - see [into_iterator] for more details on iterating
+///   - `iter`: returns an iterator over `&T` - see [`IntoIterator`](derive@IntoIterator) for more details on iterating
 ///     over TryTypes
-///   - `iter_mut`: returns an iterator over `&mut T` - see [into_iterator] for more details on iterating
+///   - `iter_mut`: returns an iterator over `&mut T` - see [`IntoIterator`](derive@IntoIterator) for more details on iterating
 ///     over TryTypes
 ///
 /// ## `?` operations on a `Result` in functions which return your TryType
