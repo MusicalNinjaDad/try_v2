@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.9.3]
+
+### Bugfix
+
+- Fix typo in docs
+
 ## [v0.9.2]
 
 ### Bugfix
