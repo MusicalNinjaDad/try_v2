@@ -8,4 +8,4 @@ try_v2_derive = { path = "crates/try_v2_derive", version = "0.9.3" }
 try_v2_traits = { path = "crates/try_v2_traits", version = "0.9.3" }
 
 autocfg = "1.5.1"
-ninja-build_rs = "0.2.1"
+ninja-build_rs = "0.5.0"
