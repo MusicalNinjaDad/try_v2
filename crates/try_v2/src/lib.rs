@@ -21,7 +21,8 @@
 //!     type as the _only unnamed_ field
 //!   - no other variant can store the Output type (TODO #72 add a nice error message)
 //!
-//! See the individual documentation for [Try], [FromResidual] and [crate::IntoIterator] for specifics
+//! See the individual documentation for [Try](derive@Try), [FromResidual](derive@FromResidual) &
+//! [IntoIterator](derive@IntoIterator) for specifics
 //! on the generated code.
 //!
 //! ## Example Usage
