@@ -6,9 +6,13 @@ fn main() -> Result<()> {
     let allowed_features = cargo_allowed_features()?;
     ac.emit_unstable_feature(assert_matches, &allowed_features);
     ac.emit_unstable_feature(iterator_try_collect, &allowed_features);
-    ac.emit_unstable_feature(OtherFeature("if_let_guard".to_string()), &allowed_features); // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
     ac.emit_unstable_feature(never_type, &allowed_features);
     ac.emit_unstable_feature(try_trait_v2, &allowed_features);
     ac.emit_unstable_feature(try_trait_v2_residual, &allowed_features);
+
+    // guaranteed to be present if all(has_never_type, has_try_trait_v2, has_try_trait_v2_residual)
+    // started 2018-05-28, stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
+    ac.emit_unstable_feature(OtherFeature("if_let_guard".to_string()), &allowed_features); 
+
     Ok(())
 }
