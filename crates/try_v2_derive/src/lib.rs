@@ -2,6 +2,10 @@
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
+#![expect(
+    rustdoc::redundant_explicit_links,
+    reason = "clear disambiguation between derive macros & std traits"
+)]
 
 use std::collections::HashMap;
 
