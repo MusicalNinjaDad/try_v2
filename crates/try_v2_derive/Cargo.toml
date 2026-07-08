@@ -27,4 +27,4 @@ trybuild = "1.0.116"
 
 [build-dependencies]
 autocfg = { workspace = true }
-ninja-build_rs = { workspace = true }
+build_safely = { workspace = true }

@@ -29,4 +29,4 @@ log = "0.4.29"
 
 [build-dependencies]
 autocfg = { workspace = true }
-ninja-build_rs = { workspace = true }
+build_safely = { workspace = true }

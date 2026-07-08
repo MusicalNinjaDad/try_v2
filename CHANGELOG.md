@@ -16,7 +16,7 @@
 
 ### Bugfix
 
-- Bump `ninja-build_rs` to 0.2.1
+- Bump `build_safely` to 0.2.1
 
 ## [v0.9.1]
 
@@ -37,7 +37,7 @@
 
 ### Bugfix
 
-- Update to ninja-build_rs v0.2.0 to (partially) respect cargo unstable.allow-features
+- Update to build_safely v0.2.0 to (partially) respect cargo unstable.allow-features
 
 ### Open tasks
 
