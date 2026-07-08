@@ -17,7 +17,8 @@ use syn::{
 mod parse;
 use parse::TryEnum;
 
-/// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
+/// Derives [Try](std::ops::Try)
+/// (see also: [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 ///
 /// ## Limitations on the annotated type
 ///
@@ -434,7 +435,8 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_try)
 }
 
-/// Derive *additional implementations* of `FromResidual` for nested TryTypes
+/// Derive *additional implementations* of [`FromResidual`](std::ops::FromResidual) for
+/// *nested TryTypes*
 ///
 /// Works on any TryType, does not require a derived Try.
 ///
@@ -451,8 +453,9 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
 /// - Currently this will only derive for cases of another TryType wrapping your TryType.
 /// - Your TryType must be wrapped as the **Output** of the other TryType
 /// - TODO: #168 Multi-level nesting
-/// - See [try_trait_v2] for deriving conversion from `Result::Err`
-/// - A basic `FromResidual` implementation is included in `#[derive(Try)]`
+/// - See [`#derive(Try)`][derive@Try] for deriving conversion from `Result::Err`
+/// - A basic [`FromResidual`](std::ops::FromResidual) implementation is included in
+///   [`#derive(Try)`][derive@Try]
 ///
 /// ## Example
 ///
@@ -551,15 +554,16 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_convert)
 }
 
-/// Derives `IntoIterator` analog to Result & Option.
+/// Derives [`IntoIterator`](std::iter::IntoIterator) analog to [Result] & [Option].
 ///
-/// Works on any TryType, does not require a derived Try.
+/// Works on any TryType, does not require a derived `Try`.
 ///
 /// `TryType.into_iter()` -> yields *one* value in the **Output** case, else empty.
 ///
 /// ## Things to note
 ///
-/// - additional methods `iter()` & `iter_mut` for working with references are available from `#[derive(Try)]`
+/// - additional methods `iter()` & `iter_mut()` for working with references are available
+///   from [`#[derive(Try)]`](derive@Try)
 ///
 /// ## Example
 ///
