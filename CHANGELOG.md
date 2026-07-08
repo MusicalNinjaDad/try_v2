@@ -1,6 +1,10 @@
 # Changelog try_v2
 
-## [v0.9.4] - WIP
+## [v0.10.0]
+
+### Breaking change
+
+- Updated from `ninja-build_rs` 0.2.1 to `build_safely` 0.5.0 - override variable changed to `BUILD_SAFELY_CARGO_CONFIG_DIR`
 
 ### Bugfix
 
@@ -16,7 +20,7 @@
 
 ### Bugfix
 
-- Bump `ninja-build_rs` to 0.2.1
+- Bump `build_safely` to 0.2.1
 
 ## [v0.9.1]
 
@@ -37,7 +41,7 @@
 
 ### Bugfix
 
-- Update to ninja-build_rs v0.2.0 to (partially) respect cargo unstable.allow-features
+- Update to build_safely v0.2.0 to (partially) respect cargo unstable.allow-features
 
 ### Open tasks
 
