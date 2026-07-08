@@ -2,6 +2,10 @@
 #![cfg_attr(unstable_if_let_guard, feature(if_let_guard))] // stable 1.88.0 https://github.com/rust-lang/rust/issues/53667
 #![cfg_attr(unstable_let_chains, feature(let_chains))] // stable 1.95.0 https://github.com/rust-lang/rust/issues/51114
 #![cfg_attr(unstable_never_type, feature(never_type))]
+#![expect(
+    rustdoc::redundant_explicit_links,
+    reason = "clear disambiguation between derive macros & std traits"
+)]
 
 use std::collections::HashMap;
 
@@ -17,7 +21,8 @@ use syn::{
 mod parse;
 use parse::TryEnum;
 
-/// Derives [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
+/// Derives [Try](std::ops::Try)
+/// (see also: [try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html))
 ///
 /// ## Limitations on the annotated type
 ///
@@ -84,9 +89,9 @@ use parse::TryEnum;
 ///     where `T: Deref`, leaving the original intact
 ///   - `as_deref_mut`: converts an `&'a mut Foo<T,_>` to a new, owned `Foo<&'a mut T::Target, &'a mut _>`,
 ///     where `T: DerefMut`, leaving the original intact
-///   - `iter`: returns an iterator over `&T` - see [into_iterator] for more details on iterating
+///   - `iter`: returns an iterator over `&T` - see [`IntoIterator`](derive@IntoIterator) for more details on iterating
 ///     over TryTypes
-///   - `iter_mut`: returns an iterator over `&mut T` - see [into_iterator] for more details on iterating
+///   - `iter_mut`: returns an iterator over `&mut T` - see [`IntoIterator`](derive@IntoIterator) for more details on iterating
 ///     over TryTypes
 ///
 /// ## `?` operations on a `Result` in functions which return your TryType
@@ -434,7 +439,8 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_try)
 }
 
-/// Derive *additional implementations* of `FromResidual` for nested TryTypes
+/// Derive *additional implementations* of [`FromResidual`](std::ops::FromResidual) for
+/// *nested TryTypes*
 ///
 /// Works on any TryType, does not require a derived Try.
 ///
@@ -451,8 +457,9 @@ fn derive_try_trait_v2(input: TokenStream2) -> DiagnosticStream {
 /// - Currently this will only derive for cases of another TryType wrapping your TryType.
 /// - Your TryType must be wrapped as the **Output** of the other TryType
 /// - TODO: #168 Multi-level nesting
-/// - See [try_trait_v2] for deriving conversion from `Result::Err`
-/// - A basic `FromResidual` implementation is included in `#[derive(Try)]`
+/// - See [`#derive(Try)`][derive@Try] for deriving conversion from `Result::Err`
+/// - A basic [`FromResidual`](std::ops::FromResidual) implementation is included in
+///   [`#derive(Try)`][derive@Try]
 ///
 /// ## Example
 ///
@@ -551,15 +558,16 @@ fn derive_from_residual(input: TokenStream2) -> DiagnosticStream {
     Ok(impl_convert)
 }
 
-/// Derives `IntoIterator` analog to Result & Option.
+/// Derives [`IntoIterator`](std::iter::IntoIterator) analog to [Result] & [Option].
 ///
-/// Works on any TryType, does not require a derived Try.
+/// Works on any TryType, does not require a derived `Try`.
 ///
 /// `TryType.into_iter()` -> yields *one* value in the **Output** case, else empty.
 ///
 /// ## Things to note
 ///
-/// - additional methods `iter()` & `iter_mut` for working with references are available from `#[derive(Try)]`
+/// - additional methods `iter()` & `iter_mut()` for working with references are available
+///   from [`#[derive(Try)]`](derive@Try)
 ///
 /// ## Example
 ///
