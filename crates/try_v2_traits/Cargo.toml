@@ -1,18 +1,17 @@
 [package]
 name = "try_v2_traits"
-version = "0.9.3"
-edition = "2024"
-readme = "README.md"
 description = "Provides helper traits for `Try`"
-authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
-keywords = ["derive", "Try", "try_trait_v2"]
-homepage = "https://github.com/MusicalNinjaDad/try_v2"
-repository = "https://github.com/MusicalNinjaDad/try_v2"
-categories = ["development-tools"]
-license = "MIT"
-rust-version = "1.85.1"
-exclude = [".github", ".devcontainer"]
-
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+authors.workspace = true
+keywords.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+license.workspace = true
+rust-version.workspace = true
+exclude.workspace = true
 [lib]
 
 [features]

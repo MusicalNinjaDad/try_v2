@@ -1,7 +1,19 @@
 [workspace]
-edition = "2024"
 resolver = "3"
 members = ["crates/*"]
+
+[workspace.package]
+version = "0.9.3"
+edition = "2024"
+readme = "README.md"
+authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
+keywords = ["derive", "Try", "try_trait_v2"]
+homepage = "https://github.com/MusicalNinjaDad/try_v2"
+repository = "https://github.com/MusicalNinjaDad/try_v2"
+categories = ["development-tools"]
+license = "MIT"
+rust-version = "1.93.1"
+exclude = [".github", ".devcontainer"]
 
 [workspace.dependencies]
 try_v2_derive = { path = "crates/try_v2_derive", version = "0.9.3" }
