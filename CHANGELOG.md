@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.9.4] - WIP
+
+### Bugfix
+
+- Update intra-doc links to explicitly disambiguate between derive macros & std traits
+
 ## [v0.9.3]
 
 ### Bugfix
