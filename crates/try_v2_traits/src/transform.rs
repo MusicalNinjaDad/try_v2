@@ -4,7 +4,7 @@ impl<T> Transform<T> for Option<T> {}
 impl<T, E> Transform<T> for Result<T, E> {}
 impl<B, C> Transform<C> for ControlFlow<B, C> {}
 
-/// Methods for transforming TryTypes. Inspired by the methods provided on `Option` & `Result`
+/// Methods for transforming TryTypes. Inspired by the methods provided on [`Option`] & [`Result`]
 ///
 /// ## Note
 ///
