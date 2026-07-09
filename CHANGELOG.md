@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.10.1]
+
+### Bugfix
+
+- Update `proc_macro2_diagnostic` to v0.7.0
+
 ## [v0.10.0]
 
 ### Breaking change
