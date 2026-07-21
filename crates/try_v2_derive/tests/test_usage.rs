@@ -27,7 +27,7 @@ mod bound_ok_type {
         FormalError { errno: i32, data: String },
     }
 
-    impl<T: Termination> From<String> for Exit<T> {
+    impl From<String> for Exit<!> {
         fn from(error: String) -> Self {
             Self::OtherError(error)
         }
