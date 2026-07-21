@@ -4,7 +4,7 @@
 
 - a derive macro for `Try`
 - traits with standard methods to make TryTypes usable (e.g. `trait Transform` provides `.map()`)
-- derive `Try_ConvertResult` for interconversion with `std::result::Result`
+- `#[FromResidual(Result<_, Self::Residual>)]` for converting `std::result::Result` with `?`
 - derive `Try_Iterator` for iterating over `IntoIterator` and collecting from `FromIterator` analogous to how `Result` & `Option` do this.
 
 See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) for more details of the underlying trait.
@@ -33,9 +33,10 @@ See the [full documentation](https://docs.rs/try_v2/latest/try_v2/) for specific
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
-use try_v2::{Try, Try_ConvertResult};
+use try_v2::Try;
 
-#[derive(Try, Try_ConvertResult)]
+#[derive(Try)]
+#[FromResidual(Result<_, Self::Residual>)]
 enum TestResult<T> {
     Ok(T),
     TestsFailed,
@@ -52,7 +53,7 @@ fn run_tests() -> TestResult<()> {
 assert!(matches!(run_tests(), TestResult::OtherError(msg) if msg == "oops!"));
 
 
-// Conversion from std::result::Result thanks to `#[derive(Try_ConvertResult)]`
+// Conversion from std::result::Result thanks to `#[FromResidual(Result<_, Self::Residual>)]`
 struct TestFailure {}
 
 impl<T> From<TestFailure> for TestResult<T> {

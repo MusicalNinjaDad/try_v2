@@ -31,9 +31,10 @@
 //! #![feature(never_type)]
 //! #![feature(try_trait_v2)]
 //! #![feature(try_trait_v2_residual)]
-//! use try_v2::{Try, Try_ConvertResult};
+//! use try_v2::Try;
 //!
 //! #[derive(Try)]
+//! #[FromResidual(Result<_, Self::Residual>)]
 //! enum TestResult<T> {
 //!     Ok(T),
 //!     TestsFailed,
@@ -50,7 +51,7 @@
 //! assert!(matches!(run_tests(), TestResult::OtherError(msg) if msg == "oops!"));
 //!
 //!
-//! // Conversion from std::result::Result thanks to `#[derive(Try_ConvertResult)]`
+//! // Conversion from std::result::Result thanks to `#[FromResidual(Result<_, Self::Residual>)]`
 //! struct TestFailure {}
 //!
 //! impl<T> From<TestFailure> for TestResult<T> {
