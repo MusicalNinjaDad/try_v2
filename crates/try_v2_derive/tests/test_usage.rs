@@ -27,6 +27,12 @@ mod bound_ok_type {
         FormalError { errno: i32, data: String },
     }
 
+    impl From<String> for Exit<!> {
+        fn from(error: String) -> Self {
+            Self::OtherError(error)
+        }
+    }
+
     #[test]
     fn short_circuit_1() {
         fn fail() -> Exit<()> {
@@ -76,6 +82,17 @@ mod bound_ok_type {
             Exit::Ok(())
         }
         assert_matches!(pass(), Exit::Ok(()))
+    }
+
+    #[test]
+    fn result_to_exit_via_question_mark() {
+        fn from_std_result() -> Exit<()> {
+            let result: Result<(), String> = Err("oops".to_owned());
+            result?;
+            Exit::Ok(())
+        }
+
+        assert_matches!(from_std_result(), Exit::OtherError(text) if text == "oops")
     }
 }
 
