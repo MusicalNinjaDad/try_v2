@@ -5,13 +5,13 @@ on:
       # Do not auto-approve changes to publishing workflow!
       - ".github/workflows/rust-publish.yml"
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   merge:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      workflows: write
                                                                   # Manually set the repo name so this doesn't run on forks
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'MusicalNinjaDad/try_v2'
     steps:
