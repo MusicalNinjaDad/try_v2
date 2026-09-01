@@ -20,4 +20,4 @@ try_v2_derive = { path = "crates/try_v2_derive", version = "0.10.1" }
 try_v2_traits = { path = "crates/try_v2_traits", version = "0.10.1" }
 
 autocfg = "1.5.1"
-build_safely = "0.5.1"
+build_safely = "0.5.4"
