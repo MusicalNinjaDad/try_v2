@@ -1,5 +1,11 @@
 # Changelog try_v2
 
+## [v0.11.0]
+
+### Breaking change
+
+- Update to `syn` v3
+
 ## [v0.10.1]
 
 ### Bugfix
