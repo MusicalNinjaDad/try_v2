@@ -1,4 +1,4 @@
-#![feature(never_type)]
+#![cfg_attr(unstable_never_type, feature(never_type))]
 #![allow(dead_code)]
 
 enum ValidatedBox<T> {

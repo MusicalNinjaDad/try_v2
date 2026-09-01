@@ -8,7 +8,7 @@
 //! ## Requires
 //!
 //!   - nightly
-//!   - `#![feature(never_type)]`
+//!   - `#![cfg_attr(unstable_never_type, feature(never_type))]`
 //!   - `#![feature(try_trait_v2)]`
 //!   - `#![feature(try_trait_v2_residual)]`
 //!
@@ -28,7 +28,7 @@
 //! ## Example Usage
 //!
 //! ```rust, ignore TODO update
-//! #![feature(never_type)]
+//! #![cfg_attr(unstable_never_type, feature(never_type))]
 //! #![feature(try_trait_v2)]
 //! #![feature(try_trait_v2_residual)]
 //! use try_v2::Try;
@@ -77,7 +77,7 @@
 //!
 //! > 🔬 **Required Experimental Features**
 //! >
-//! >  - [`#![feature(never_type)]`](https://github.com/rust-lang/rust/issues/35121)
+//! >  - [`#![cfg_attr(unstable_never_type, feature(never_type))]`](https://github.com/rust-lang/rust/issues/35121)
 //! >  - [`#![feature(try_trait_v2)]`](https://github.com/rust-lang/rust/issues/84277)
 //! >  - [`#![feature(try_trait_v2_residual)]`](https://github.com/rust-lang/rust/issues/91285)
 //!
