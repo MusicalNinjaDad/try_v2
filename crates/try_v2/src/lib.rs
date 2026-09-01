@@ -8,7 +8,7 @@
 //! ## Requires
 //!
 //!   - nightly
-//!   - `#![cfg_attr(unstable_never_type, feature(never_type))]`
+//!   - `#![feature(never_type)]` (stable from rust 1.100.0)
 //!   - `#![feature(try_trait_v2)]`
 //!   - `#![feature(try_trait_v2_residual)]`
 //!
