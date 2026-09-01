@@ -1,53 +1,53 @@
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:7:17
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:8:17
    |
- 7 | #[derive(Debug, Try)]
+ 8 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:9:12
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:10:12
    |
- 9 | enum Owned<T, E> {
+10 | enum Owned<T, E> {
    |            ^
 help: change this to T
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:10:8
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:11:8
    |
-10 |     Ok(E),
+11 |     Ok(E),
    |        ^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:14:17
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:15:17
    |
-14 | #[derive(Debug, Try)]
+15 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:17:23
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:18:23
    |
-17 | enum Borrowed<'t, 'e, T, E> {
+18 | enum Borrowed<'t, 'e, T, E> {
    |                       ^
 help: change this to &'e T
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:18:8
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:19:8
    |
-18 |     Ok(&'e E),
+19 |     Ok(&'e E),
    |        ^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:22:17
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:23:17
    |
-22 | #[derive(Debug, Try)]
+23 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:25:35
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:26:35
    |
-25 | enum MultipleBorrowed<'t, 'e, 'f, T, E, F> {
+26 | enum MultipleBorrowed<'t, 'e, 'f, T, E, F> {
    |                                   ^
 help: change this to (T)
-  --> tests/compilation/fail_FirstGenericNotOutput.rs:26:7
+  --> tests/compilation/fail_FirstGenericNotOutput.rs:27:7
    |
-26 |     Ok(&'e E, &'f F),
+27 |     Ok(&'e E, &'f F),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,53 +1,53 @@
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/fail_TooManyOutputs.rs:7:17
+  --> tests/compilation/fail_TooManyOutputs.rs:8:17
    |
- 7 | #[derive(Debug, Try)]
+ 8 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_TooManyOutputs.rs:9:21
+  --> tests/compilation/fail_TooManyOutputs.rs:10:21
    |
- 9 | enum TooManyOutputs<T, E> {
+10 | enum TooManyOutputs<T, E> {
    |                     ^
 help: change this to (T)
-  --> tests/compilation/fail_TooManyOutputs.rs:10:7
+  --> tests/compilation/fail_TooManyOutputs.rs:11:7
    |
-10 |     Ok(T, E),
+11 |     Ok(T, E),
    |       ^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/fail_TooManyOutputs.rs:14:17
+  --> tests/compilation/fail_TooManyOutputs.rs:15:17
    |
-14 | #[derive(Debug, Try)]
+15 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_TooManyOutputs.rs:17:37
+  --> tests/compilation/fail_TooManyOutputs.rs:18:37
    |
-17 | enum TooManyOutputsBorrowed<'t, 'e, T, E> {
+18 | enum TooManyOutputsBorrowed<'t, 'e, T, E> {
    |                                     ^
 help: change this to (&'t T)
-  --> tests/compilation/fail_TooManyOutputs.rs:18:7
+  --> tests/compilation/fail_TooManyOutputs.rs:19:7
    |
-18 |     Ok(&'t T, &'e E),
+19 |     Ok(&'t T, &'e E),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires a single generic type for `Output`
-  --> tests/compilation/fail_TooManyOutputs.rs:22:17
+  --> tests/compilation/fail_TooManyOutputs.rs:23:17
    |
-22 | #[derive(Debug, Try)]
+23 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_TooManyOutputs.rs:25:45
+  --> tests/compilation/fail_TooManyOutputs.rs:26:45
    |
-25 | enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
+26 | enum TooManyOutputsBorrowedOrdering<'e, 't, T, E> {
    |                                             ^
 help: change this to (&'t T)
-  --> tests/compilation/fail_TooManyOutputs.rs:26:7
+  --> tests/compilation/fail_TooManyOutputs.rs:27:7
    |
-26 |     Ok(&'e E, &'t T),
+27 |     Ok(&'e E, &'t T),
    |       ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

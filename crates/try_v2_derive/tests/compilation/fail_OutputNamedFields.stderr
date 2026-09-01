@@ -1,35 +1,35 @@
 error: Try requires an unnamed field for the `Output` variant
-  --> tests/compilation/fail_OutputNamedFields.rs:7:17
+  --> tests/compilation/fail_OutputNamedFields.rs:8:17
    |
- 7 | #[derive(Debug, Try)]
+ 8 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputNamedFields.rs:9:23
+  --> tests/compilation/fail_OutputNamedFields.rs:10:23
    |
- 9 | enum OutputNamedField<T> {
+10 | enum OutputNamedField<T> {
    |                       ^
 help: change this to (T)
-  --> tests/compilation/fail_OutputNamedFields.rs:10:8
+  --> tests/compilation/fail_OutputNamedFields.rs:11:8
    |
-10 |     Ok { foo: T },
+11 |     Ok { foo: T },
    |        ^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires an unnamed field for the `Output` variant
-  --> tests/compilation/fail_OutputNamedFields.rs:15:17
+  --> tests/compilation/fail_OutputNamedFields.rs:16:17
    |
-15 | #[derive(Debug, Try)]
+16 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputNamedFields.rs:18:35
+  --> tests/compilation/fail_OutputNamedFields.rs:19:35
    |
-18 | enum OutputNamedFieldBorrowed<'t, T> {
+19 | enum OutputNamedFieldBorrowed<'t, T> {
    |                                   ^
 help: change this to (T)
-  --> tests/compilation/fail_OutputNamedFields.rs:19:8
+  --> tests/compilation/fail_OutputNamedFields.rs:20:8
    |
-19 |     Ok { foo: &'t T },
+20 |     Ok { foo: &'t T },
    |        ^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
