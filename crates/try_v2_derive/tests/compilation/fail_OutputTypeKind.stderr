@@ -1,71 +1,71 @@
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_OutputTypeKind.rs:7:17
+  --> tests/compilation/fail_OutputTypeKind.rs:8:17
    |
- 7 | #[derive(Debug, Try)]
+ 8 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputTypeKind.rs:9:21
+  --> tests/compilation/fail_OutputTypeKind.rs:10:21
    |
- 9 | enum NotSimpleIdent<T> {
+10 | enum NotSimpleIdent<T> {
    |                     ^
 help: change this to T
-  --> tests/compilation/fail_OutputTypeKind.rs:10:8
+  --> tests/compilation/fail_OutputTypeKind.rs:11:8
    |
-10 |     Ok(proc_macro2::TokenStream),
+11 |     Ok(proc_macro2::TokenStream),
    |        ^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_OutputTypeKind.rs:14:17
+  --> tests/compilation/fail_OutputTypeKind.rs:15:17
    |
-14 | #[derive(Debug, Try)]
+15 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputTypeKind.rs:17:33
+  --> tests/compilation/fail_OutputTypeKind.rs:18:33
    |
-17 | enum NotSimpleIdentBorrowed<'t, T> {
+18 | enum NotSimpleIdentBorrowed<'t, T> {
    |                                 ^
 help: change this to &'t T
-  --> tests/compilation/fail_OutputTypeKind.rs:18:8
+  --> tests/compilation/fail_OutputTypeKind.rs:19:8
    |
-18 |     Ok(&'t proc_macro2::TokenStream),
+19 |     Ok(&'t proc_macro2::TokenStream),
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_OutputTypeKind.rs:22:17
+  --> tests/compilation/fail_OutputTypeKind.rs:23:17
    |
-22 | #[derive(Debug, Try)]
+23 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputTypeKind.rs:25:19
+  --> tests/compilation/fail_OutputTypeKind.rs:26:19
    |
-25 | enum NotPathOrRef<T> {
+26 | enum NotPathOrRef<T> {
    |                   ^
 help: change this to T
-  --> tests/compilation/fail_OutputTypeKind.rs:26:8
+  --> tests/compilation/fail_OutputTypeKind.rs:27:8
    |
-26 |     Ok(!),
+27 |     Ok(!),
    |        ^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Try requires the first generic type to be used as the `Output` type
-  --> tests/compilation/fail_OutputTypeKind.rs:30:17
+  --> tests/compilation/fail_OutputTypeKind.rs:31:17
    |
-30 | #[derive(Debug, Try)]
+31 | #[derive(Debug, Try)]
    |                 ^^^
    |
 help: Output type defined here
-  --> tests/compilation/fail_OutputTypeKind.rs:33:23
+  --> tests/compilation/fail_OutputTypeKind.rs:34:23
    |
-33 | enum RefToNotPath<'n, T> {
+34 | enum RefToNotPath<'n, T> {
    |                       ^
 help: change this to &'n T
-  --> tests/compilation/fail_OutputTypeKind.rs:34:8
+  --> tests/compilation/fail_OutputTypeKind.rs:35:8
    |
-34 |     Ok(&'n !),
+35 |     Ok(&'n !),
    |        ^^^^^
    = note: this error originates in the derive macro `Try` (in Nightly builds, run with -Z macro-backtrace for more info)

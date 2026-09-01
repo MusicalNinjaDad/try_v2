@@ -1,4 +1,4 @@
-#![feature(never_type)]
+#![cfg_attr(unstable_never_type, feature(never_type))]
 #![allow(unused, clippy::disallowed_names)]
 use std::{
     io,

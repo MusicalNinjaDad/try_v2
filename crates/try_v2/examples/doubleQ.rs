@@ -1,4 +1,4 @@
-#![feature(never_type)]
+#![cfg_attr(unstable_never_type, feature(never_type))]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
 #![feature(min_specialization)]

@@ -12,7 +12,7 @@ See ([try_trait_v2](https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)) fo
 ## Requires
 
 - nightly
-- `#![feature(never_type)]`
+- `#![feature(never_type)]` (stable from rust 1.100.0)
 - `#![feature(try_trait_v2)]`
 - `#![feature(try_trait_v2_residual)]`
 - optionally: `#![feature(iterator_try_collect)]` (if using Try_Iterator)
@@ -30,6 +30,7 @@ See the [full documentation](https://docs.rs/try_v2/latest/try_v2/) for specific
 ## Example Usage
 
 ```rust
+#![allow(stable_features)]
 #![feature(never_type)]
 #![feature(try_trait_v2)]
 #![feature(try_trait_v2_residual)]
@@ -79,7 +80,7 @@ In order to use this crate you must enable the features which it exposes:
 
 > 🔬 **Required Experimental Features**
 >
-> - [`#![feature(never_type)]`](https://github.com/rust-lang/rust/issues/35121)
+> - [`#![feature(never_type)]`](https://github.com/rust-lang/rust/issues/35121) (stable from rust 1.100.0)
 > - [`#![feature(try_trait_v2)]`](https://github.com/rust-lang/rust/issues/84277)
 > - [`#![feature(try_trait_v2_residual)]`](https://github.com/rust-lang/rust/issues/91285)
 > - optionally: [`#![feature(iterator_try_collect)]`](https://github.com/rust-lang/rust/issues/94047) (if using `Try_Iterator`)
