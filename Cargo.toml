@@ -21,3 +21,6 @@ try_v2_traits = { path = "crates/try_v2_traits", version = "0.11.0" }
 
 autocfg = "1.5.1"
 build_safely = "0.5.4"
+
+[patch.crates-io]
+proc_macro2_diagnostic = { git = "https://github.com/MusicalNinjaDad/proc_macro2_diagnostic", branch = "try_v2_by_feature" }
