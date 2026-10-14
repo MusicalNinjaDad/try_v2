@@ -539,7 +539,7 @@ mod tests {
         #[test]
         fn or_else_f() {
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-            struct Wrapper(Result<(),i32>);
+            struct Wrapper(Result<(), i32>);
             let err_5: Result<(), Wrapper> = Err(Wrapper(Err(5)));
             let stdlib = err_5.or_else(|e| e.0);
             let custom = Transform::or_else(err_5, |r| {
@@ -554,7 +554,7 @@ mod tests {
             let err_5: Result<(), _> = Err(5);
             #[allow(clippy::bind_instead_of_map)]
             let stdlib: Result<_, usize> = err_5.or_else(|_| Err(Default::default()));
-            let custom:Result<_, usize> = Transform::or_else(err_5, |_| Err(Default::default()));
+            let custom: Result<_, usize> = Transform::or_else(err_5, |_| Err(Default::default()));
             assert_eq!(stdlib, custom);
         }
     }
