@@ -8,7 +8,6 @@ edition = "2024"
 readme = "README.md"
 authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
 keywords = ["derive", "Try", "try_trait_v2"]
-homepage = "https://github.com/MusicalNinjaDad/try_v2"
 repository = "https://github.com/MusicalNinjaDad/try_v2"
 categories = ["development-tools"]
 license = "MIT"
