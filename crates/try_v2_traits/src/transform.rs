@@ -493,4 +493,25 @@ mod tests {
             assert_eq!(custom, Some(()));
         }
     }
+
+    mod and {
+        use super::*;
+
+        #[test]
+        fn and_then_t() {
+            let some_5 = Some(5_usize);
+            let stdlib = some_5.and_then(|n| n.checked_add(1));
+            let custom = Transform::and_then(some_5, |n| n.checked_add(1));
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_then_u() {
+            struct Wrapper(Option<i32>);
+            let some_5 = Some(Wrapper(Some(5)));
+            let stdlib = some_5.and_then(|wrap| wrap.0);
+            let custom = Transform::and_then(some_5, |wrap| wrap.0);
+            assert_eq!(stdlib, custom);
+        }
+    }
 }
