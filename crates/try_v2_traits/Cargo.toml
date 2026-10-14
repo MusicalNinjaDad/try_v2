@@ -20,5 +20,4 @@ exclude.workspace = true
 [dev-dependencies]
 
 [build-dependencies]
-autocfg = { workspace = true }
 build_safely = { workspace = true }

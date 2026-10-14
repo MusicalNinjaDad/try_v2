@@ -25,5 +25,4 @@ quote = "1.0.45"
 trybuild = "1.0.116"
 
 [build-dependencies]
-autocfg = { workspace = true }
 build_safely = { workspace = true }
