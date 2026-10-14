@@ -6,7 +6,6 @@ edition.workspace = true
 readme.workspace = true
 authors.workspace = true
 keywords.workspace = true
-homepage.workspace = true
 repository.workspace = true
 categories.workspace = true
 license.workspace = true
@@ -21,5 +20,4 @@ exclude.workspace = true
 [dev-dependencies]
 
 [build-dependencies]
-autocfg = { workspace = true }
 build_safely = { workspace = true }

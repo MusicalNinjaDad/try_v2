@@ -8,7 +8,6 @@ edition = "2024"
 readme = "README.md"
 authors = ["Mike Foster <https://github.com/MusicalNinjaDad>"]
 keywords = ["derive", "Try", "try_trait_v2"]
-homepage = "https://github.com/MusicalNinjaDad/try_v2"
 repository = "https://github.com/MusicalNinjaDad/try_v2"
 categories = ["development-tools"]
 license = "MIT"
@@ -19,5 +18,4 @@ exclude = [".github", ".devcontainer"]
 try_v2_derive = { path = "crates/try_v2_derive", version = "=0.11.1" }
 try_v2_traits = { path = "crates/try_v2_traits", version = "=0.11.1" }
 
-autocfg = "1.5.1"
-build_safely = "0.5.4"
+build_safely = "0.6.1"

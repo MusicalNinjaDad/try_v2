@@ -6,7 +6,6 @@ edition.workspace = true
 readme.workspace = true
 authors.workspace = true
 keywords.workspace = true
-homepage.workspace = true
 repository.workspace = true
 categories.workspace = true
 license.workspace = true
@@ -28,5 +27,4 @@ try_v2_traits = { workspace = true, optional = true }
 log = "0.4.29"
 
 [build-dependencies]
-autocfg = { workspace = true }
 build_safely = { workspace = true }
