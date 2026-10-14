@@ -228,9 +228,9 @@ where
     }
 
     /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
-    fn and_then<Y, F>(self, f: F) -> Y
+    fn and_then<Y, F, U>(self, f: F) -> Y
     where
-        Y: Try<Output = T> + FromResidual<Self::Residual>,
+        Y: Try<Output = U> + FromResidual<Self::Residual>,
         F: FnOnce(T) -> Y,
     {
         f(self?)
@@ -491,6 +491,71 @@ mod tests {
             let some_2 = Some(2_u16);
             let custom: Option<()> = Transform::zip_with(some_1, some_2, |_, _| Default::default());
             assert_eq!(custom, Some(()));
+        }
+    }
+
+    mod and_or {
+        use super::*;
+
+        #[test]
+        fn and_then_t() {
+            let some_5 = Some(5_usize);
+            let stdlib = some_5.and_then(|n| n.checked_add(1));
+            let custom = Transform::and_then(some_5, |n| n.checked_add(1));
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_then_u() {
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+            struct Wrapper(Option<i32>);
+            let some_5 = Some(Wrapper(Some(5)));
+            let stdlib = some_5.and_then(|wrap| wrap.0);
+            let custom = Transform::and_then(some_5, |wrap| wrap.0);
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn and_then_reverse_infer() {
+            let some_5 = Some(5);
+            #[allow(clippy::bind_instead_of_map)]
+            let stdlib: Option<usize> = some_5.and_then(|_| Some(Default::default()));
+            let custom: Option<usize> = Transform::and_then(some_5, |_| Some(Default::default()));
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn or_else_e() {
+            let err_5: Result<(), _> = Err(5_usize);
+            #[allow(clippy::bind_instead_of_map)]
+            let stdlib = err_5.or_else(|e| Err(e + 1));
+            let custom = Transform::or_else(err_5, |r| {
+                let Err(e) = r;
+                Err(e + 1)
+            });
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn or_else_f() {
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+            struct Wrapper(Result<(), i32>);
+            let err_5: Result<(), Wrapper> = Err(Wrapper(Err(5)));
+            let stdlib = err_5.or_else(|e| e.0);
+            let custom = Transform::or_else(err_5, |r| {
+                let Err(e) = r;
+                e.0
+            });
+            assert_eq!(stdlib, custom);
+        }
+
+        #[test]
+        fn or_else_reverse_infer() {
+            let err_5: Result<(), _> = Err(5);
+            #[allow(clippy::bind_instead_of_map)]
+            let stdlib: Result<_, usize> = err_5.or_else(|_| Err(Default::default()));
+            let custom: Result<_, usize> = Transform::or_else(err_5, |_| Err(Default::default()));
+            assert_eq!(stdlib, custom);
         }
     }
 }
