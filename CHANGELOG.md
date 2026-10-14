@@ -1,5 +1,15 @@
 # Changelog try_v2
 
+## [v0.11.1]
+
+### Bugfixes
+
+- `and_then()` supports `Option<T>` -> `Option<U>`
+
+### Technical
+
+- use `"=x.y.z"` pinned versions of sub-crates
+
 ## [v0.11.0]
 
 ### Breaking change
