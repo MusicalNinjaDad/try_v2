@@ -228,9 +228,9 @@ where
     }
 
     /// `foo.and_then(bar)` calls `bar()` if `foo` is the output case, otherwise returns `foo`.
-    fn and_then<Y, F>(self, f: F) -> Y
+    fn and_then<Y, F, U>(self, f: F) -> Y
     where
-        Y: Try<Output = T> + FromResidual<Self::Residual>,
+        Y: Try<Output = U> + FromResidual<Self::Residual>,
         F: FnOnce(T) -> Y,
     {
         f(self?)
@@ -507,11 +507,21 @@ mod tests {
 
         #[test]
         fn and_then_u() {
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
             struct Wrapper(Option<i32>);
             let some_5 = Some(Wrapper(Some(5)));
             let stdlib = some_5.and_then(|wrap| wrap.0);
             let custom = Transform::and_then(some_5, |wrap| wrap.0);
             assert_eq!(stdlib, custom);
         }
+
+        #[test]
+        fn and_then_reverse_infer() {
+            let some_5 = Some(5);
+            let stdlib: Option<usize> = some_5.and_then(|_| Default::default());
+            let custom: Option<usize> = Transform::and_then(some_5, |_| Default::default());
+            assert_eq!(stdlib, custom);
+        }
+
     }
 }
